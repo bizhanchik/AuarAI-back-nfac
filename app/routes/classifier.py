@@ -15,7 +15,7 @@ import os
 
 router = APIRouter(prefix="/ai", tags=["AI"])
 
-REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
 r = redis.Redis.from_url(REDIS_URL, db=1)
 
 @router.post("/classify-image")
