@@ -4,11 +4,11 @@ from .services.ai import ai_classify_clothing
 
 celery_app = Celery(
     "tasks",
-    broker="redis://db:6379/0",
-    backend="redis://db:6379/0"
+    broker="redis://redis:6379/0",
+    backend="redis://redis:6379/0"
 )
 
-r = redis.Redis(host="db", port=6379, db=1)
+r = redis.Redis(host="redis", port=6379, db=1)
 
 def redis_key_for_user(user_id: int) -> str:
     return f"user:{user_id}:tasks"
