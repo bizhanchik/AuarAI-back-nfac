@@ -1,14 +1,19 @@
 from celery import Celery
 import redis
+import os
+from dotenv import load_dotenv
 from .services.ai import ai_classify_clothing
+
+# Load environment variables
+load_dotenv()
 
 celery_app = Celery(
     "tasks",
-    broker="redis://redis:6379/0",
-    backend="redis://redis:6379/0"
+    broker=os.getenv("CELERY_BROKER_URL", "redis://redis:6379/0"),
+    backend=os.getenv("CELERY_RESULT_BACKEND", "redis://redis:6379/0")
 )
 
-r = redis.Redis(host="redis", port=6379, db=1)
+r = redis.Redis.from_url(os.getenv("REDIS_URL", "redis://redis:6379/0"), db=1)
 
 def redis_key_for_user(user_id: int) -> str:
     return f"user:{user_id}:tasks"

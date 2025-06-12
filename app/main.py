@@ -1,4 +1,9 @@
 from typing import List
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 from fastapi import FastAPI, APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
