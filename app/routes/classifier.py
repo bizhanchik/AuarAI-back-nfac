@@ -11,10 +11,12 @@ from ..auth import get_current_user
 from ..models import User
 from ..tasks import classify_image_task, redis_key_for_user
 from app import models
+import os
 
 router = APIRouter(prefix="/ai", tags=["AI"])
 
-r = redis.Redis(host="localhost", port=6379, db=1)
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+r = redis.Redis.from_url(REDIS_URL, db=1)
 
 @router.post("/classify-image")
 async def classify_images(
