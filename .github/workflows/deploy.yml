@@ -22,7 +22,8 @@ jobs:
 
       - name: Run deploy script on server
         run: |
-          ssh -i ~/.ssh/id_ed25519 "${{ secrets.DO_USER }}@${{ secrets.DO_HOST }}" "~/deploy.sh"
+          ssh -i ~/.ssh/id_ed25519 "${{ secrets.DO_USER }}@${{ secrets.DO_HOST }}" "bash ~/AuarAI-back-nfac/deploy.sh"
+
 
 
 
