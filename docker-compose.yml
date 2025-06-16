@@ -13,21 +13,14 @@ services:
     env_file:
       - .env
     depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_started
+      - db
+      - redis
     networks:
       - app-network
 
   db:
     image: postgres:15
     restart: always
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
     volumes:
       - postgres_data:/var/lib/postgresql/data
     env_file:
