@@ -51,6 +51,21 @@ services:
     networks:
       - app-network
 
+  celery_beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: celery -A app.tasks beat --loglevel=info
+    volumes:
+      - .:/app:delegated
+    env_file:
+      - .env
+    depends_on:
+      - redis
+      - celery_worker
+    networks:
+      - app-network
+
 networks:
   app-network:
     driver: bridge
