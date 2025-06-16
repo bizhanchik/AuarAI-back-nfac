@@ -3,7 +3,7 @@ name: Deploy to DigitalOcean
 on:
   push:
     branches:
-      - main
+      - main  # или другая ветка, если у тебя другая
 
 jobs:
   deploy:
