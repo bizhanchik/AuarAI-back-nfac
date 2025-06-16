@@ -2,48 +2,64 @@ version: '3.8'
 
 services:
   web:
-    build: .
-    ports: ["8000:8000"]
-    volumes: [".:/app"]
-    env_file: [.env]
-    depends_on: 
-      - db
-      - redis
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app:delegated
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
     networks:
       - app-network
 
   db:
     image: postgres:15
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: Bizhan2008
-      POSTGRES_DB: clothing_db
+    env_file:
+      - .env
     networks:
       - app-network
 
   redis:
     image: redis:7-alpine
-    ports: ["6379:6379"]
+    ports:
+      - "6379:6379"
     networks:
       - app-network
 
   celery_worker:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     command: celery -A app.tasks worker --loglevel=info
-    volumes: [".:/app"]
-    env_file: [.env]
+    volumes:
+      - .:/app:delegated
+    env_file:
+      - .env
     depends_on:
       - redis
+      - db
     networks:
       - app-network
 
-# ←—— define the network here
 networks:
   app-network:
     driver: bridge
 
-# ←—— define your named volume too
 volumes:
   postgres_data:
