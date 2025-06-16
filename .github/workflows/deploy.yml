@@ -7,7 +7,6 @@ on:
 
 jobs:
   deploy:
-    name: SSH Deploy to Server
     runs-on: ubuntu-latest
 
     steps:
@@ -21,12 +20,6 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H ${{ secrets.DO_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Pull and deploy on remote server
+      - name: Run deploy script on server
         run: |
-          ssh -i ~/.ssh/id_ed25519 "${{ secrets.DO_USER }}@${{ secrets.DO_HOST }}" '
-            cd ~/AuarAI-back-nfac &&
-            git pull origin main &&
-            docker-compose down --volumes --remove-orphans &&
-            docker-compose build &&
-            docker-compose up -d
-          '
+          ssh -i ~/.ssh/id_ed25519 "${{ secrets.DO_USER }}@${{ secrets.DO_HOST }}" "bash ~/AuarAI-back-nfac/deploy.sh"
