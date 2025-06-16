@@ -11,10 +11,12 @@ from sqlalchemy.orm import Session
 
 from . import models, schemas, crud, auth, database
 from .routes import classifier
+from .routes import items
 
 
 app = FastAPI()
 app.include_router(classifier.router)
+app.include_router(items.router)
 
 
 # Зависимость: сессия базы данных
@@ -45,18 +47,6 @@ def create_item(
     current_user: models.User = Depends(auth.get_current_user)
 ):
     return crud.create_clothing_item(db, item, current_user.id)
-
-@clothing_router.get(
-    "/",
-    response_model=List[schemas.ClothingItem]
-)
-def read_items(
-    skip: int = 0,
-    limit: int = 100,
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.get_current_user)
-):
-    return crud.get_clothing_items_by_owner(db, current_user.id, skip, limit)
 
 # Роутер для регистрации и логина
 auth_router = APIRouter(tags=["auth"])
