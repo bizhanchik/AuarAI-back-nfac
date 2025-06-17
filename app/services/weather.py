@@ -4,6 +4,9 @@ import requests
 from datetime import datetime
 import redis
 import json
+from dotenv import load_dotenv
+load_dotenv()
+
 
 # Redis client for caching weather data
 redis_client = redis.Redis(
