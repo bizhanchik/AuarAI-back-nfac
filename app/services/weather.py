@@ -5,6 +5,7 @@ from datetime import datetime
 import redis
 import json
 from dotenv import load_dotenv
+import traceback
 load_dotenv()
 
 
@@ -53,7 +54,8 @@ def fetch_weather() -> Optional[Dict]:
         redis_client.set(WEATHER_CACHE_KEY, json.dumps(weather_data))
         return weather_data
     except Exception as e:
-        print(f"Error fetching weather data: {str(e)}")
+        print("🛑 Ошибка при получении погоды:", str(e))
+        traceback.print_exc()  # 👈 чтобы видеть весь трейс
         return None
 
 def get_cached_weather() -> Optional[Dict]:
