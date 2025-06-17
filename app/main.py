@@ -10,12 +10,13 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 from . import models, schemas, crud, auth, database
-from .routes import classifier, weather
+from .routes import classifier, weather, photo_upload
 
 
 app = FastAPI()
 app.include_router(classifier.router)
 app.include_router(weather.router, prefix="/weather", tags=["weather"])
+app.include_router(photo_upload.router)
 
 
 # Зависимость: сессия базы данных
