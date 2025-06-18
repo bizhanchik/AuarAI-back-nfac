@@ -10,8 +10,9 @@ from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
-from . import models, schemas, crud, auth, database
-from .routes import classifier, weather, photo_upload, items
+from . import models, schemas, crud, auth
+from .database import get_db
+from .routes import classifier, weather, photo_upload, items, stylist
 
 app = FastAPI()
 
@@ -32,15 +33,10 @@ app.include_router(classifier.router)
 app.include_router(items.router)
 app.include_router(weather.router, prefix="/weather", tags=["weather"])
 app.include_router(photo_upload.router)
+app.include_router(stylist.router)
 
 
-# Зависимость: сессия базы данных
-def get_db():
-    db = database.SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+
 
 # Роутер для операций с одеждой
 clothing_router = APIRouter(

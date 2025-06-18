@@ -3,18 +3,9 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
 from .. import models, schemas, crud, auth
-from ..database import SessionLocal
+from ..database import get_db
 
 router = APIRouter(prefix="/items", tags=["items"])
-
-
-# Зависимость: сессия базы данных
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 
 @router.get(
