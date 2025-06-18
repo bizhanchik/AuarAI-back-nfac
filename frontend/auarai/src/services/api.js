@@ -2,7 +2,8 @@ import axios from 'axios';
 
 // Создаем экземпляр axios с базовой конфигурацией
 export const api = axios.create({
-  baseURL: 'http://auarai.com', // Адрес вашего FastAPI бэкенда
+  // baseURL: 'http://localhost:8000', // Адрес вашего FastAPI бэкенда
+  baseURL: 'https://auarai.com',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -42,4 +43,23 @@ export const clothingAPI = {
   },
   getClassificationResult: (taskId) => api.get(`/ai/classification-result/${taskId}`),
   addClothingItem: (itemData) => api.post('/clothing/', itemData),
+  updateClothingItem: (itemId, itemData) => api.put(`/clothing/${itemId}`, itemData),
+  deleteClothingItem: (itemId) => api.delete(`/clothing/${itemId}`),
+  uploadPhoto: (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post('/upload-photo', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+  getStyleAdvice: (occasion, weather, stylePreference = 'casual') => 
+    api.post('/stylist/suggest-outfit', null, { 
+      params: { 
+        occasion, 
+        weather, 
+        style_preference: stylePreference 
+      } 
+    }),
 }; 

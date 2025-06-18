@@ -42,7 +42,7 @@ const LoginPage = () => {
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="text-center">
             <h2 className="text-3xl font-bold text-gray-900 mb-2">
-              Вход в AuraAI
+              Вход в AuarAi
             </h2>
             <p className="text-gray-600">
               Добро пожаловать обратно

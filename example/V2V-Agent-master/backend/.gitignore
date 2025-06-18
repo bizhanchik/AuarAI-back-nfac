@@ -1,0 +1,57 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+*.log
+
+.env
+
+# Virtual environment
+venv/
+.venv/
+env/
+ENV/
+
+# IDEs
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Poetry
+poetry.lock
+*.toml
+
+# Pytest
+.pytest_cache/
+
+# Coverage
+htmlcov/
+.coverage
+.tox/
+.nox/
+
+# MyPy, Pylint, etc.
+.mypy_cache/
+.pylint.d/
+.cache/
+
+# FastAPI-specific (if you store static files or media)
+static/
+media/
+
+# Docker
+*.pid
+*.pid.lock
+docker-compose.override.yml
+
+# Uvicorn log files (if you write to file)
+*.uvicorn.log

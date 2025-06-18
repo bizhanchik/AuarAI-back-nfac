@@ -1,8 +1,11 @@
+
 import { motion } from 'framer-motion';
 import { ChevronRightIcon, HeartIcon, CloudIcon, SparklesIcon } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 const LandingPage = () => {
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   const fadeInUp = {
@@ -20,11 +23,58 @@ const LandingPage = () => {
   };
 
   const handleTryNow = () => {
-    navigate('/register');
+    if (user) {
+      navigate('/dashboard');
+    } else {
+      navigate('/register');
+    }
+  };
+
+  const handleContinueUsing = () => {
+    if (user) {
+      navigate('/dashboard');
+    } else {
+      navigate('/login');
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-purple-50/30 to-pink-50/20 font-body">
+    <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-purple-50/30 to-pink-50/20 font-body overflow-x-hidden">
+      {/* Header */}
+      <motion.header 
+        className="relative z-10 bg-white/80 backdrop-blur-sm border-b border-gray-200/50 sticky top-0"
+        initial={{ y: -100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.8 }}
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-20">
+            <motion.div 
+              className="flex items-center space-x-2"
+              whileHover={{ scale: 1.05 }}
+              transition={{ type: "spring", stiffness: 300 }}
+            >
+              <div className="w-10 h-10 bg-gradient-to-r from-brand-violet to-brand-peach rounded-xl flex items-center justify-center">
+                <SparklesIcon className="h-6 w-6 text-white" />
+              </div>
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-brand-violet to-brand-peach bg-clip-text text-transparent">
+                AuarAI
+              </h1>
+            </motion.div>
+            
+            <motion.button
+              onClick={handleContinueUsing}
+              className="flex items-center px-6 py-3 bg-gradient-to-r from-brand-violet to-brand-peach text-white font-semibold rounded-xl hover:shadow-lg transition-all"
+              whileHover={{ scale: 1.05, y: -2 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              {user ? 'Продолжить использование' : 'Начать'}
+              <ChevronRightIcon className="h-5 w-5 ml-2" />
+            </motion.button>
+          </div>
+        </div>
+      </motion.header>
+
       {/* Hero Section */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-brand-violet/5 via-transparent to-brand-peach/5"></div>
@@ -38,7 +88,7 @@ const LandingPage = () => {
             {/* Logo Placeholder */}
             <motion.div 
               className="mx-auto w-32 h-32 bg-gradient-to-br from-brand-violet to-brand-peach rounded-3xl flex items-center justify-center mb-8 shadow-lg"
-              whileHover={{ scale: 1.05 }}
+              whileHover={{ scale: 1.05, rotate: 5 }}
               transition={{ type: "spring", stiffness: 300 }}
             >
               <span className="text-white font-display text-2xl">AI</span>
@@ -71,7 +121,7 @@ const LandingPage = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6, duration: 0.8 }}
             >
-              Try It Now
+              {user ? 'Open Wardrobe' : 'Try It Now'}
               <ChevronRightIcon className="ml-2 h-5 w-5" />
             </motion.button>
           </motion.div>
@@ -304,7 +354,7 @@ const LandingPage = () => {
                 whileHover={{ scale: 1.05, y: -2 }}
                 whileTap={{ scale: 0.95 }}
               >
-                Get Early Access
+                {user ? 'Open Dashboard' : 'Get Early Access'}
                 <ChevronRightIcon className="ml-2 h-5 w-5" />
               </motion.button>
               

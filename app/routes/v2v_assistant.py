@@ -12,6 +12,8 @@ from typing import Optional
 import logging
 from datetime import datetime
 import uuid
+from google.oauth2 import service_account
+from google.cloud.exceptions import GoogleCloudError
 
 # Conditional imports for optional dependencies
 try:
@@ -37,7 +39,7 @@ except ImportError:
     print("WARNING: PIL not available. Image processing will be limited.")
 
 from ..database import get_db
-from ..auth import get_current_user_websocket
+from ..auth import get_current_user_websocket, get_current_user
 from ..models import User
 
 router = APIRouter(prefix="/v2v", tags=["v2v-assistant"])
@@ -61,10 +63,27 @@ def get_gemini_model():
     return genai.GenerativeModel('gemini-2.0-flash')
 
 def get_gcs_client():
-    """Initialize Google Cloud Storage client"""
+    """Initialize Google Cloud Storage client with explicit credentials"""
     try:
-        # GCS client will use GOOGLE_APPLICATION_CREDENTIALS env var or default credentials
-        client = storage.Client()
+        # Use GOOGLE_APPLICATION_CREDENTIALS if available, otherwise fall back to GCS_CREDENTIALS_PATH
+        credentials_path = (
+            os.getenv('GOOGLE_APPLICATION_CREDENTIALS') or 
+            os.getenv('GCS_CREDENTIALS_PATH', 'gcs-key.json')
+        )
+        
+        if not os.path.exists(credentials_path):
+            logger.error(f"Service account file not found: {credentials_path}")
+            return None
+        
+        # Load credentials explicitly from the service account file
+        credentials = service_account.Credentials.from_service_account_file(
+            credentials_path,
+            scopes=['https://www.googleapis.com/auth/cloud-platform']
+        )
+        
+        # Initialize client with explicit credentials
+        client = storage.Client(credentials=credentials)
+        logger.info("GCS client for V2V assistant initialized successfully")
         return client
     except Exception as e:
         logger.error(f"Failed to initialize GCS client: {e}")
@@ -76,7 +95,7 @@ class VideoToVoiceProcessor:
         self.gcs_client = get_gcs_client()
         self.bucket_name = os.getenv("GCS_BUCKET_NAME", "v2v-assistant-frames")
         self.frame_count = 0
-        self.analysis_interval = 5  # Analyze every 5 frames (~5 seconds with 1fps from frontend)
+        self.analysis_interval = 10  # Analyze every 5 frames (~5 seconds with 1fps from frontend)
         self.last_analysis_time = 0
         
     async def upload_frame_to_gcs(self, frame_bytes: bytes) -> Optional[str]:

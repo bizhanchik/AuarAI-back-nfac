@@ -18,7 +18,8 @@ app = FastAPI()
 
 origins = [
     "http://localhost:5173",
-    "http://localhost:5175",  # добавь порт фронта!
+    "http://localhost:5175", 
+    "http://192.168.1.46:5173", # добавь порт фронта!
 ]
 
 # Configure CORS
@@ -59,6 +60,33 @@ def create_item(
     current_user: models.User = Depends(auth.get_current_user)
 ):
     return crud.create_clothing_item(db, item, current_user.id)
+
+@clothing_router.put(
+    "/{item_id}",
+    response_model=schemas.ClothingItem
+)
+def update_item(
+    item_id: int,
+    item: schemas.ClothingItemCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    db_item = crud.get_clothing_item_by_id(db, item_id, current_user.id)
+    if not db_item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return crud.update_clothing_item(db, item_id, item)
+
+@clothing_router.delete("/{item_id}")
+def delete_item(
+    item_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    db_item = crud.get_clothing_item_by_id(db, item_id, current_user.id)
+    if not db_item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    crud.delete_clothing_item(db, item_id)
+    return {"message": "Item deleted successfully"}
 
 # Роутер для регистрации и логина
 auth_router = APIRouter(tags=["auth"])

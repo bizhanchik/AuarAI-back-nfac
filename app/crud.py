@@ -43,3 +43,38 @@ def get_clothing_items_by_owner(
           .limit(limit)
           .all()
     )
+
+def get_clothing_item_by_id(
+    db: Session,
+    item_id: int,
+    owner_id: int
+) -> models.ClothingItem:
+    return db.query(models.ClothingItem).filter(
+        models.ClothingItem.id == item_id,
+        models.ClothingItem.owner_id == owner_id
+    ).first()
+
+def update_clothing_item(
+    db: Session,
+    item_id: int,
+    item_in: schemas.ClothingItemCreate
+) -> models.ClothingItem:
+    data = item_in.dict()
+    # Convert HttpUrl to str if needed
+    if data.get("image_url"):
+        data["image_url"] = str(data["image_url"])
+    if data.get("store_url"):
+        data["store_url"] = str(data["store_url"])
+    if data.get("product_url"):
+        data["product_url"] = str(data["product_url"])
+    
+    db.query(models.ClothingItem).filter(models.ClothingItem.id == item_id).update(data)
+    db.commit()
+    return db.query(models.ClothingItem).filter(models.ClothingItem.id == item_id).first()
+
+def delete_clothing_item(
+    db: Session,
+    item_id: int
+):
+    db.query(models.ClothingItem).filter(models.ClothingItem.id == item_id).delete()
+    db.commit()
