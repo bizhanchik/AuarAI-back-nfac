@@ -47,5 +47,5 @@ class ClothingItem(Base):
     weather_suitability    = Column(JSON, default=list)
     ai_generated_embedding = Column(JSON, default=list)
 
-    available  = Column(Boolean, default=True)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    available  = Column(Boolean, default=True, nullable=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True)

@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from . import models, schemas, crud, auth
 from .database import get_db
-from .routes import classifier, weather, photo_upload, items, stylist
+from .routes import classifier, weather, photo_upload, items, stylist, v2v_assistant
 
 app = FastAPI()
 
@@ -34,6 +34,7 @@ app.include_router(items.router)
 app.include_router(weather.router, prefix="/weather", tags=["weather"])
 app.include_router(photo_upload.router)
 app.include_router(stylist.router)
+app.include_router(v2v_assistant.router)
 
 
 

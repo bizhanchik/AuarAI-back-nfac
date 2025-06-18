@@ -83,3 +83,23 @@ def get_current_user(
         db.refresh(user)
 
     return user
+
+# --- WebSocket Authentication ---
+async def get_current_user_websocket(token: str, db: Session) -> models.User:
+    """
+    WebSocket version of get_current_user.
+    Since WebSocket doesn't support dependency injection the same way,
+    we need a direct function.
+    """
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            return None
+    except JWTError:
+        return None
+
+    user = crud.get_user_by_username(db, username)
+    if user:
+        db.refresh(user)
+    return user

@@ -42,8 +42,8 @@ class ClothingItemCreate(ClothingItemBase):
 class ClothingItem(ClothingItemBase):
     id:         int
     owner_id:   int
-    available:  bool
-    updated_at: datetime
+    available:  Optional[bool] = True
+    updated_at: Optional[datetime] = None
 
     class Config:
         orm_mode = True
