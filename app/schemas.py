@@ -16,20 +16,20 @@ class Token(BaseModel):
     token_type: str
 
 class ClothingItemBase(BaseModel):
-    name:     str
-    brand:    Optional[str]
-    category: str
-    gender:   str
-    color:    Optional[str]
-    size:     Optional[str]
-    material: Optional[str]
-    description: Optional[str]
+    name:        str
+    brand:       Optional[str] = None
+    category:    Optional[str] = None
+    gender:      Optional[str] = None  # <--- добавили и сделали опциональным
+    color:       Optional[str] = None
+    size:        Optional[str] = None
+    material:    Optional[str] = None
+    description: Optional[str] = None
 
-    image_url:   HttpUrl
-    store_name:  str
-    store_url:   Optional[HttpUrl]
-    product_url: HttpUrl
-    price:       float
+    image_url:   Optional[str] = None
+    store_name:  str = "User Upload"
+    store_url:   Optional[str] = None
+    product_url: Optional[str] = None
+    price:       Optional[float] = 0.0
 
     tags:                Optional[List[str]] = Field(default_factory=list)
     occasions:           Optional[List[str]] = Field(default_factory=list)

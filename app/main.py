@@ -7,12 +7,27 @@ load_dotenv()
 
 from fastapi import FastAPI, APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
 from . import models, schemas, crud, auth, database
 from .routes import classifier, weather, photo_upload, items
 
 app = FastAPI()
+
+origins = [
+    "http://localhost:5173",
+    "http://localhost:5175",  # добавь порт фронта!
+]
+
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],  # React dev server
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],    
+)
 app.include_router(classifier.router)
 app.include_router(items.router)
 app.include_router(weather.router, prefix="/weather", tags=["weather"])
@@ -108,3 +123,12 @@ def debug_me(current_user: models.User = Depends(auth.get_current_user)):
             **current_user.__dict__
         }
     }
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,            # Разрешённые источники
+    allow_credentials=True,
+    allow_methods=["*"],              # Разрешить все методы (GET, POST и т.д.)
+    allow_headers=["*"],              # Разрешить все заголовки
+)

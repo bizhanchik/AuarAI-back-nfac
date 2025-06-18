@@ -5,10 +5,6 @@ router = APIRouter()
 
 @router.get("/almaty")
 async def get_almaty_weather():
-    """
-    Get the current weather in Almaty.
-    Returns cached data if available, otherwise fetches fresh one.
-    """
     weather_data = get_cached_weather()
     if not weather_data:
         weather_data = fetch_weather()

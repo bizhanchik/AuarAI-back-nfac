@@ -1,0 +1,6 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+Code should be organized into logically separated files and modules. Avoid placing large amounts of unrelated or mixed logic (e.g., models, views, services, helpers) into a single file.

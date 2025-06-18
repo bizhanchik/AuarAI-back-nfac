@@ -29,23 +29,23 @@ class ClothingItem(Base):
 
     name        = Column(String, nullable=False)
     brand       = Column(String, nullable=True)
-    category    = Column(String, nullable=False)
-    gender      = Column(String, nullable=False)
+    category    = Column(String, nullable=True)
+    gender      = Column(String, nullable=True)      # ← добавили это поле
     color       = Column(String, nullable=True)
     size        = Column(String, nullable=True)
     material    = Column(String, nullable=True)
     description = Column(String, nullable=True)
 
-    image_url   = Column(String, nullable=False)
-    store_name  = Column(String, nullable=False)
+    image_url   = Column(String, nullable=True)
+    store_name  = Column(String, nullable=False, default="User Upload")
     store_url   = Column(String, nullable=True)
-    product_url = Column(String, nullable=False)
-    price       = Column(Float,  nullable=False)
+    product_url = Column(String, nullable=True)
+    price       = Column(Float,  nullable=True, default=0.0)
 
-    tags                   = Column(JSON, default=list)  # ["casual", "summer"]
-    occasions              = Column(JSON, default=list)  # ["party", "work"]
-    weather_suitability    = Column(JSON, default=list)  # ["rainy", "cold"]
-    ai_generated_embedding = Column(JSON, default=list)  # [0.12, 0.53, ...]
+    tags                   = Column(JSON, default=list)
+    occasions              = Column(JSON, default=list)
+    weather_suitability    = Column(JSON, default=list)
+    ai_generated_embedding = Column(JSON, default=list)
 
     available  = Column(Boolean, default=True)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
