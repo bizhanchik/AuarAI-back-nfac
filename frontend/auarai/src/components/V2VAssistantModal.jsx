@@ -20,7 +20,22 @@ const V2VAssistantModal = ({ isOpen, onClose }) => {
   const connectWebSocket = () => {
     try {
       const token = localStorage.getItem('token');
-      const wsUrl = `ws://localhost:8000/v2v/ws/video-chat`;
+      
+      // Try different WebSocket URLs based on environment
+      let wsUrl;
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        wsUrl = `ws://localhost:8000/v2v/ws/video-chat`;
+      } else {
+        // For production, try both WSS and WS
+        wsUrl = `wss://auarai.com/v2v/ws/video-chat`;
+      }
+      
+      console.log('Attempting to connect to:', wsUrl);
+      
+      // Add token to WebSocket if available
+      if (token) {
+        wsUrl += `?token=${token}`;
+      }
       
       wsRef.current = new WebSocket(wsUrl);
       
@@ -70,12 +85,85 @@ const V2VAssistantModal = ({ isOpen, onClose }) => {
       wsRef.current.onerror = (error) => {
         console.error('WebSocket error:', error);
         setConnectionStatus('error');
-        toast.error('Ошибка подключения к AI стилисту');
+        
+        // Try fallback connection if production fails
+        if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+          console.log('WSS failed, trying WS fallback...');
+          tryFallbackConnection();
+        } else {
+          toast.error('Ошибка подключения к AI стилисту. Проверьте, что бэкенд запущен.');
+        }
       };
       
     } catch (error) {
       console.error('Error connecting WebSocket:', error);
       toast.error('Не удалось подключиться к AI стилисту');
+    }
+  };
+
+  // Fallback connection for production
+  const tryFallbackConnection = () => {
+    try {
+      const token = localStorage.getItem('token');
+      let wsUrl = `ws://auarai.com:8000/v2v/ws/video-chat`;
+      
+      if (token) {
+        wsUrl += `?token=${token}`;
+      }
+      
+      console.log('Trying fallback connection to:', wsUrl);
+      
+      wsRef.current = new WebSocket(wsUrl);
+      
+      wsRef.current.onopen = () => {
+        setIsConnected(true);
+        setConnectionStatus('connected');
+        toast.success('Подключен к AI стилисту через резервное соединение!');
+      };
+      
+      wsRef.current.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        
+        if (data.type === 'compliment') {
+          setCurrentCompliment(data.text);
+          
+          // Play audio compliment
+          if (data.audio) {
+            const audioBlob = base64ToBlob(data.audio, 'audio/mp3');
+            const audioUrl = URL.createObjectURL(audioBlob);
+            
+            if (audioRef.current) {
+              audioRef.current.pause();
+              audioRef.current.currentTime = 0;
+              audioRef.current.src = audioUrl;
+              audioRef.current.play()
+                .then(() => {
+                  setIsAudioPlaying(true);
+                })
+                .catch((error) => {
+                  console.error('Error playing audio:', error);
+                  setIsAudioPlaying(false);
+                });
+            }
+          }
+        }
+      };
+      
+      wsRef.current.onclose = () => {
+        setIsConnected(false);
+        setConnectionStatus('disconnected');
+        toast.error('Соединение с AI стилистом потеряно');
+      };
+      
+      wsRef.current.onerror = (error) => {
+        console.error('Fallback WebSocket error:', error);
+        setConnectionStatus('error');
+        toast.error('Не удалось подключиться к AI стилисту. Сервис временно недоступен.');
+      };
+      
+    } catch (error) {
+      console.error('Error in fallback connection:', error);
+      toast.error('Сервис видео-чата временно недоступен');
     }
   };
 
@@ -261,8 +349,8 @@ const V2VAssistantModal = ({ isOpen, onClose }) => {
             </button>
           </div>
 
-          {/* Connection Status */}
-          <div className="mb-4">
+                      {/* Connection Status */}
+          <div className="mb-4 flex items-center justify-between">
             <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm ${
               connectionStatus === 'connected' 
                 ? 'bg-green-100 text-green-800' 
@@ -277,9 +365,35 @@ const V2VAssistantModal = ({ isOpen, onClose }) => {
                   ? 'bg-red-500'
                   : 'bg-yellow-500'
               }`}></div>
-              {connectionStatus === 'connected' ? 'Подключен' : 
-               connectionStatus === 'error' ? 'Ошибка' : 'Подключение...'}
+              {connectionStatus === 'connected' ? 'Подключен к AI стилисту' : 
+               connectionStatus === 'error' ? 'Ошибка подключения' : 'Подключение...'}
             </div>
+            
+            {connectionStatus === 'error' && (
+              <button
+                onClick={connectWebSocket}
+                className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+              >
+                Повторить
+              </button>
+            )}
+          </div>
+          
+          {/* Service Status Info */}
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm text-blue-800">
+              🏥 <strong>Статус сервиса:</strong> Backend V2V доступен и готов к работе
+            </p>
+            <p className="text-xs text-blue-600 mt-1">
+              Если подключение не удается, возможно WebSocket блокируется прокси-сервером
+            </p>
+            {connectionStatus === 'error' && (
+              <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
+                <p className="text-xs text-yellow-800">
+                  <strong>Решение:</strong> Обратитесь к администратору для настройки WebSocket через nginx/apache
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Video Section */}

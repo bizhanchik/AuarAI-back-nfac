@@ -143,8 +143,9 @@ const AddClothingModal = ({ isOpen, onClose, onClothingAdded }) => {
   };
 
   const processFile = (file) => {
-    if (file.size > 10 * 1024 * 1024) { // 10MB limit
-      toast.error('Файл слишком большой. Максимальный размер: 10MB');
+    // Check file size - reduce to 5MB for better compatibility
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      toast.error('Файл слишком большой. Максимальный размер: 5MB');
       return;
     }
 
@@ -152,11 +153,18 @@ const AddClothingModal = ({ isOpen, onClose, onClothingAdded }) => {
       toast.error('Пожалуйста, выберите изображение');
       return;
     }
+
+    // Check file type more specifically
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type.toLowerCase())) {
+      toast.error('Поддерживаются только JPG, PNG и WebP форматы');
+      return;
+    }
     
     setSelectedFile(file);
     const url = URL.createObjectURL(file);
     setPreviewUrl(url);
-    toast.success('Фото загружено успешно!');
+    toast.success('Фото готово к загрузке!');
   };
 
   const handleDragEnter = (e) => {
@@ -224,9 +232,20 @@ const AddClothingModal = ({ isOpen, onClose, onClothingAdded }) => {
       }
     } catch (error) {
       console.error('Classification error:', error);
-      toast.error('Ошибка загрузки или классификации изображения');
       setStep(1);
       setLoading(false);
+      
+      if (error.code === 'ERR_NETWORK') {
+        toast.error('Проблема с подключением к серверу. Проверьте интернет-соединение.');
+      } else if (error.response?.status === 413) {
+        toast.error('Файл слишком большой для сервера. Попробуйте уменьшить размер.');
+      } else if (error.response?.status === 400) {
+        toast.error('Неподдерживаемый формат файла.');
+      } else if (error.response?.status === 0) {
+        toast.error('CORS ошибка. Обратитесь к администратору.');
+      } else {
+        toast.error('Ошибка загрузки или классификации изображения');
+      }
     }
   };
 
@@ -254,9 +273,20 @@ const AddClothingModal = ({ isOpen, onClose, onClothingAdded }) => {
       setStep(3);
     } catch (error) {
       console.error('Upload error:', error);
-      toast.error('Ошибка загрузки изображения');
       setStep(1);
       setLoading(false);
+      
+      if (error.code === 'ERR_NETWORK') {
+        toast.error('Проблема с подключением к серверу. Проверьте интернет-соединение.');
+      } else if (error.response?.status === 413) {
+        toast.error('Файл слишком большой для сервера. Попробуйте уменьшить размер.');
+      } else if (error.response?.status === 400) {
+        toast.error('Неподдерживаемый формат файла.');
+      } else if (error.response?.status === 0) {
+        toast.error('CORS ошибка. Обратитесь к администратору.');
+      } else {
+        toast.error('Ошибка загрузки изображения');
+      }
     }
   };
 
@@ -386,6 +416,7 @@ const AddClothingModal = ({ isOpen, onClose, onClothingAdded }) => {
               <AnimatePresence mode="wait">
                 {previewUrl ? (
                   <motion.div 
+                    key="preview"
                     className="space-y-4"
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -406,6 +437,11 @@ const AddClothingModal = ({ isOpen, onClose, onClothingAdded }) => {
                       >
                         <CheckIcon className="h-4 w-4" />
                       </motion.div>
+                      {selectedFile && (
+                        <div className="absolute bottom-2 left-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
+                          {(selectedFile.size / (1024 * 1024)).toFixed(1)} MB
+                        </div>
+                      )}
                     </div>
                     <div className="flex justify-center space-x-4 flex-wrap gap-2">
                       <motion.button
@@ -436,6 +472,7 @@ const AddClothingModal = ({ isOpen, onClose, onClothingAdded }) => {
                   </motion.div>
                               ) : (
                   <motion.div 
+                    key="upload"
                     className="space-y-6"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -444,6 +481,7 @@ const AddClothingModal = ({ isOpen, onClose, onClothingAdded }) => {
                     <AnimatePresence mode="wait">
                       {isDragging ? (
                         <motion.div 
+                          key="dragging"
                           className="space-y-4"
                           initial={{ opacity: 0, scale: 0.9 }}
                           animate={{ opacity: 1, scale: 1 }}
@@ -468,6 +506,7 @@ const AddClothingModal = ({ isOpen, onClose, onClothingAdded }) => {
                         </motion.div>
                       ) : (
                         <motion.div 
+                          key="not-dragging"
                           className="space-y-4"
                           initial={{ opacity: 0, scale: 0.9 }}
                           animate={{ opacity: 1, scale: 1 }}
@@ -493,7 +532,7 @@ const AddClothingModal = ({ isOpen, onClose, onClothingAdded }) => {
                               Перетащите фото или нажмите для выбора
                             </p>
                             <p className="text-gray-600 mt-2">
-                              Поддерживаются JPG, PNG до 10MB
+                              Поддерживаются JPG, PNG, WebP до 5MB
                             </p>
                             <p className="text-sm text-gray-500 mt-1">
                               📱 Просто перетащите файл сюда!
@@ -524,7 +563,7 @@ const AddClothingModal = ({ isOpen, onClose, onClothingAdded }) => {
               
               {/* Drag overlay */}
               <AnimatePresence>
-                {isDragging && (
+                {isDragging && !previewUrl && (
                   <motion.div 
                     className="absolute inset-0 bg-blue-500 bg-opacity-10 rounded-2xl border-2 border-blue-500 border-dashed flex items-center justify-center"
                     initial={{ opacity: 0 }}
@@ -554,7 +593,7 @@ const AddClothingModal = ({ isOpen, onClose, onClothingAdded }) => {
               transition={{ delay: 0.5, duration: 0.5 }}
             >
               <p className="text-xs text-gray-500">
-                💡 Совет: Для лучшего результата используйте четкие фото на однотонном фоне
+                💡 Совет: Для лучшего результата используйте четкие фото на однотонном фоне. Файл не более 5MB.
               </p>
             </motion.div>
           </motion.div>

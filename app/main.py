@@ -20,12 +20,16 @@ origins = [
     "http://localhost:5173",
     "http://localhost:5175", 
     "http://192.168.1.46:5173", # добавь порт фронта!
+    "https://auarai.com",
+    "https://www.auarai.com",
+    "http://auarai.com",
+    "http://www.auarai.com"
 ]
 
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173","http://192.168.1.46:5173"],  # React dev server
+    allow_origins=origins,  # Use the origins list
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],    
@@ -150,10 +154,4 @@ def debug_me(current_user: models.User = Depends(auth.get_current_user)):
     }
 
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,            # Разрешённые источники
-    allow_credentials=True,
-    allow_methods=["*"],              # Разрешить все методы (GET, POST и т.д.)
-    allow_headers=["*"],              # Разрешить все заголовки
-)
+# Remove duplicate CORS middleware - already added above
