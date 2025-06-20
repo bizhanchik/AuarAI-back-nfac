@@ -2,8 +2,8 @@ import axios from 'axios';
 
 // Создаем экземпляр axios с базовой конфигурацией
 export const api = axios.create({
-  // baseURL: 'http://localhost:8000', // Адрес вашего FastAPI бэкенда
-  baseURL: 'https://auarai.com',
+  baseURL: 'http://localhost:8000', // Адрес вашего FastAPI бэкенда
+  // baseURL: 'https://auarai.com',
   headers: {
     'Content-Type': 'application/json',
   },
