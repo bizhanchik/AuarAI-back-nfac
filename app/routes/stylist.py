@@ -87,6 +87,32 @@ def get_items_by_category(items: List[ClothingItem], categories: List[str]) -> L
     """Get items that match any of the given categories"""
     return [item for item in items if item.category and item.category.lower() in [cat.lower() for cat in categories]]
 
+def convert_orm_to_schema(item: ClothingItem) -> ClothingItemSchema:
+    """Convert SQLAlchemy ORM object to Pydantic schema"""
+    return ClothingItemSchema(
+        id=item.id,
+        owner_id=item.owner_id,
+        name=item.name,
+        brand=item.brand,
+        category=item.category,
+        gender=item.gender,
+        color=item.color,
+        size=item.size,
+        material=item.material,
+        description=item.description,
+        image_url=item.image_url,
+        store_name=item.store_name,
+        store_url=item.store_url,
+        product_url=item.product_url,
+        price=item.price,
+        tags=item.tags or [],
+        occasions=item.occasions or [],
+        weather_suitability=item.weather_suitability or [],
+        ai_generated_embedding=item.ai_generated_embedding or [],
+        available=item.available,
+        updated_at=item.updated_at
+    )
+
 @router.post("/suggest-outfit", response_model=OutfitResponse)
 async def suggest_outfit(
     occasion: Optional[str] = "casual", 
@@ -201,11 +227,11 @@ async def suggest_outfit(
                 accessory_items = accessories[:2]  # Take up to 2 accessories
             
             outfit = OutfitSuggestion(
-                hat=ClothingItemSchema.from_orm(hat_item) if hat_item else None,
-                top=ClothingItemSchema.from_orm(top_item) if top_item else None,
-                bottom=ClothingItemSchema.from_orm(bottom_item) if bottom_item else None,
-                shoes=ClothingItemSchema.from_orm(shoes_item) if shoes_item else None,
-                accessories=[ClothingItemSchema.from_orm(item) for item in accessory_items],
+                hat=convert_orm_to_schema(hat_item) if hat_item else None,
+                top=convert_orm_to_schema(top_item) if top_item else None,
+                bottom=convert_orm_to_schema(bottom_item) if bottom_item else None,
+                shoes=convert_orm_to_schema(shoes_item) if shoes_item else None,
+                accessories=[convert_orm_to_schema(item) for item in accessory_items],
                 styling_tips=ai_outfit_data.get("styling_tips", f"Here's a great {style_preference} outfit for {occasion}!")
             )
             
@@ -218,11 +244,11 @@ async def suggest_outfit(
             accessories = get_items_by_category(all_items, ['accessories', 'accessory'])
             
             outfit = OutfitSuggestion(
-                hat=ClothingItemSchema.from_orm(hats[0]) if hats else None,
-                top=ClothingItemSchema.from_orm(tops[0]) if tops else None,
-                bottom=ClothingItemSchema.from_orm(bottoms[0]) if bottoms else None,
-                shoes=ClothingItemSchema.from_orm(shoes[0]) if shoes else None,
-                accessories=[ClothingItemSchema.from_orm(item) for item in accessories[:2]],
+                hat=convert_orm_to_schema(hats[0]) if hats else None,
+                top=convert_orm_to_schema(tops[0]) if tops else None,
+                bottom=convert_orm_to_schema(bottoms[0]) if bottoms else None,
+                shoes=convert_orm_to_schema(shoes[0]) if shoes else None,
+                accessories=[convert_orm_to_schema(item) for item in accessories[:2]],
                 styling_tips=f"Here's a great {style_preference} outfit for {occasion}! " + response_text[:200] if response_text else f"Perfect for {occasion}!"
             )
         
