@@ -35,6 +35,11 @@ services:
     command: ["redis-server", "--appendonly", "yes", "--replica-read-only", "no"]
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - app-network
 
@@ -42,14 +47,22 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: celery -A app.tasks worker --loglevel=info
-    volumes:
-      - .:/app:delegated
+    restart: always
+    command: >
+      celery -A app.tasks worker
+      --loglevel=info
+      --without-gossip
+      --without-mingle
+      --heartbeat-interval=10
     env_file:
       - .env
     depends_on:
-      - redis
-      - db
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_started
+    volumes:
+      - .:/app:delegated
     networks:
       - app-network
 

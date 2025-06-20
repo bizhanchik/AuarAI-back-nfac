@@ -59,10 +59,10 @@ const AIStyleAdviceModal = ({ isOpen, onClose, userItems = [] }) => {
         mainAdvice: response.data.message,
         occasionTips: `Рекомендации для "${occasion}": ${response.data.outfit.styling_tips}`,
         recommendedItems: [
-          response.data.outfit.top,
-          response.data.outfit.bottom,
-          response.data.outfit.shoes,
-          ...(response.data.outfit.accessories || [])
+          response.data.outfit.top?.name,
+          response.data.outfit.bottom?.name,
+          response.data.outfit.shoes?.name,
+          ...(response.data.outfit.accessories?.map(acc => acc.name) || [])
         ].filter(Boolean),
         outfit: response.data.outfit,
         availableItems: response.data.available_items,
@@ -317,37 +317,29 @@ const AIStyleAdviceModal = ({ isOpen, onClose, userItems = [] }) => {
                       <span className="text-2xl mr-2">👔</span>
                       Полный образ:
                     </h4>
-                    <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="grid grid-cols-1 gap-4">
                       {advice.outfit.hat && (
-                        <div className="flex items-center space-x-2">
-                          <span className="text-lg">🎩</span>
-                          <span className="font-medium text-gray-800">{advice.outfit.hat}</span>
-                        </div>
+                        <OutfitItemCard item={advice.outfit.hat} label="Головной убор" icon="🎩" />
                       )}
-                      <div className="flex items-center space-x-2">
-                        <span className="text-lg">👕</span>
-                        <span className="font-medium text-gray-800">{advice.outfit.top}</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <span className="text-lg">👖</span>
-                        <span className="font-medium text-gray-800">{advice.outfit.bottom}</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <span className="text-lg">👟</span>
-                        <span className="font-medium text-gray-800">{advice.outfit.shoes}</span>
-                      </div>
+                      {advice.outfit.top && (
+                        <OutfitItemCard item={advice.outfit.top} label="Верх" icon="👕" />
+                      )}
+                      {advice.outfit.bottom && (
+                        <OutfitItemCard item={advice.outfit.bottom} label="Низ" icon="👖" />
+                      )}
+                      {advice.outfit.shoes && (
+                        <OutfitItemCard item={advice.outfit.shoes} label="Обувь" icon="👟" />
+                      )}
                     </div>
                     {advice.outfit.accessories && advice.outfit.accessories.length > 0 && (
-                      <div className="mt-3">
-                        <div className="flex items-center space-x-2 mb-2">
+                      <div className="mt-4">
+                        <div className="flex items-center space-x-2 mb-3">
                           <span className="text-lg">✨</span>
                           <span className="font-medium text-gray-800">Аксессуары:</span>
                         </div>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="grid grid-cols-1 gap-3">
                           {advice.outfit.accessories.map((accessory, index) => (
-                            <span key={index} className="px-3 py-1 bg-purple-100 rounded-full text-sm text-purple-700">
-                              {accessory}
-                            </span>
+                            <OutfitItemCard key={accessory.id || index} item={accessory} label="Аксессуар" icon="💍" />
                           ))}
                         </div>
                       </div>
@@ -391,6 +383,51 @@ const AIStyleAdviceModal = ({ isOpen, onClose, userItems = [] }) => {
         </motion.div>
       </motion.div>
     </AnimatePresence>
+  );
+};
+
+// Add OutfitItemCard component
+const OutfitItemCard = ({ item, label, icon }) => {
+  const [imageError, setImageError] = useState(false);
+
+  const handleImageError = () => {
+    setImageError(true);
+  };
+
+  return (
+    <div className="flex items-center space-x-3 p-3 bg-white rounded-lg border border-gray-200">
+      {/* Image */}
+      <div className="flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden bg-gray-100">
+        {item.image_url && !imageError ? (
+          <img
+            src={item.image_url}
+            alt={item.name}
+            className="w-full h-full object-cover"
+            onError={handleImageError}
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-gray-400">
+            <span className="text-lg">{icon}</span>
+          </div>
+        )}
+      </div>
+      
+      {/* Content */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+            {label}
+          </span>
+          {item.brand && (
+            <span className="text-xs text-gray-400">{item.brand}</span>
+          )}
+        </div>
+        <p className="text-sm font-medium text-gray-900 truncate">{item.name}</p>
+        {item.color && (
+          <p className="text-xs text-gray-500">{item.color}</p>
+        )}
+      </div>
+    </div>
   );
 };
 

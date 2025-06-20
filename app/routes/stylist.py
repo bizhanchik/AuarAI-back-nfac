@@ -9,16 +9,17 @@ import json
 from ..database import get_db
 from ..auth import get_current_user
 from ..models import User, ClothingItem
+from ..schemas import ClothingItem as ClothingItemSchema
 
 router = APIRouter(prefix="/stylist", tags=["stylist"])
 
-# Pydantic model for structured outfit output
+# Updated Pydantic models for structured outfit output with full item objects
 class OutfitSuggestion(BaseModel):
-    hat: Optional[str] = Field(description="Hat or headwear item name, if available")
-    top: str = Field(description="Top/shirt/blouse item name")
-    bottom: str = Field(description="Bottom/pants/skirt item name")
-    shoes: str = Field(description="Footwear item name")
-    accessories: List[str] = Field(description="List of accessory item names", default=[])
+    hat: Optional[ClothingItemSchema] = Field(description="Hat or headwear item object with image, if available")
+    top: Optional[ClothingItemSchema] = Field(description="Top/shirt/blouse item object with image")
+    bottom: Optional[ClothingItemSchema] = Field(description="Bottom/pants/skirt item object with image")
+    shoes: Optional[ClothingItemSchema] = Field(description="Footwear item object with image")
+    accessories: List[ClothingItemSchema] = Field(description="List of accessory item objects with images", default=[])
     styling_tips: str = Field(description="Additional styling advice for this outfit")
 
 class OutfitResponse(BaseModel):
@@ -63,6 +64,29 @@ def get_user_clothing_items_for_prompt(user_id: int, db: Session) -> str:
     
     return "\n".join(formatted_items)
 
+def find_clothing_item_by_name(name: str, items: List[ClothingItem]) -> Optional[ClothingItem]:
+    """Find a clothing item by name (case-insensitive, partial match)"""
+    if not name:
+        return None
+    
+    name_lower = name.lower()
+    
+    # First try exact match
+    for item in items:
+        if item.name.lower() == name_lower:
+            return item
+    
+    # Then try partial match
+    for item in items:
+        if name_lower in item.name.lower() or item.name.lower() in name_lower:
+            return item
+    
+    return None
+
+def get_items_by_category(items: List[ClothingItem], categories: List[str]) -> List[ClothingItem]:
+    """Get items that match any of the given categories"""
+    return [item for item in items if item.category and item.category.lower() in [cat.lower() for cat in categories]]
+
 @router.post("/suggest-outfit", response_model=OutfitResponse)
 async def suggest_outfit(
     occasion: Optional[str] = "casual", 
@@ -83,6 +107,9 @@ async def suggest_outfit(
                 status_code=404,
                 detail="No clothing items found. Please add some clothes to your wardrobe first."
             )
+        
+        # Get actual clothing items for lookup
+        all_items = db.query(ClothingItem).filter(ClothingItem.owner_id == current_user.id).all()
         
         # Get Gemini model
         model = get_gemini_model()
@@ -111,7 +138,7 @@ async def suggest_outfit(
             "styling_tips": "specific styling advice for this outfit combination"
         }}
 
-        Important: Only use items that are actually available in the wardrobe list above. Be specific with item names.
+        Important: Only use items that are actually available in the wardrobe list above. Be specific with item names and match them exactly.
         """
         
         # Generate response
@@ -134,30 +161,73 @@ async def suggest_outfit(
             else:
                 raise ValueError("No JSON found in response")
             
-            outfit_data = json.loads(json_text)
-            outfit = OutfitSuggestion(**outfit_data)
+            ai_outfit_data = json.loads(json_text)
             
-        except (json.JSONDecodeError, ValueError, Exception) as e:
-            # Fallback: create a simple outfit suggestion
-            items = db.query(ClothingItem).filter(ClothingItem.owner_id == current_user.id).all()
+            # Convert AI suggestions to actual ClothingItem objects
+            hat_item = None
+            if ai_outfit_data.get("hat"):
+                hat_item = find_clothing_item_by_name(ai_outfit_data["hat"], all_items)
             
-            tops = [item for item in items if item.category.lower() in ['top', 'shirt', 'blouse', 't-shirt']]
-            bottoms = [item for item in items if item.category.lower() in ['bottom', 'pants', 'jeans', 'skirt']]
-            shoes = [item for item in items if item.category.lower() in ['shoes', 'footwear']]
-            hats = [item for item in items if item.category.lower() in ['hat', 'cap']]
-            accessories = [item for item in items if item.category.lower() in ['accessories', 'accessory']]
+            top_item = find_clothing_item_by_name(ai_outfit_data.get("top", ""), all_items)
+            bottom_item = find_clothing_item_by_name(ai_outfit_data.get("bottom", ""), all_items)
+            shoes_item = find_clothing_item_by_name(ai_outfit_data.get("shoes", ""), all_items)
+            
+            # Find accessories
+            accessory_items = []
+            for acc_name in ai_outfit_data.get("accessories", []):
+                acc_item = find_clothing_item_by_name(acc_name, all_items)
+                if acc_item:
+                    accessory_items.append(acc_item)
+            
+            # Fallback: if AI couldn't find suitable items, use category-based selection
+            if not top_item:
+                tops = get_items_by_category(all_items, ['top', 'shirt', 'blouse', 't-shirt', 'sweater', 'hoodie'])
+                top_item = tops[0] if tops else None
+            
+            if not bottom_item:
+                bottoms = get_items_by_category(all_items, ['bottom', 'pants', 'jeans', 'skirt', 'shorts'])
+                bottom_item = bottoms[0] if bottoms else None
+            
+            if not shoes_item:
+                shoes = get_items_by_category(all_items, ['shoes', 'footwear', 'sneakers', 'boots', 'sandals', 'heels'])
+                shoes_item = shoes[0] if shoes else None
+            
+            if not hat_item and ai_outfit_data.get("hat"):
+                hats = get_items_by_category(all_items, ['hat', 'cap'])
+                hat_item = hats[0] if hats else None
+            
+            if not accessory_items and ai_outfit_data.get("accessories"):
+                accessories = get_items_by_category(all_items, ['accessories', 'accessory'])
+                accessory_items = accessories[:2]  # Take up to 2 accessories
             
             outfit = OutfitSuggestion(
-                hat=hats[0].name if hats else None,
-                top=tops[0].name if tops else "No suitable top found",
-                bottom=bottoms[0].name if bottoms else "No suitable bottom found", 
-                shoes=shoes[0].name if shoes else "No suitable shoes found",
-                accessories=[acc.name for acc in accessories[:2]],
-                styling_tips=f"Here's a great {style_preference} outfit for {occasion}! " + response_text[:200]
+                hat=ClothingItemSchema.from_orm(hat_item) if hat_item else None,
+                top=ClothingItemSchema.from_orm(top_item) if top_item else None,
+                bottom=ClothingItemSchema.from_orm(bottom_item) if bottom_item else None,
+                shoes=ClothingItemSchema.from_orm(shoes_item) if shoes_item else None,
+                accessories=[ClothingItemSchema.from_orm(item) for item in accessory_items],
+                styling_tips=ai_outfit_data.get("styling_tips", f"Here's a great {style_preference} outfit for {occasion}!")
+            )
+            
+        except (json.JSONDecodeError, ValueError, Exception) as e:
+            # Fallback: create a simple outfit suggestion using category-based selection
+            tops = get_items_by_category(all_items, ['top', 'shirt', 'blouse', 't-shirt', 'sweater', 'hoodie'])
+            bottoms = get_items_by_category(all_items, ['bottom', 'pants', 'jeans', 'skirt', 'shorts'])
+            shoes = get_items_by_category(all_items, ['shoes', 'footwear', 'sneakers', 'boots', 'sandals', 'heels'])
+            hats = get_items_by_category(all_items, ['hat', 'cap'])
+            accessories = get_items_by_category(all_items, ['accessories', 'accessory'])
+            
+            outfit = OutfitSuggestion(
+                hat=ClothingItemSchema.from_orm(hats[0]) if hats else None,
+                top=ClothingItemSchema.from_orm(tops[0]) if tops else None,
+                bottom=ClothingItemSchema.from_orm(bottoms[0]) if bottoms else None,
+                shoes=ClothingItemSchema.from_orm(shoes[0]) if shoes else None,
+                accessories=[ClothingItemSchema.from_orm(item) for item in accessories[:2]],
+                styling_tips=f"Here's a great {style_preference} outfit for {occasion}! " + response_text[:200] if response_text else f"Perfect for {occasion}!"
             )
         
         # Get list of available items for reference
-        available_items = [item.name for item in db.query(ClothingItem).filter(ClothingItem.owner_id == current_user.id).all()]
+        available_items = [item.name for item in all_items]
         
         return OutfitResponse(
             outfit=outfit,
