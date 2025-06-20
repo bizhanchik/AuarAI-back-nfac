@@ -45,7 +45,7 @@ const WeatherWidget = ({ weather }) => {
           {formatTemperature(weather.temperature || weather.temp)}
         </div>
         <div className="text-xs text-gray-600 truncate max-w-24">
-          {weather.city || 'Алматы'}
+          {weather.city || 'Loading...'}
         </div>
       </div>
       

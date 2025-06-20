@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from pydantic import BaseModel, Field
@@ -302,4 +302,61 @@ async def get_my_wardrobe(
         "wardrobe": wardrobe,
         "total_items": len(items),
         "categories": list(wardrobe.keys())
-    } 
+    }
+
+@router.post("/forecast-outfits")
+async def get_forecast_outfits(
+    lat: float = Query(..., description="Latitude coordinate"),
+    lon: float = Query(..., description="Longitude coordinate"),
+    days: int = Query(5, description="Number of forecast days (1-5)", ge=1, le=5),
+    occasion: str = Query("casual", description="Occasion type")
+):
+    """Generate outfit recommendations for multiple days based on weather forecast"""
+    # Validate coordinates
+    if not (-90 <= lat <= 90):
+        raise HTTPException(status_code=400, detail="Latitude must be between -90 and 90")
+    if not (-180 <= lon <= 180):
+        raise HTTPException(status_code=400, detail="Longitude must be between -180 and 180")
+    
+    try:
+        # Import here to avoid circular imports
+        from ..services.weather import get_cached_weather_forecast_by_coordinates, fetch_weather_forecast_by_coordinates
+        from ..services.ai import ai_generate_daily_outfits
+        
+        # Get weather forecast
+        forecast_data = get_cached_weather_forecast_by_coordinates(lat, lon, days)
+        if not forecast_data:
+            forecast_data = fetch_weather_forecast_by_coordinates(lat, lon, days)
+        
+        if not forecast_data:
+            raise HTTPException(
+                status_code=503,
+                detail="Weather forecast service is not available. Try again later."
+            )
+        
+        # For now, we'll generate recommendations without user-specific items
+        # This can be enhanced later to include user authentication and their wardrobe
+        user_items = []
+        
+        # Generate outfit recommendations
+        outfit_recommendations = ai_generate_daily_outfits(
+            forecast_data=forecast_data,
+            user_items=user_items,
+            occasion=occasion
+        )
+        
+        return {
+            "status": "success",
+            "forecast_data": forecast_data,
+            "outfit_recommendations": outfit_recommendations,
+            "message": f"Generated outfit recommendations for {days} days in {forecast_data.get('city', 'your location')}"
+        }
+        
+    except Exception as e:
+        print(f"Error generating forecast outfits: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to generate outfit recommendations: {str(e)}"
+        ) 

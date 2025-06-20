@@ -33,7 +33,7 @@ const AIStyleAdviceModal = ({ isOpen, onClose, userItems = [] }) => {
   const fetchWeather = async () => {
     setWeatherLoading(true);
     try {
-      const response = await weatherAPI.getAlmatyWeather();
+      const response = await weatherAPI.getUserLocationWeather();
       setWeather(response.data);
     } catch (error) {
       console.error('Weather fetch error:', error);
@@ -201,7 +201,9 @@ const AIStyleAdviceModal = ({ isOpen, onClose, userItems = [] }) => {
           <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
             <div className="flex items-center space-x-3 mb-3">
               <CloudIcon className="h-6 w-6 text-blue-600" />
-              <h3 className="text-lg font-semibold text-blue-900">Погода в Алмате</h3>
+              <h3 className="text-lg font-semibold text-blue-900">
+                Погода {weather?.city ? `в ${weather.city}` : ''}
+              </h3>
             </div>
             {weatherLoading ? (
               <div className="flex items-center space-x-2">

@@ -9,7 +9,9 @@ import V2VAssistantModal from '../components/V2VAssistantModal';
 import AIStyleAdviceModal from '../components/AIStyleAdviceModal';
 import ClothingDetailsModal from '../components/ClothingDetailsModal';
 import EditClothingModal from '../components/EditClothingModal';
-import { PlusIcon, LogOutIcon, Video, Sparkles, BrainIcon } from 'lucide-react';
+import LocationPermissionPrompt from '../components/LocationPermissionPrompt';
+import WeatherForecastModal from '../components/WeatherForecastModal';
+import { PlusIcon, LogOutIcon, Video, Sparkles, BrainIcon, CalendarIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const Dashboard = () => {
@@ -23,6 +25,7 @@ const Dashboard = () => {
   const [isAIAdviceModalOpen, setIsAIAdviceModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isForecastModalOpen, setIsForecastModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
 
   useEffect(() => {
@@ -35,7 +38,7 @@ const Dashboard = () => {
       
       // Параллельно загружаем погоду и одежду
       const [weatherResponse, clothingResponse] = await Promise.all([
-        weatherAPI.getAlmatyWeather().catch(() => null),
+        weatherAPI.getUserLocationWeather().catch(() => null),
         clothingAPI.getUserItems().catch(() => ({ data: [] }))
       ]);
 
@@ -103,6 +106,17 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30">
+      <LocationPermissionPrompt 
+        onPermissionGranted={() => {
+          // Refresh weather data when location is granted
+          fetchData();
+        }}
+        onPermissionDenied={() => {
+          // Continue with fallback (Almaty) weather
+          console.log('Location permission denied, using fallback weather');
+        }}
+      />
+      
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-lg shadow-sm sticky top-0 z-40 border-b border-gray-200/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -165,7 +179,15 @@ const Dashboard = () => {
             )}
           </div>
           
-          <div className="flex space-x-4">
+          <div className="flex flex-wrap gap-4">
+            <button
+              onClick={() => setIsForecastModalOpen(true)}
+              className="flex items-center px-5 py-3 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              <CalendarIcon className="h-5 w-5 mr-2" />
+              Прогноз стиля
+            </button>
+            
             <button
               onClick={() => setIsAIAdviceModalOpen(true)}
               className="flex items-center px-5 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
@@ -277,6 +299,12 @@ const Dashboard = () => {
         item={selectedItem}
         onItemUpdated={handleItemUpdated}
         onItemDeleted={handleItemDeleted}
+      />
+
+      {/* Weather Forecast Modal */}
+      <WeatherForecastModal
+        isOpen={isForecastModalOpen}
+        onClose={() => setIsForecastModalOpen(false)}
       />
     </div>
   );
