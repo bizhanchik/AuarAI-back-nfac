@@ -1,392 +1,515 @@
-
-import { motion } from 'framer-motion';
-import { ChevronRightIcon, HeartIcon, CloudIcon, SparklesIcon } from '@heroicons/react/24/outline';
+import { motion, useInView } from 'framer-motion';
+import { useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { 
+  SparklesIcon, 
+  CloudIcon, 
+  CalendarIcon,
+  CheckCircleIcon,
+  StarIcon,
+  ArrowRightIcon,
+  CameraIcon,
+  ShirtIcon,
+  SunIcon,
+  HeartIcon
+} from 'lucide-react';
 
 const LandingPage = () => {
-  const { user } = useAuth();
   const navigate = useNavigate();
 
-  const fadeInUp = {
-    initial: { opacity: 0, y: 60 },
-    animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.6 }
-  };
-
-  const staggerContainer = {
-    animate: {
-      transition: {
-        staggerChildren: 0.1
-      }
-    }
-  };
-
-  const handleTryNow = () => {
-    if (user) {
-      navigate('/dashboard');
-    } else {
-      navigate('/register');
-    }
-  };
-
-  const handleContinueUsing = () => {
-    if (user) {
-      navigate('/dashboard');
-    } else {
-      navigate('/login');
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-purple-50/30 to-pink-50/20 font-body overflow-x-hidden">
-      {/* Header */}
-      <motion.header 
-        className="relative z-10 bg-white/80 backdrop-blur-sm border-b border-gray-200/50 sticky top-0"
-        initial={{ y: -100, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.8 }}
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-20">
-            <motion.div 
-              className="flex items-center space-x-2"
-              whileHover={{ scale: 1.05 }}
-              transition={{ type: "spring", stiffness: 300 }}
-            >
-              <div className="w-10 h-10 bg-gradient-to-r from-brand-violet to-brand-peach rounded-xl flex items-center justify-center">
-                <SparklesIcon className="h-6 w-6 text-white" />
-              </div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-brand-violet to-brand-peach bg-clip-text text-transparent">
-                AuarAI
-              </h1>
-            </motion.div>
-            
-            <motion.button
-              onClick={handleContinueUsing}
-              className="flex items-center px-6 py-3 bg-gradient-to-r from-brand-violet to-brand-peach text-white font-semibold rounded-xl hover:shadow-lg transition-all"
-              whileHover={{ scale: 1.05, y: -2 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              {user ? 'Продолжить использование' : 'Начать'}
-              <ChevronRightIcon className="h-5 w-5 ml-2" />
-            </motion.button>
-          </div>
-        </div>
-      </motion.header>
-
-      {/* Hero Section */}
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-brand-violet/5 via-transparent to-brand-peach/5"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-24">
-          <motion.div 
-            className="text-center"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-          >
-            {/* Logo Placeholder */}
-            <motion.div 
-              className="mx-auto w-32 h-32 bg-gradient-to-br from-brand-violet to-brand-peach rounded-3xl flex items-center justify-center mb-8 shadow-lg"
-              whileHover={{ scale: 1.05, rotate: 5 }}
-              transition={{ type: "spring", stiffness: 300 }}
-            >
-              <span className="text-white font-display text-2xl">AI</span>
-            </motion.div>
-
-            <motion.h1 
-              className="font-display text-5xl md:text-7xl text-neutral-800 mb-6"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2, duration: 0.8 }}
-            >
-              AuarAI
-            </motion.h1>
-
-            <motion.p 
-              className="text-xl md:text-2xl text-neutral-600 mb-8 max-w-2xl mx-auto"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4, duration: 0.8 }}
-            >
-              Your smart stylist. Fashion that fits you.
-            </motion.p>
-
-            <motion.button
-              onClick={handleTryNow}
-              className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-brand-violet to-brand-peach text-white font-medium text-lg rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300"
-              whileHover={{ scale: 1.05, y: -2 }}
-              whileTap={{ scale: 0.95 }}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6, duration: 0.8 }}
-            >
-              {user ? 'Open Wardrobe' : 'Try It Now'}
-              <ChevronRightIcon className="ml-2 h-5 w-5" />
-            </motion.button>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* How It Works Section */}
-      <section className="py-20 bg-white/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div 
-            className="text-center mb-16"
-            {...fadeInUp}
-          >
-            <h2 className="font-display text-4xl md:text-5xl text-neutral-800 mb-4">
-              How It Works
-            </h2>
-            <p className="text-lg text-neutral-600 max-w-2xl mx-auto">
-              Three simple steps to revolutionize your wardrobe choices
-            </p>
-          </motion.div>
-
-          <motion.div 
-            className="grid md:grid-cols-3 gap-8"
-            variants={staggerContainer}
-            initial="initial"
-            whileInView="animate"
-            viewport={{ once: true }}
-          >
-            {[
-              {
-                step: "01",
-                title: "Upload Wardrobe",
-                description: "Simply photograph your clothes and let our AI catalog your personal style collection.",
-                icon: "📸",
-                color: "from-brand-violet/20 to-brand-violet/10"
-              },
-              {
-                step: "02", 
-                title: "Set Your Plans",
-                description: "Tell us about your day, the weather, and your mood. We'll understand the context.",
-                icon: "🌤️",
-                color: "from-brand-peach/20 to-brand-peach/10"
-              },
-              {
-                step: "03",
-                title: "Get Styled",
-                description: "Receive personalized outfit recommendations that perfectly match your style and occasion.",
-                icon: "✨",
-                color: "from-brand-emerald/20 to-brand-emerald/10"
-              }
-            ].map((item, index) => (
-              <motion.div
-                key={index}
-                className="relative"
-                variants={fadeInUp}
-                whileHover={{ y: -8 }}
-                transition={{ type: "spring", stiffness: 300 }}
-              >
-                <div className={`bg-gradient-to-br ${item.color} p-8 rounded-3xl shadow-sm border border-white/50 h-full`}>
-                  <div className="text-4xl mb-4">{item.icon}</div>
-                  <div className="text-sm font-medium text-brand-violet mb-2">STEP {item.step}</div>
-                  <h3 className="font-display text-2xl text-neutral-800 mb-4">{item.title}</h3>
-                  <p className="text-neutral-600">{item.description}</p>
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
-
-      {/* AI Personalization Block */}
-      <section className="py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div 
-            className="text-center mb-16"
-            {...fadeInUp}
-          >
-            <h2 className="font-display text-4xl md:text-5xl text-neutral-800 mb-4">
-              Tailored to Your Style
-            </h2>
-            <p className="text-lg text-neutral-600 max-w-2xl mx-auto">
-              Our AI understands your unique preferences and adapts to every occasion
-            </p>
-          </motion.div>
-
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <motion.div 
-              className="space-y-6"
-              initial={{ opacity: 0, x: -30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.8 }}
-            >
-              <h3 className="font-display text-3xl text-neutral-800 mb-6">Choose Your Vibe</h3>
-              
-              <div className="grid grid-cols-2 gap-4">
-                {[
-                  { label: "Romantic", icon: HeartIcon, active: true },
-                  { label: "Minimalist", icon: SparklesIcon, active: false },
-                  { label: "Cold Weather", icon: CloudIcon, active: true },
-                  { label: "Professional", icon: SparklesIcon, active: false },
-                  { label: "Casual", icon: HeartIcon, active: true },
-                  { label: "Evening", icon: SparklesIcon, active: false }
-                ].map((mood, index) => {
-                  const IconComponent = mood.icon;
-                  return (
-                    <motion.div
-                      key={index}
-                      className={`flex items-center space-x-3 p-4 rounded-2xl border-2 transition-all duration-300 ${
-                        mood.active 
-                          ? 'border-brand-violet bg-brand-violet/10 text-brand-violet' 
-                          : 'border-neutral-200 bg-white/50 text-neutral-500'
-                      }`}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      <IconComponent className="h-5 w-5" />
-                      <span className="font-medium">{mood.label}</span>
-                    </motion.div>
-                  );
-                })}
-              </div>
-            </motion.div>
-
-            <motion.div 
-              className="grid grid-cols-2 gap-4"
-              initial={{ opacity: 0, x: 30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-            >
-              {[1, 2, 3, 4].map((item) => (
-                <motion.div
-                  key={item}
-                  className="aspect-square bg-gradient-to-br from-neutral-100 to-neutral-200 rounded-2xl shadow-sm border border-white/50 flex items-center justify-center"
-                  whileHover={{ scale: 1.05 }}
-                  transition={{ type: "spring", stiffness: 300 }}
-                >
-                  <div className="text-center">
-                    <div className="w-16 h-16 bg-gradient-to-br from-brand-violet/20 to-brand-peach/20 rounded-full mx-auto mb-2"></div>
-                    <span className="text-sm text-neutral-600">Outfit {item}</span>
-                  </div>
-                </motion.div>
-              ))}
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* Outfit Gallery */}
-      <section className="py-20 bg-white/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div 
-            className="text-center mb-16"
-            {...fadeInUp}
-          >
-            <h2 className="font-display text-4xl md:text-5xl text-neutral-800 mb-4">
-              Style Inspiration
-            </h2>
-            <p className="text-lg text-neutral-600 max-w-2xl mx-auto">
-              Discover looks crafted for real occasions and real weather
-            </p>
-          </motion.div>
-
-          <motion.div 
-            className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12"
-            variants={staggerContainer}
-            initial="initial"
-            whileInView="animate"
-            viewport={{ once: true }}
-          >
-            {[
-              { title: "Date Night in Paris", weather: "18°C, Clear", color: "from-pink-100 to-purple-100" },
-              { title: "Walk in Almaty", weather: "-5°C, Snowy", color: "from-blue-100 to-cyan-100" },
-              { title: "Business Meeting", weather: "22°C, Partly Cloudy", color: "from-gray-100 to-slate-100" },
-              { title: "Weekend Brunch", weather: "25°C, Sunny", color: "from-yellow-100 to-orange-100" },
-              { title: "Art Gallery Opening", weather: "20°C, Light Rain", color: "from-indigo-100 to-purple-100" },
-              { title: "Coffee with Friends", weather: "16°C, Overcast", color: "from-emerald-100 to-teal-100" }
-            ].map((look, index) => (
-              <motion.div
-                key={index}
-                className={`bg-gradient-to-br ${look.color} p-6 rounded-3xl shadow-sm border border-white/50 aspect-square flex flex-col justify-between`}
-                variants={fadeInUp}
-                whileHover={{ y: -8, scale: 1.02 }}
-                transition={{ type: "spring", stiffness: 300 }}
-              >
-                <div className="flex-1 flex items-center justify-center">
-                  <div className="w-20 h-20 bg-white/60 rounded-full"></div>
-                </div>
-                <div>
-                  <h3 className="font-display text-xl text-neutral-800 mb-1">{look.title}</h3>
-                  <p className="text-sm text-neutral-600">{look.weather}</p>
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
-
-          <motion.div 
-            className="text-center"
-            {...fadeInUp}
-          >
-            <button className="inline-flex items-center px-6 py-3 border-2 border-brand-violet text-brand-violet font-medium rounded-2xl hover:bg-brand-violet hover:text-white transition-all duration-300">
-              See More Looks
-              <ChevronRightIcon className="ml-2 h-5 w-5" />
-            </button>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Final CTA */}
-      <section className="py-20 bg-gradient-to-br from-brand-violet/10 via-brand-peach/5 to-brand-emerald/10">
-        <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8 }}
-          >
-            <h2 className="font-display text-4xl md:text-5xl text-neutral-800 mb-6">
-              Ready to Transform Your Style?
-            </h2>
-            <p className="text-lg text-neutral-600 mb-8 max-w-2xl mx-auto">
-              Join thousands of fashion-forward individuals who trust AuarAI for their daily styling needs.
-            </p>
-            
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
-              <motion.button
-                onClick={handleTryNow}
-                className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-brand-violet to-brand-peach text-white font-medium text-lg rounded-2xl shadow-lg"
-                whileHover={{ scale: 1.05, y: -2 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                {user ? 'Open Dashboard' : 'Get Early Access'}
-                <ChevronRightIcon className="ml-2 h-5 w-5" />
-              </motion.button>
-              
-              <motion.button
-                className="inline-flex items-center px-8 py-4 border-2 border-neutral-300 text-neutral-700 font-medium text-lg rounded-2xl hover:border-brand-violet hover:text-brand-violet transition-all duration-300"
-                whileHover={{ scale: 1.05, y: -2 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                Try AuarAI in Telegram
-                <ChevronRightIcon className="ml-2 h-5 w-5" />
-              </motion.button>
-            </div>
-
-            <div className="flex justify-center space-x-6">
-              <motion.div 
-                className="w-12 h-12 bg-white rounded-2xl shadow-sm flex items-center justify-center"
-                whileHover={{ scale: 1.1 }}
-              >
-                <span className="text-2xl">📱</span>
-              </motion.div>
-              <motion.div 
-                className="w-12 h-12 bg-white rounded-2xl shadow-sm flex items-center justify-center"
-                whileHover={{ scale: 1.1 }}
-              >
-                <span className="text-2xl">📸</span>
-              </motion.div>
-            </div>
-          </motion.div>
-        </div>
-      </section>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 overflow-hidden">
+      <Navigation navigate={navigate} />
+      <HeroSection navigate={navigate} />
+      <WhySection />
+      <HowItWorksSection />
+      <SocialProofSection />
+      <DemoSection />
+      <FinalCTASection navigate={navigate} />
+      <Footer />
     </div>
   );
 };
+
+const Navigation = ({ navigate }) => (
+  <motion.nav 
+    initial={{ y: -100, opacity: 0 }}
+    animate={{ y: 0, opacity: 1 }}
+    transition={{ duration: 0.8 }}
+    className="fixed top-0 w-full z-50 bg-white/10 backdrop-blur-xl border-b border-white/20"
+  >
+    <div className="max-w-7xl mx-auto px-6 py-4">
+      <div className="flex justify-between items-center">
+        <motion.div 
+          whileHover={{ scale: 1.05 }}
+          className="flex items-center space-x-3 cursor-pointer"
+          onClick={() => navigate('/')}
+        >
+          <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+            <SparklesIcon className="h-6 w-6 text-white" />
+          </div>
+          <span className="text-2xl font-bold text-white">AuarAI</span>
+        </motion.div>
+        
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => navigate('/login')}
+          className="px-6 py-2 bg-white/20 text-white rounded-xl font-medium backdrop-blur-sm border border-white/30 hover:bg-white/30 transition-all"
+        >
+          Sign In
+        </motion.button>
+      </div>
+    </div>
+  </motion.nav>
+);
+
+const HeroSection = ({ navigate }) => {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true });
+
+  return (
+    <section ref={ref} className="relative pt-32 pb-20 px-6">
+      <div className="max-w-7xl mx-auto">
+        <div className="grid lg:grid-cols-2 gap-12 items-center">
+          <motion.div
+            initial={{ x: -100, opacity: 0 }}
+            animate={isInView ? { x: 0, opacity: 1 } : {}}
+            transition={{ duration: 0.8 }}
+          >
+            <motion.h1 
+              className="text-6xl lg:text-7xl font-black text-white mb-6 leading-tight"
+              initial={{ y: 50, opacity: 0 }}
+              animate={isInView ? { y: 0, opacity: 1 } : {}}
+              transition={{ duration: 0.8, delay: 0.2 }}
+            >
+              Your AI Stylist.{' '}
+              <span className="bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+                Smarter Outfits,
+              </span>{' '}
+              Less Effort.
+            </motion.h1>
+            
+            <motion.p 
+              className="text-xl text-gray-300 mb-8 leading-relaxed"
+              initial={{ y: 30, opacity: 0 }}
+              animate={isInView ? { y: 0, opacity: 1 } : {}}
+              transition={{ duration: 0.8, delay: 0.4 }}
+            >
+              AuarAI helps you create stylish outfits tailored to your wardrobe, the weather, 
+              and your daily plans — in seconds.
+            </motion.p>
+            
+            <motion.div 
+              className="flex flex-col sm:flex-row gap-4"
+              initial={{ y: 30, opacity: 0 }}
+              animate={isInView ? { y: 0, opacity: 1 } : {}}
+              transition={{ duration: 0.8, delay: 0.6 }}
+            >
+              <motion.button
+                whileHover={{ scale: 1.05, boxShadow: "0 20px 40px rgba(59, 130, 246, 0.4)" }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => navigate('/register')}
+                className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl font-semibold text-lg shadow-2xl"
+              >
+                Try AuarAI Free
+                <ArrowRightIcon className="inline-block ml-2 h-5 w-5" />
+              </motion.button>
+              
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="px-8 py-4 bg-white/10 text-white rounded-2xl font-semibold text-lg backdrop-blur-sm border border-white/20 hover:bg-white/20 transition-all"
+              >
+                Watch Demo
+              </motion.button>
+            </motion.div>
+          </motion.div>
+          
+          <motion.div
+            initial={{ x: 100, opacity: 0 }}
+            animate={isInView ? { x: 0, opacity: 1 } : {}}
+            transition={{ duration: 0.8, delay: 0.3 }}
+            className="relative"
+          >
+            <PhoneMockup />
+          </motion.div>
+        </div>
+      </div>
+      
+      <FloatingElements />
+    </section>
+  );
+};
+
+const PhoneMockup = () => (
+  <motion.div 
+    className="relative max-w-sm mx-auto"
+    whileHover={{ y: -10 }}
+    transition={{ duration: 0.3 }}
+  >
+    <div className="relative bg-gradient-to-br from-gray-900 to-gray-800 rounded-[3rem] p-3 shadow-2xl border border-gray-700">
+      <div className="bg-black rounded-[2.5rem] p-6 relative overflow-hidden">
+        <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-32 h-6 bg-black rounded-b-2xl"></div>
+        
+        <motion.div 
+          className="mt-8 space-y-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1 }}
+        >
+          <div className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 p-4 rounded-2xl border border-blue-500/30">
+            <p className="text-white text-sm font-medium">Today's Outfit</p>
+            <p className="text-gray-300 text-xs mt-1">Perfect for 22°C, Sunny</p>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-3">
+            {['Top', 'Bottom', 'Shoes', 'Accessories'].map((item, i) => (
+              <motion.div 
+                key={item}
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 1.2 + i * 0.1 }}
+                className="bg-gray-800 p-3 rounded-xl"
+              >
+                <div className="w-full h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg mb-2"></div>
+                <p className="text-white text-xs font-medium">{item}</p>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+      </div>
+    </div>
+  </motion.div>
+);
+
+const FloatingElements = () => (
+  <>
+    {[...Array(6)].map((_, i) => (
+      <motion.div
+        key={i}
+        className="absolute w-2 h-2 bg-blue-400 rounded-full opacity-60"
+        initial={{ 
+          x: Math.random() * window.innerWidth,
+          y: Math.random() * window.innerHeight,
+        }}
+        animate={{
+          y: [0, -30, 0],
+          opacity: [0.6, 1, 0.6],
+        }}
+        transition={{
+          duration: 3 + Math.random() * 2,
+          repeat: Infinity,
+          delay: Math.random() * 2,
+        }}
+        style={{
+          left: `${10 + Math.random() * 80}%`,
+          top: `${20 + Math.random() * 60}%`,
+        }}
+      />
+    ))}
+  </>
+);
+
+const WhySection = () => {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true });
+
+  const features = [
+    { icon: SparklesIcon, text: "Personalized for your style" },
+    { icon: CloudIcon, text: "Weather & calendar-aware" },
+    { icon: ShirtIcon, text: "Works with your own wardrobe" },
+    { icon: CameraIcon, text: "Amazon & video outfit check support" }
+  ];
+
+  return (
+    <section ref={ref} className="py-20 px-6 relative">
+      <div className="max-w-6xl mx-auto text-center">
+        <motion.div
+          initial={{ y: 50, opacity: 0 }}
+          animate={isInView ? { y: 0, opacity: 1 } : {}}
+          transition={{ duration: 0.8 }}
+        >
+          <h2 className="text-5xl font-bold text-white mb-6">
+            Tired of wasting time picking what to wear?
+          </h2>
+          <p className="text-2xl text-gray-300 mb-4">Let AuarAI do the work.</p>
+          <p className="text-xl text-gray-400 mb-12 max-w-3xl mx-auto">
+            Whether you're dressing for work, a date, or a walk — it builds perfect looks from your existing clothes.
+          </p>
+        </motion.div>
+        
+        <motion.div 
+          className="grid md:grid-cols-2 lg:grid-cols-4 gap-6"
+          initial={{ y: 50, opacity: 0 }}
+          animate={isInView ? { y: 0, opacity: 1 } : {}}
+          transition={{ duration: 0.8, delay: 0.3 }}
+        >
+          {features.map((feature, index) => (
+            <motion.div
+              key={index}
+              whileHover={{ scale: 1.05, y: -5 }}
+              className="bg-white/5 backdrop-blur-sm p-6 rounded-2xl border border-white/10 hover:border-blue-500/50 transition-all duration-300"
+              initial={{ y: 50, opacity: 0 }}
+              animate={isInView ? { y: 0, opacity: 1 } : {}}
+              transition={{ delay: 0.4 + index * 0.1 }}
+            >
+              <feature.icon className="h-8 w-8 text-blue-400 mx-auto mb-4" />
+              <p className="text-white font-medium">{feature.text}</p>
+            </motion.div>
+          ))}
+        </motion.div>
+      </div>
+    </section>
+  );
+};
+
+const HowItWorksSection = () => {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true });
+
+  const steps = [
+    {
+      icon: ShirtIcon,
+      title: "Upload your wardrobe",
+      description: "Take photos or import clothes from stores.",
+      color: "from-pink-500 to-rose-500"
+    },
+    {
+      icon: CloudIcon,
+      title: "Tell us your plans & location",
+      description: "AuarAI checks the weather and your calendar.",
+      color: "from-blue-500 to-cyan-500"
+    },
+    {
+      icon: SparklesIcon,
+      title: "Get daily outfit ideas — instantly",
+      description: "Dress with confidence, without overthinking.",
+      color: "from-purple-500 to-violet-500"
+    }
+  ];
+
+  return (
+    <section ref={ref} className="py-20 px-6 bg-white/5 backdrop-blur-sm">
+      <div className="max-w-6xl mx-auto">
+        <motion.div
+          initial={{ y: 50, opacity: 0 }}
+          animate={isInView ? { y: 0, opacity: 1 } : {}}
+          transition={{ duration: 0.8 }}
+          className="text-center mb-16"
+        >
+          <h2 className="text-5xl font-bold text-white mb-6">How It Works</h2>
+          <p className="text-xl text-gray-300">Three simple steps to effortless style</p>
+        </motion.div>
+        
+        <div className="grid lg:grid-cols-3 gap-8">
+          {steps.map((step, index) => (
+            <motion.div
+              key={index}
+              initial={{ y: 100, opacity: 0 }}
+              animate={isInView ? { y: 0, opacity: 1 } : {}}
+              transition={{ duration: 0.8, delay: index * 0.2 }}
+              whileHover={{ scale: 1.05, y: -10 }}
+              className="relative"
+            >
+              <div className="bg-white/10 backdrop-blur-sm p-8 rounded-3xl border border-white/20 hover:border-white/40 transition-all duration-300 text-center relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br opacity-20 rounded-full blur-xl" 
+                     style={{background: `linear-gradient(135deg, #3b82f6, #8b5cf6)`}}></div>
+                
+                <div className={`w-16 h-16 bg-gradient-to-r ${step.color} rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg`}>
+                  <step.icon className="h-8 w-8 text-white" />
+                </div>
+                
+                <div className="absolute top-4 left-4 w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                  <span className="text-white font-bold">{index + 1}</span>
+                </div>
+                
+                <h3 className="text-2xl font-bold text-white mb-4">{step.title}</h3>
+                <p className="text-gray-300 text-lg">{step.description}</p>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+const SocialProofSection = () => {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true });
+
+  const stats = [
+    { number: "5,000+", label: "outfits generated" },
+    { number: "Amazon", label: "& Google Calendar integrated" },
+    { number: "100%", label: "satisfaction from beta users" }
+  ];
+
+  return (
+    <section ref={ref} className="py-20 px-6">
+      <div className="max-w-6xl mx-auto">
+        <motion.div
+          initial={{ y: 50, opacity: 0 }}
+          animate={isInView ? { y: 0, opacity: 1 } : {}}
+          transition={{ duration: 0.8 }}
+          className="text-center mb-16"
+        >
+          <div className="bg-white/10 backdrop-blur-sm p-8 rounded-3xl border border-white/20 max-w-4xl mx-auto">
+            <div className="flex justify-center mb-4">
+              {[...Array(5)].map((_, i) => (
+                <StarIcon key={i} className="h-6 w-6 text-yellow-400 fill-current" />
+              ))}
+            </div>
+            <blockquote className="text-2xl text-white font-medium mb-6 italic">
+              "AuarAI saved me 20 minutes every morning — and my outfits got compliments!"
+            </blockquote>
+            <cite className="text-gray-300 text-lg">— Maria S., Beta tester</cite>
+          </div>
+        </motion.div>
+        
+        <motion.div 
+          className="grid md:grid-cols-3 gap-8"
+          initial={{ y: 50, opacity: 0 }}
+          animate={isInView ? { y: 0, opacity: 1 } : {}}
+          transition={{ duration: 0.8, delay: 0.3 }}
+        >
+          {stats.map((stat, index) => (
+            <motion.div
+              key={index}
+              whileHover={{ scale: 1.05 }}
+              className="text-center bg-white/5 backdrop-blur-sm p-6 rounded-2xl border border-white/10"
+              initial={{ y: 50, opacity: 0 }}
+              animate={isInView ? { y: 0, opacity: 1 } : {}}
+              transition={{ delay: 0.4 + index * 0.1 }}
+            >
+              <div className="text-4xl font-bold text-blue-400 mb-2">{stat.number}</div>
+              <div className="text-gray-300">{stat.label}</div>
+            </motion.div>
+          ))}
+        </motion.div>
+      </div>
+    </section>
+  );
+};
+
+const DemoSection = () => {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true });
+
+  const screens = [
+    { title: "Outfit of the Day", color: "from-blue-500 to-purple-600" },
+    { title: "Wardrobe Overview", color: "from-purple-500 to-pink-600" },
+    { title: "AI Recommendations", color: "from-pink-500 to-rose-600" },
+    { title: "Weather Integration", color: "from-cyan-500 to-blue-600" }
+  ];
+
+  return (
+    <section ref={ref} className="py-20 px-6 bg-white/5 backdrop-blur-sm">
+      <div className="max-w-6xl mx-auto">
+        <motion.div
+          initial={{ y: 50, opacity: 0 }}
+          animate={isInView ? { y: 0, opacity: 1 } : {}}
+          transition={{ duration: 0.8 }}
+          className="text-center mb-16"
+        >
+          <h2 className="text-5xl font-bold text-white mb-6">See AuarAI in Action</h2>
+          <p className="text-xl text-gray-300">Experience the future of personal styling</p>
+        </motion.div>
+        
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {screens.map((screen, index) => (
+            <motion.div
+              key={index}
+              initial={{ y: 100, opacity: 0 }}
+              animate={isInView ? { y: 0, opacity: 1 } : {}}
+              transition={{ duration: 0.8, delay: index * 0.1 }}
+              whileHover={{ scale: 1.05, y: -10 }}
+              className="group cursor-pointer"
+            >
+              <div className="bg-white/10 backdrop-blur-sm p-6 rounded-2xl border border-white/20 hover:border-white/40 transition-all duration-300">
+                <div className={`w-full h-48 bg-gradient-to-br ${screen.color} rounded-xl mb-4 relative overflow-hidden group-hover:shadow-2xl transition-all duration-300`}>
+                  <div className="absolute inset-0 bg-white/10 group-hover:bg-white/20 transition-all duration-300"></div>
+                  <div className="absolute bottom-4 left-4 right-4">
+                    <div className="bg-white/20 backdrop-blur-sm p-3 rounded-lg">
+                      <div className="h-2 bg-white/40 rounded mb-2"></div>
+                      <div className="h-2 bg-white/40 rounded w-2/3"></div>
+                    </div>
+                  </div>
+                </div>
+                <h3 className="text-white font-semibold text-center">{screen.title}</h3>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+const FinalCTASection = ({ navigate }) => {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true });
+
+  return (
+    <section ref={ref} className="py-20 px-6">
+      <div className="max-w-4xl mx-auto text-center">
+        <motion.div
+          initial={{ y: 50, opacity: 0 }}
+          animate={isInView ? { y: 0, opacity: 1 } : {}}
+          transition={{ duration: 0.8 }}
+          className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 backdrop-blur-sm p-12 rounded-3xl border border-white/20"
+        >
+          <h2 className="text-5xl font-bold text-white mb-6">
+            Don't waste another morning stressing your outfit.
+          </h2>
+          <p className="text-2xl text-gray-300 mb-8">
+            Try AuarAI and let your clothes work for you.
+          </p>
+          
+          <motion.button
+            whileHover={{ scale: 1.05, boxShadow: "0 25px 50px rgba(59, 130, 246, 0.5)" }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => navigate('/register')}
+            className="px-12 py-6 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl font-bold text-xl shadow-2xl mb-4 inline-block"
+          >
+            Get Early Access
+            <ArrowRightIcon className="inline-block ml-3 h-6 w-6" />
+          </motion.button>
+          
+          <p className="text-orange-400 font-medium">
+            Only 100 beta spots available this month.
+          </p>
+        </motion.div>
+      </div>
+    </section>
+  );
+};
+
+const Footer = () => (
+  <footer className="py-12 px-6 border-t border-white/10">
+    <div className="max-w-6xl mx-auto">
+      <div className="grid md:grid-cols-3 gap-8 items-center">
+        <div className="flex items-center space-x-3">
+          <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+            <SparklesIcon className="h-5 w-5 text-white" />
+          </div>
+          <span className="text-xl font-bold text-white">AuarAI</span>
+        </div>
+        
+        <div className="flex justify-center space-x-8">
+          <a href="#" className="text-gray-400 hover:text-white transition-colors">About</a>
+          <a href="#" className="text-gray-400 hover:text-white transition-colors">Privacy Policy</a>
+          <a href="#" className="text-gray-400 hover:text-white transition-colors">Contact</a>
+        </div>
+        
+        <div className="text-center md:text-right">
+          <p className="text-gray-400 flex items-center justify-center md:justify-end">
+            Built with <HeartIcon className="h-4 w-4 text-red-500 mx-1" /> from Kazakhstan
+          </p>
+        </div>
+      </div>
+    </div>
+  </footer>
+);
 
 export default LandingPage; 

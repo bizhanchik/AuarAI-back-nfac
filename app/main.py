@@ -14,12 +14,12 @@ from . import models, schemas, crud, auth
 from .database import get_db
 from .routes import classifier, weather, photo_upload, items, stylist, v2v_assistant
 
-app = FastAPI()
+app = FastAPI(root_path="/api")
 
 origins = [
     "http://localhost:5173",
     "http://localhost:5175", 
-    "http://192.168.1.46:5173", # добавь порт фронта!
+    "http://192.168.1.46:5173",
     "https://auarai.com",
     "https://www.auarai.com",
     "http://auarai.com",
