@@ -171,7 +171,11 @@ const Dashboard = () => {
               >
                 <div className="relative">
                   <div className="w-12 h-12 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-2xl flex items-center justify-center shadow-2xl transition-shadow duration-300 group-hover:shadow-purple-500/25">
-                    <Sparkles className="h-7 w-7 text-white" />
+                    <img 
+                      src="/img/logo.png" 
+                      alt="AuarAI Logo" 
+                      className="h-8 w-8 object-contain"
+                    />
                   </div>
                 </div>
                 <div>

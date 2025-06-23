@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
@@ -29,17 +29,15 @@ const LoginPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-
-    const result = await login(formData.username, formData.password);
     
-    if (result.success) {
-      toast.success('Добро пожаловать в мир стиля!');
+    try {
+      await login(formData.username, formData.password);
       navigate('/dashboard');
-    } else {
-      toast.error(result.error);
+    } catch (error) {
+      console.error('Login failed:', error);
+    } finally {
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
   };
 
   const handleChange = (e) => {
@@ -47,6 +45,10 @@ const LoginPage = () => {
       ...formData,
       [e.target.name]: e.target.value,
     });
+  };
+
+  const handleGoToRegister = () => {
+    navigate('/register');
   };
 
   const FloatingElement = ({ children, delay = 0, duration = 6 }) => (
@@ -253,15 +255,24 @@ const LoginPage = () => {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.9, duration: 0.5 }}
               >
-                <p className="text-gray-300 text-sm">
-                  Нет аккаунта?{' '}
-                  <Link 
-                    to="/register" 
-                    className="text-gradient-primary font-semibold hover:text-gradient-secondary transition-all duration-300"
-                  >
-                    Создать аккаунт
-                  </Link>
+                <p className="text-gray-300 text-sm mb-3">
+                  Нет аккаунта?
                 </p>
+                <Link 
+                  to="/register" 
+                  onClick={handleGoToRegister}
+                  className="clickable-link auth-switch-button inline-block px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-500/25"
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleGoToRegister();
+                    }
+                  }}
+                >
+                  Создать аккаунт
+                </Link>
               </motion.div>
             </motion.form>
 

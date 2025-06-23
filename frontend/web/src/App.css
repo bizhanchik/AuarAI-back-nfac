@@ -40,3 +40,101 @@
 .read-the-docs {
   color: #888;
 }
+
+/* Enhanced button and link styles for better clickability */
+.clickable-link {
+  cursor: pointer !important;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  text-decoration: none !important;
+  display: inline-block;
+  position: relative;
+  z-index: 10;
+}
+
+.clickable-link:hover {
+  text-decoration: none !important;
+}
+
+.clickable-link:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Ensure all interactive elements are properly clickable */
+a, button, [role="button"] {
+  cursor: pointer;
+}
+
+/* Fix for any potential z-index issues */
+.auth-switch-button {
+  position: relative;
+  z-index: 999;
+  pointer-events: all;
+}
+
+/* Performance optimizations */
+* {
+  box-sizing: border-box;
+}
+
+/* GPU acceleration for smooth animations */
+.transform,
+.hover\:scale-105:hover,
+.hover\:-translate-y-2:hover,
+.transition-transform {
+  transform: translateZ(0);
+  will-change: transform;
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Optimize backdrop blur performance */
+.backdrop-blur-sm,
+.backdrop-blur-xl {
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* Reduce paint operations */
+.bg-gradient-to-r,
+.bg-gradient-to-br,
+.bg-gradient-to-l {
+  will-change: background;
+}
+
+/* Optimize hover effects */
+.group:hover .group-hover\:shadow-xl,
+.group:hover .group-hover\:shadow-2xl {
+  will-change: box-shadow;
+}
+
+/* Smooth scroll optimization */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Reduce layout shifts */
+img {
+  height: auto;
+  max-width: 100%;
+}
+
+/* Optimize animations */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Hardware acceleration for common animations */
+.animate-pulse,
+.animate-spin {
+  transform: translateZ(0);
+}

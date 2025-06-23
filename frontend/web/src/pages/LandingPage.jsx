@@ -1,6 +1,7 @@
 import { motion, useInView } from 'framer-motion';
-import { useRef } from 'react';
+import { useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import React from 'react';
 import { 
   SparklesIcon, 
   CloudIcon, 
@@ -14,22 +15,26 @@ import {
   HeartIcon
 } from 'lucide-react';
 
-const LandingPage = () => {
+const LandingPage = React.memo(() => {
   const navigate = useNavigate();
+
+  const handleNavigation = useCallback((path) => {
+    navigate(path);
+  }, [navigate]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 overflow-hidden">
-      <Navigation navigate={navigate} />
-      <HeroSection navigate={navigate} />
+      <Navigation navigate={handleNavigation} />
+      <HeroSection navigate={handleNavigation} />
       <WhySection />
       <HowItWorksSection />
       <SocialProofSection />
       <DemoSection />
-      <FinalCTASection navigate={navigate} />
+      <FinalCTASection navigate={handleNavigation} />
       <Footer />
     </div>
   );
-};
+});
 
 const Navigation = ({ navigate }) => (
   <motion.nav 
@@ -46,7 +51,11 @@ const Navigation = ({ navigate }) => (
           onClick={() => navigate('/')}
         >
           <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
-            <SparklesIcon className="h-6 w-6 text-white" />
+            <img 
+              src="/img/logo.png" 
+              alt="AuarAI Logo" 
+              className="h-6 w-6 object-contain"
+            />
           </div>
           <span className="text-2xl font-bold text-white">AuarAI</span>
         </motion.div>
@@ -183,33 +192,34 @@ const PhoneMockup = () => (
   </motion.div>
 );
 
-const FloatingElements = () => (
-  <>
-    {[...Array(6)].map((_, i) => (
-      <motion.div
-        key={i}
-        className="absolute w-2 h-2 bg-blue-400 rounded-full opacity-60"
-        initial={{ 
-          x: Math.random() * window.innerWidth,
-          y: Math.random() * window.innerHeight,
-        }}
-        animate={{
-          y: [0, -30, 0],
-          opacity: [0.6, 1, 0.6],
-        }}
-        transition={{
-          duration: 3 + Math.random() * 2,
-          repeat: Infinity,
-          delay: Math.random() * 2,
-        }}
-        style={{
-          left: `${10 + Math.random() * 80}%`,
-          top: `${20 + Math.random() * 60}%`,
-        }}
-      />
-    ))}
-  </>
-);
+const FloatingElements = React.memo(() => {
+  const elementCount = 3;
+  
+  return (
+    <>
+      {[...Array(elementCount)].map((_, i) => (
+        <motion.div
+          key={i}
+          className="absolute w-2 h-2 bg-blue-400 rounded-full opacity-40"
+          style={{
+            left: `${20 + i * 30}%`,
+            top: `${20 + i * 20}%`,
+          }}
+          animate={{
+            y: [0, -20, 0],
+            opacity: [0.4, 0.8, 0.4],
+          }}
+          transition={{
+            duration: 3 + i,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: i * 0.5
+          }}
+        />
+      ))}
+    </>
+  );
+});
 
 const WhySection = () => {
   const ref = useRef(null);
@@ -264,9 +274,9 @@ const WhySection = () => {
   );
 };
 
-const HowItWorksSection = () => {
+const HowItWorksSection = React.memo(() => {
   const ref = useRef(null);
-  const isInView = useInView(ref, { once: true });
+  const isInView = useInView(ref, { once: true, threshold: 0.1 });
 
   const steps = [
     {
@@ -293,9 +303,9 @@ const HowItWorksSection = () => {
     <section ref={ref} className="py-20 px-6 bg-white/5 backdrop-blur-sm">
       <div className="max-w-6xl mx-auto">
         <motion.div
-          initial={{ y: 50, opacity: 0 }}
+          initial={{ y: 30, opacity: 0 }}
           animate={isInView ? { y: 0, opacity: 1 } : {}}
-          transition={{ duration: 0.8 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
           className="text-center mb-16"
         >
           <h2 className="text-5xl font-bold text-white mb-6">How It Works</h2>
@@ -304,40 +314,48 @@ const HowItWorksSection = () => {
         
         <div className="grid lg:grid-cols-3 gap-8">
           {steps.map((step, index) => (
-            <motion.div
-              key={index}
-              initial={{ y: 100, opacity: 0 }}
-              animate={isInView ? { y: 0, opacity: 1 } : {}}
-              transition={{ duration: 0.8, delay: index * 0.2 }}
-              whileHover={{ scale: 1.05, y: -10 }}
-              className="relative"
-            >
-              <div className="bg-white/10 backdrop-blur-sm p-8 rounded-3xl border border-white/20 hover:border-white/40 transition-all duration-300 text-center relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br opacity-20 rounded-full blur-xl" 
-                     style={{background: `linear-gradient(135deg, #3b82f6, #8b5cf6)`}}></div>
-                
-                <div className={`w-16 h-16 bg-gradient-to-r ${step.color} rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg`}>
-                  <step.icon className="h-8 w-8 text-white" />
-                </div>
-                
-                <div className="absolute top-4 left-4 w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-                  <span className="text-white font-bold">{index + 1}</span>
-                </div>
-                
-                <h3 className="text-2xl font-bold text-white mb-4">{step.title}</h3>
-                <p className="text-gray-300 text-lg">{step.description}</p>
-              </div>
-            </motion.div>
+            <StepCard key={step.title} step={step} index={index} isInView={isInView} />
           ))}
         </div>
       </div>
     </section>
   );
-};
+});
 
-const SocialProofSection = () => {
+const StepCard = React.memo(({ step, index, isInView }) => {
+  return (
+    <motion.div
+      initial={{ y: 50, opacity: 0 }}
+      animate={isInView ? { y: 0, opacity: 1 } : {}}
+      transition={{ 
+        duration: 0.5, 
+        delay: index * 0.15,
+        ease: "easeOut"
+      }}
+      className="relative transform transition-transform duration-200 hover:scale-105 hover:-translate-y-2"
+    >
+      <div className="bg-white/10 backdrop-blur-sm p-8 rounded-3xl border border-white/20 hover:border-white/40 transition-all duration-200 text-center relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br opacity-10 rounded-full blur-xl" 
+             style={{background: `linear-gradient(135deg, #3b82f6, #8b5cf6)`}}></div>
+        
+        <div className={`w-16 h-16 bg-gradient-to-r ${step.color} rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg`}>
+          <step.icon className="h-8 w-8 text-white" />
+        </div>
+        
+        <div className="absolute top-4 left-4 w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+          <span className="text-white font-bold">{index + 1}</span>
+        </div>
+        
+        <h3 className="text-2xl font-bold text-white mb-4">{step.title}</h3>
+        <p className="text-gray-300 text-lg">{step.description}</p>
+      </div>
+    </motion.div>
+  );
+});
+
+const SocialProofSection = React.memo(() => {
   const ref = useRef(null);
-  const isInView = useInView(ref, { once: true });
+  const isInView = useInView(ref, { once: true, threshold: 0.1 });
 
   const stats = [
     { number: "5,000+", label: "outfits generated" },
@@ -349,9 +367,9 @@ const SocialProofSection = () => {
     <section ref={ref} className="py-20 px-6">
       <div className="max-w-6xl mx-auto">
         <motion.div
-          initial={{ y: 50, opacity: 0 }}
+          initial={{ y: 30, opacity: 0 }}
           animate={isInView ? { y: 0, opacity: 1 } : {}}
-          transition={{ duration: 0.8 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
           className="text-center mb-16"
         >
           <div className="bg-white/10 backdrop-blur-sm p-8 rounded-3xl border border-white/20 max-w-4xl mx-auto">
@@ -367,34 +385,37 @@ const SocialProofSection = () => {
           </div>
         </motion.div>
         
-        <motion.div 
-          className="grid md:grid-cols-3 gap-8"
-          initial={{ y: 50, opacity: 0 }}
-          animate={isInView ? { y: 0, opacity: 1 } : {}}
-          transition={{ duration: 0.8, delay: 0.3 }}
-        >
+        <div className="grid md:grid-cols-3 gap-8">
           {stats.map((stat, index) => (
-            <motion.div
-              key={index}
-              whileHover={{ scale: 1.05 }}
-              className="text-center bg-white/5 backdrop-blur-sm p-6 rounded-2xl border border-white/10"
-              initial={{ y: 50, opacity: 0 }}
-              animate={isInView ? { y: 0, opacity: 1 } : {}}
-              transition={{ delay: 0.4 + index * 0.1 }}
-            >
-              <div className="text-4xl font-bold text-blue-400 mb-2">{stat.number}</div>
-              <div className="text-gray-300">{stat.label}</div>
-            </motion.div>
+            <StatCard key={stat.label} stat={stat} index={index} isInView={isInView} />
           ))}
-        </motion.div>
+        </div>
       </div>
     </section>
   );
-};
+});
 
-const DemoSection = () => {
+const StatCard = React.memo(({ stat, index, isInView }) => {
+  return (
+    <motion.div
+      initial={{ y: 30, opacity: 0 }}
+      animate={isInView ? { y: 0, opacity: 1 } : {}}
+      transition={{ 
+        delay: 0.2 + index * 0.1, 
+        duration: 0.5,
+        ease: "easeOut"
+      }}
+      className="text-center bg-white/5 backdrop-blur-sm p-6 rounded-2xl border border-white/10 transform transition-transform duration-200 hover:scale-105"
+    >
+      <div className="text-4xl font-bold text-blue-400 mb-2">{stat.number}</div>
+      <div className="text-gray-300">{stat.label}</div>
+    </motion.div>
+  );
+});
+
+const DemoSection = React.memo(() => {
   const ref = useRef(null);
-  const isInView = useInView(ref, { once: true });
+  const isInView = useInView(ref, { once: true, threshold: 0.1 });
 
   const screens = [
     { title: "Outfit of the Day", color: "from-blue-500 to-purple-600" },
@@ -407,9 +428,9 @@ const DemoSection = () => {
     <section ref={ref} className="py-20 px-6 bg-white/5 backdrop-blur-sm">
       <div className="max-w-6xl mx-auto">
         <motion.div
-          initial={{ y: 50, opacity: 0 }}
+          initial={{ y: 30, opacity: 0 }}
           animate={isInView ? { y: 0, opacity: 1 } : {}}
-          transition={{ duration: 0.8 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
           className="text-center mb-16"
         >
           <h2 className="text-5xl font-bold text-white mb-6">See AuarAI in Action</h2>
@@ -418,33 +439,41 @@ const DemoSection = () => {
         
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
           {screens.map((screen, index) => (
-            <motion.div
-              key={index}
-              initial={{ y: 100, opacity: 0 }}
-              animate={isInView ? { y: 0, opacity: 1 } : {}}
-              transition={{ duration: 0.8, delay: index * 0.1 }}
-              whileHover={{ scale: 1.05, y: -10 }}
-              className="group cursor-pointer"
-            >
-              <div className="bg-white/10 backdrop-blur-sm p-6 rounded-2xl border border-white/20 hover:border-white/40 transition-all duration-300">
-                <div className={`w-full h-48 bg-gradient-to-br ${screen.color} rounded-xl mb-4 relative overflow-hidden group-hover:shadow-2xl transition-all duration-300`}>
-                  <div className="absolute inset-0 bg-white/10 group-hover:bg-white/20 transition-all duration-300"></div>
-                  <div className="absolute bottom-4 left-4 right-4">
-                    <div className="bg-white/20 backdrop-blur-sm p-3 rounded-lg">
-                      <div className="h-2 bg-white/40 rounded mb-2"></div>
-                      <div className="h-2 bg-white/40 rounded w-2/3"></div>
-                    </div>
-                  </div>
-                </div>
-                <h3 className="text-white font-semibold text-center">{screen.title}</h3>
-              </div>
-            </motion.div>
+            <DemoCard key={screen.title} screen={screen} index={index} isInView={isInView} />
           ))}
         </div>
       </div>
     </section>
   );
-};
+});
+
+const DemoCard = React.memo(({ screen, index, isInView }) => {
+  return (
+    <motion.div
+      initial={{ y: 50, opacity: 0 }}
+      animate={isInView ? { y: 0, opacity: 1 } : {}}
+      transition={{ 
+        duration: 0.5, 
+        delay: index * 0.1,
+        ease: "easeOut"
+      }}
+      className="group cursor-pointer transform transition-transform duration-200 hover:scale-105 hover:-translate-y-2"
+    >
+      <div className="bg-white/10 backdrop-blur-sm p-6 rounded-2xl border border-white/20 hover:border-white/40 transition-all duration-200">
+        <div className={`w-full h-48 bg-gradient-to-br ${screen.color} rounded-xl mb-4 relative overflow-hidden transition-shadow duration-200 group-hover:shadow-xl`}>
+          <div className="absolute inset-0 bg-white/10 group-hover:bg-white/20 transition-all duration-200"></div>
+          <div className="absolute bottom-4 left-4 right-4">
+            <div className="bg-white/20 backdrop-blur-sm p-3 rounded-lg">
+              <div className="h-2 bg-white/40 rounded mb-2"></div>
+              <div className="h-2 bg-white/40 rounded w-2/3"></div>
+            </div>
+          </div>
+        </div>
+        <h3 className="text-white font-semibold text-center">{screen.title}</h3>
+      </div>
+    </motion.div>
+  );
+});
 
 const FinalCTASection = ({ navigate }) => {
   const ref = useRef(null);

@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
 import { 
   EyeIcon, 
@@ -15,7 +16,6 @@ import {
   CheckCircleIcon,
   ShieldCheckIcon
 } from 'lucide-react';
-import toast from 'react-hot-toast';
 
 const RegisterPage = () => {
   const [formData, setFormData] = useState({
@@ -45,16 +45,14 @@ const RegisterPage = () => {
 
     setIsLoading(true);
 
-    const result = await register(formData.username, formData.password);
-    
-    if (result.success) {
-      toast.success('🎉 Добро пожаловать в мир стиля!');
+    try {
+      await register(formData.username, formData.password);
       navigate('/dashboard');
-    } else {
-      toast.error(result.error);
+    } catch (error) {
+      console.error('Registration failed:', error);
+    } finally {
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
   };
 
   const handleChange = (e) => {
@@ -62,6 +60,10 @@ const RegisterPage = () => {
       ...formData,
       [e.target.name]: e.target.value,
     });
+  };
+
+  const handleGoToLogin = () => {
+    navigate('/login');
   };
 
   const getPasswordStrength = () => {
@@ -374,15 +376,24 @@ const RegisterPage = () => {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 1, duration: 0.5 }}
               >
-                <p className="text-gray-300 text-sm">
-                  Уже есть аккаунт?{' '}
-                  <Link 
-                    to="/login" 
-                    className="text-gradient-secondary font-semibold hover:text-gradient-primary transition-all duration-300"
-                  >
-                    Войти
-                  </Link>
+                <p className="text-gray-300 text-sm mb-3">
+                  Уже есть аккаунт?
                 </p>
+                <Link 
+                  to="/login" 
+                  onClick={handleGoToLogin}
+                  className="clickable-link auth-switch-button inline-block px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-blue-500/25"
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleGoToLogin();
+                    }
+                  }}
+                >
+                  Войти
+                </Link>
               </motion.div>
             </motion.form>
 

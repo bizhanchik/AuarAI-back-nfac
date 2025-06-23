@@ -21,13 +21,21 @@ const V2VAssistantModal = ({ isOpen, onClose }) => {
     try {
       const token = localStorage.getItem('token');
       
-      // Try different WebSocket URLs based on environment
+      // Determine WebSocket URL based on environment and protocol
       let wsUrl;
-      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      const isSecure = window.location.protocol === 'https:';
+      const hostname = window.location.hostname;
+      
+      if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        // Local development
         wsUrl = `ws://localhost:8000/v2v/ws/video-chat`;
       } else {
-        // For production, try both WSS and WS
-        wsUrl = `wss://auarai.com/v2v/ws/video-chat`;
+        // Production - always use WSS for security
+        if (isSecure) {
+          wsUrl = `wss://${hostname}/api/v2v/ws/video-chat`;
+        } else {
+          wsUrl = `ws://${hostname}:8000/v2v/ws/video-chat`;
+        }
       }
       
       console.log('Attempting to connect to:', wsUrl);
@@ -86,84 +94,16 @@ const V2VAssistantModal = ({ isOpen, onClose }) => {
         console.error('WebSocket error:', error);
         setConnectionStatus('error');
         
-        // Try fallback connection if production fails
-        if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-          console.log('WSS failed, trying WS fallback...');
-          tryFallbackConnection();
+        if (hostname === 'localhost' || hostname === '127.0.0.1') {
+          toast.error('Ошибка подключения к AI стилисту. Проверьте, что бэкенд запущен на порту 8000.');
         } else {
-          toast.error('Ошибка подключения к AI стилисту. Проверьте, что бэкенд запущен.');
+          toast.error('Сервис видео-чата временно недоступен. Попробуйте позже.');
         }
       };
       
     } catch (error) {
       console.error('Error connecting WebSocket:', error);
       toast.error('Не удалось подключиться к AI стилисту');
-    }
-  };
-
-  // Fallback connection for production
-  const tryFallbackConnection = () => {
-    try {
-      const token = localStorage.getItem('token');
-      let wsUrl = `ws://auarai.com:8000/v2v/ws/video-chat`;
-      
-      if (token) {
-        wsUrl += `?token=${token}`;
-      }
-      
-      console.log('Trying fallback connection to:', wsUrl);
-      
-      wsRef.current = new WebSocket(wsUrl);
-      
-      wsRef.current.onopen = () => {
-        setIsConnected(true);
-        setConnectionStatus('connected');
-        toast.success('Подключен к AI стилисту через резервное соединение!');
-      };
-      
-      wsRef.current.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        
-        if (data.type === 'compliment') {
-          setCurrentCompliment(data.text);
-          
-          // Play audio compliment
-          if (data.audio) {
-            const audioBlob = base64ToBlob(data.audio, 'audio/mp3');
-            const audioUrl = URL.createObjectURL(audioBlob);
-            
-            if (audioRef.current) {
-              audioRef.current.pause();
-              audioRef.current.currentTime = 0;
-              audioRef.current.src = audioUrl;
-              audioRef.current.play()
-                .then(() => {
-                  setIsAudioPlaying(true);
-                })
-                .catch((error) => {
-                  console.error('Error playing audio:', error);
-                  setIsAudioPlaying(false);
-                });
-            }
-          }
-        }
-      };
-      
-      wsRef.current.onclose = () => {
-        setIsConnected(false);
-        setConnectionStatus('disconnected');
-        toast.error('Соединение с AI стилистом потеряно');
-      };
-      
-      wsRef.current.onerror = (error) => {
-        console.error('Fallback WebSocket error:', error);
-        setConnectionStatus('error');
-        toast.error('Не удалось подключиться к AI стилисту. Сервис временно недоступен.');
-      };
-      
-    } catch (error) {
-      console.error('Error in fallback connection:', error);
-      toast.error('Сервис видео-чата временно недоступен');
     }
   };
 
