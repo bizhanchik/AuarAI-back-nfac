@@ -95,7 +95,7 @@ class VideoToVoiceProcessor:
         self.gcs_client = get_gcs_client()
         self.bucket_name = os.getenv("GCS_BUCKET_NAME", "v2v-assistant-frames")
         self.frame_count = 0
-        self.analysis_interval = 10  # Analyze every 5 frames (~5 seconds with 1fps from frontend)
+        self.analysis_interval = 3  # Process every 3rd frame for faster response
         self.last_analysis_time = 0
         
     async def upload_frame_to_gcs(self, frame_bytes: bytes) -> Optional[str]:
