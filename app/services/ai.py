@@ -17,20 +17,21 @@ def ai_classify_clothing(image_bytes: bytes) -> Dict:
     model = genai.GenerativeModel("gemini-1.5-flash")
 
     prompt = (
-        "Classify this clothing item and return JSON in this format only:\n"
-        "{"
-        "\"name\": str, "
-        "\"brand\": str or null, "
-        "\"category\": str, "
-        "\"gender\": str (male/female/unisex), "
-        "\"color\": str, "
-        "\"size\": str or null, "
-        "\"material\": str or null, "
-        "\"description\": str, "
-        "\"tags\": list of strings, "
-        "\"occasions\": list of strings, "
-        "\"weather_suitability\": list of strings"
-        "}"
+        "You are a professional fashion stylist. Classify this clothing item and return JSON in this EXACT format only:\n"
+        "{\n"
+        "  \"name\": \"specific item name (e.g., 'Blue Denim Jacket', 'Black Cotton T-Shirt')\",\n"
+        "  \"brand\": \"brand name or null if not visible\",\n"
+        "  \"category\": \"clothing category (e.g., 'T-shirt', 'Jeans', 'Dress', 'Jacket', 'Sneakers')\",\n"
+        "  \"gender\": \"male/female/unisex\",\n"
+        "  \"color\": \"primary color\",\n"
+        "  \"size\": \"size if visible or null\",\n"
+        "  \"material\": \"fabric/material type if identifiable\",\n"
+        "  \"description\": \"detailed description including style, fit, and notable features\",\n"
+        "  \"tags\": [\"style tags like casual, formal, vintage, trendy, etc.\"],\n"
+        "  \"occasions\": [\"suitable occasions like work, party, casual, gym, date, etc.\"],\n"
+        "  \"weather_suitability\": [\"appropriate weather like summer, winter, spring, fall, rain, cold, warm, etc.\"]\n"
+        "}\n\n"
+        "Important: Always provide meaningful values for tags, occasions, and weather_suitability arrays - never leave them empty!"
     )
 
     response = model.generate_content([prompt, image], generation_config={"temperature": 0.4})
@@ -41,7 +42,18 @@ def ai_classify_clothing(image_bytes: bytes) -> Dict:
         # Попробуем извлечь JSON
         match = re.search(r'\{.*\}', response.text, re.DOTALL)
         if match:
-            return json.loads(match.group())
+            result = json.loads(match.group())
+            print("✅ Successfully parsed AI response:", result)
+            
+            # Ensure we have the required arrays
+            if 'tags' not in result:
+                result['tags'] = []
+            if 'occasions' not in result:
+                result['occasions'] = []
+            if 'weather_suitability' not in result:
+                result['weather_suitability'] = []
+                
+            return result
         else:
             raise ValueError("No JSON object found in AI response.")
 
@@ -65,6 +77,8 @@ async def classify_clothing_image(image_url: str, additional_context: Optional[s
         # Use existing classification function
         result = ai_classify_clothing(image_bytes)
         
+        print("🔍 Raw AI classification result:", result)
+        
         # Map the result to match the expected schema
         mapped_result = {
             "clothing_type": result.get("category", "Unknown"),
@@ -82,6 +96,8 @@ async def classify_clothing_image(image_url: str, additional_context: Optional[s
                 "gender": result.get("gender")
             }
         }
+        
+        print("📦 Final mapped result:", mapped_result)
         
         return mapped_result
         

@@ -232,23 +232,24 @@ const AddClothingModal = ({ isOpen, onClose, onClothingAdded }) => {
         setClassificationResult(response.data);
         
         // Pre-fill form with classification results
+        const additionalDetails = response.data.additional_details || {};
         setFormData(prev => ({
           ...prev,
-          name: response.data.clothing_type || `${response.data.clothing_type || 'Одежда'}`,
+          name: additionalDetails.name || response.data.clothing_type || 'Одежда',
           brand: response.data.brand || '',
           category: response.data.clothing_type || '',
           color: response.data.color || '',
           material: response.data.material || '',
-          description: `${response.data.clothing_type || ''} ${response.data.color || ''} ${response.data.material || ''}`.trim(),
+          description: additionalDetails.description || `${response.data.clothing_type || ''} ${response.data.color || ''} ${response.data.material || ''}`.trim(),
           // Keep the uploaded image URL that was set earlier
           image_url: prev.image_url,
           store_name: 'User Upload',
           store_url: '',
           product_url: prev.product_url,
           price: 0.0,
-          tags: response.data.pattern ? [response.data.pattern] : [],
-          occasions: [],
-          weather_suitability: []
+          tags: additionalDetails.tags || (response.data.pattern ? [response.data.pattern] : []),
+          occasions: additionalDetails.occasions || [],
+          weather_suitability: additionalDetails.weather_suitability || []
         }));
         
         setStep(3);

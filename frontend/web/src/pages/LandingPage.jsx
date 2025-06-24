@@ -498,7 +498,7 @@ const FinalCTASection = ({ navigate }) => {
           <motion.button
             whileHover={{ scale: 1.05, boxShadow: "0 25px 50px rgba(59, 130, 246, 0.5)" }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => navigate('/register')}
+            onClick={() => navigate('/login')}
             className="px-12 py-6 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl font-bold text-xl shadow-2xl mb-4 inline-block"
           >
             Get Early Access
