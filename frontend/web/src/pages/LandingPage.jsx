@@ -118,7 +118,7 @@ const HeroSection = ({ navigate }) => {
               <motion.button
                 whileHover={{ scale: 1.05, boxShadow: "0 20px 40px rgba(59, 130, 246, 0.4)" }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => navigate('/register')}
+                onClick={() => navigate('/login')}
                 className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl font-semibold text-lg shadow-2xl"
               >
                 Try AuarAI Free
@@ -520,7 +520,11 @@ const Footer = () => (
       <div className="grid md:grid-cols-3 gap-8 items-center">
         <div className="flex items-center space-x-3">
           <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-            <SparklesIcon className="h-5 w-5 text-white" />
+          <img 
+              src="/img/logo.png" 
+              alt="AuarAI Logo" 
+              className="h-6 w-6 object-contain"
+            />
           </div>
           <span className="text-xl font-bold text-white">AuarAI</span>
         </div>

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { X, Video, VideoOff, Volume2 } from 'lucide-react';
+import analytics from '../services/analytics';
 import toast from 'react-hot-toast';
 
 const V2VAssistantModal = ({ isOpen, onClose }) => {
@@ -143,6 +144,9 @@ const V2VAssistantModal = ({ isOpen, onClose }) => {
       }
       
       setIsVideoActive(true);
+      
+      // 📊 Отслеживание начала V2V диалога
+      analytics.trackV2VDialogue();
       
       // Start sending frames to backend
       startFrameCapture();

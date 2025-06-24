@@ -1,14 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { 
-  EyeIcon, 
-  EyeOffIcon, 
   SparklesIcon, 
-  UserIcon, 
-  LockIcon,
-  ArrowRightIcon,
   StarIcon,
   HeartIcon,
   ZapIcon
@@ -16,39 +11,24 @@ import {
 import toast from 'react-hot-toast';
 
 const LoginPage = () => {
-  const [formData, setFormData] = useState({
-    username: '',
-    password: '',
-  });
   const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   
-  const { login } = useAuth();
+  const { loginWithGoogle } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleGoogleSignIn = async () => {
     setIsLoading(true);
     
     try {
-      await login(formData.username, formData.password);
-      navigate('/dashboard');
+      const result = await loginWithGoogle();
+      if (result.success) {
+        navigate('/dashboard');
+      }
     } catch (error) {
       console.error('Login failed:', error);
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-  };
-
-  const handleGoToRegister = () => {
-    navigate('/register');
   };
 
   const FloatingElement = ({ children, delay = 0, duration = 6 }) => (
@@ -133,148 +113,89 @@ const LoginPage = () => {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.3 }}
               >
-                Добро пожаловать
+                Добро пожаловать в AuarAI
               </motion.h1>
               
               <motion.p 
-                className="text-gray-300 text-lg"
+                className="text-gray-300 text-lg mb-6"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.4 }}
               >
-                Войдите в мир персонального стиля
+                Войдите с помощью Google аккаунта
               </motion.p>
             </motion.div>
 
-            {/* Form */}
-            <motion.form 
-              className="space-y-6" 
-              onSubmit={handleSubmit}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
+            {/* Google Sign In Button */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5, duration: 0.6 }}
             >
-              {/* Username Field */}
-              <motion.div
-                initial={{ x: -50, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                transition={{ delay: 0.6, duration: 0.5 }}
-              >
-                <label htmlFor="username" className="block text-sm font-semibold text-gray-300 mb-2">
-                  Имя пользователя
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <UserIcon className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    id="username"
-                    name="username"
-                    type="text"
-                    required
-                    className="input-glass pl-10 pr-4 py-3 text-white placeholder-gray-400"
-                    placeholder="Введите имя пользователя"
-                    value={formData.username}
-                    onChange={handleChange}
-                  />
-                </div>
-              </motion.div>
-
-              {/* Password Field */}
-              <motion.div
-                initial={{ x: 50, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                transition={{ delay: 0.7, duration: 0.5 }}
-              >
-                <label htmlFor="password" className="block text-sm font-semibold text-gray-300 mb-2">
-                  Пароль
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <LockIcon className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    id="password"
-                    name="password"
-                    type={showPassword ? "text" : "password"}
-                    required
-                    className="input-glass pl-10 pr-12 py-3 text-white placeholder-gray-400"
-                    placeholder="Введите пароль"
-                    value={formData.password}
-                    onChange={handleChange}
-                  />
-                  <button
-                    type="button"
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? (
-                      <EyeOffIcon className="h-5 w-5 text-gray-400 hover:text-gray-300 transition-colors" />
-                    ) : (
-                      <EyeIcon className="h-5 w-5 text-gray-400 hover:text-gray-300 transition-colors" />
-                    )}
-                  </button>
-                </div>
-              </motion.div>
-
-              {/* Submit Button */}
               <motion.button
-                type="submit"
+                onClick={handleGoogleSignIn}
                 disabled={isLoading}
-                className="w-full btn-primary text-lg py-4 relative overflow-hidden group"
+                className="w-full bg-white hover:bg-gray-50 text-gray-900 font-semibold py-4 px-6 rounded-xl flex items-center justify-center space-x-3 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                 whileHover={{ scale: 1.02, y: -2 }}
                 whileTap={{ scale: 0.98 }}
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.8, duration: 0.5 }}
               >
                 {isLoading ? (
                   <div className="flex items-center justify-center">
                     <motion.div
-                      className="w-5 h-5 border-2 border-white border-t-transparent rounded-full mr-3"
+                      className="w-5 h-5 border-2 border-gray-900 border-t-transparent rounded-full mr-3"
                       animate={{ rotate: 360 }}
                       transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                     />
                     Вход в систему...
                   </div>
                 ) : (
-                  <div className="flex items-center justify-center">
-                    <span>Войти в AuarAI</span>
-                    <ArrowRightIcon className="h-5 w-5 ml-2 group-hover:translate-x-1 transition-transform" />
-                  </div>
+                  <>
+                    <svg className="w-5 h-5" viewBox="0 0 24 24">
+                      <path
+                        fill="#4285F4"
+                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                      />
+                      <path
+                        fill="#34A853"
+                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                      />
+                      <path
+                        fill="#FBBC05"
+                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                      />
+                      <path
+                        fill="#EA4335"
+                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                      />
+                    </svg>
+                    <span className="text-lg">Войти через Google</span>
+                  </>
                 )}
-                
-                {/* Button Animation */}
-                <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
               </motion.button>
+            </motion.div>
 
-              {/* Register Link */}
-              <motion.div 
-                className="text-center pt-4 border-t border-white/10"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.9, duration: 0.5 }}
-              >
-                <p className="text-gray-300 text-sm mb-3">
-                  Нет аккаунта?
-                </p>
-                <Link 
-                  to="/register" 
-                  onClick={handleGoToRegister}
-                  className="clickable-link auth-switch-button inline-block px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-500/25"
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      handleGoToRegister();
-                    }
-                  }}
-                >
-                  Создать аккаунт
-                </Link>
-              </motion.div>
-            </motion.form>
+            {/* Features */}
+            <motion.div
+              className="mt-8 pt-6 border-t border-white/10"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.7, duration: 0.6 }}
+            >
+              <div className="grid grid-cols-1 gap-4 text-center">
+                <div className="flex items-center justify-center text-gray-300 text-sm">
+                  <SparklesIcon className="h-4 w-4 mr-2 text-blue-400" />
+                  <span>ИИ-стилист персонально для вас</span>
+                </div>
+                <div className="flex items-center justify-center text-gray-300 text-sm">
+                  <HeartIcon className="h-4 w-4 mr-2 text-pink-400" />
+                  <span>Умные рекомендации нарядов</span>
+                </div>
+                <div className="flex items-center justify-center text-gray-300 text-sm">
+                  <ZapIcon className="h-4 w-4 mr-2 text-yellow-400" />
+                  <span>Голосовой помощник по стилю</span>
+                </div>
+              </div>
+            </motion.div>
 
             {/* Decorative Elements */}
             <div className="absolute top-4 right-4 opacity-30">
@@ -310,7 +231,7 @@ const LoginPage = () => {
             className="text-center mt-8"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1, duration: 0.5 }}
+            transition={{ delay: 0.8, duration: 0.5 }}
           >
             <Link
               to="/"

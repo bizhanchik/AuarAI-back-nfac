@@ -6,6 +6,29 @@
     <link rel="apple-touch-icon" href="/img/logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AuarAI - Your Smart Stylist</title>
+    
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-EH59M60G1Z"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      
+      // Enable debug mode and allow localhost
+      gtag('config', 'G-EH59M60G1Z', {
+        debug_mode: true,
+        send_page_view: true,
+        cookie_flags: 'SameSite=None;Secure'
+      });
+      
+      // Manual page view for localhost
+      gtag('event', 'page_view', {
+        page_title: document.title,
+        page_location: window.location.href,
+        page_path: window.location.pathname
+      });
+    </script>
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Outfit:wght@100;200;300;400;500;600;700;800;900&family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">

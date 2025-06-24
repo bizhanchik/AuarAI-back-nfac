@@ -5,7 +5,7 @@ import logging
 from typing import Dict, Any
 
 from ..gcs_uploader import gcs_uploader
-from ..auth import get_current_user
+from ..firebase_auth import get_current_user_firebase
 from ..models import User
 from ..database import SessionLocal
 
@@ -38,7 +38,7 @@ MAX_FILE_SIZE = 10 * 1024 * 1024
 @router.post("/upload-photo", response_model=Dict[str, str])
 async def upload_photo(
     file: UploadFile = File(...),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user_firebase),
     db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
     """
@@ -98,7 +98,7 @@ async def upload_photo(
                     detail="Failed to upload file to cloud storage"
                 )
             
-            logger.info(f"Photo uploaded successfully by user {current_user.username}: {public_url}")
+            logger.info(f"Photo uploaded successfully by user {current_user.email}: {public_url}")
             
             return {
                 "url": public_url,
@@ -107,7 +107,7 @@ async def upload_photo(
             }
             
         except Exception as upload_error:
-            logger.error(f"GCS upload error for user {current_user.username}: {str(upload_error)}")
+            logger.error(f"GCS upload error for user {current_user.email}: {str(upload_error)}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Upload failed: {str(upload_error)}"
@@ -117,7 +117,7 @@ async def upload_photo(
         # Re-raise HTTP exceptions as they are
         raise
     except Exception as e:
-        logger.error(f"Unexpected error during photo upload for user {current_user.username}: {str(e)}")
+        logger.error(f"Unexpected error during photo upload for user {current_user.email}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An unexpected error occurred during upload"
@@ -126,7 +126,7 @@ async def upload_photo(
 @router.delete("/photo")
 async def delete_photo(
     file_url: str,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user_firebase),
     db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
     """
@@ -151,7 +151,7 @@ async def delete_photo(
         success = gcs_uploader.delete_file(file_url)
         
         if success:
-            logger.info(f"Photo deleted successfully by user {current_user.username}: {file_url}")
+            logger.info(f"Photo deleted successfully by user {current_user.email}: {file_url}")
             return {
                 "message": "Photo deleted successfully",
                 "url": file_url
@@ -166,7 +166,7 @@ async def delete_photo(
         # Re-raise HTTP exceptions as they are
         raise
     except Exception as e:
-        logger.error(f"Unexpected error during photo deletion for user {current_user.username}: {str(e)}")
+        logger.error(f"Unexpected error during photo deletion for user {current_user.email}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An unexpected error occurred during deletion"

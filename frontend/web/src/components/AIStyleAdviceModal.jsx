@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { XIcon, SparklesIcon, CloudIcon, CalendarIcon, LoaderIcon } from 'lucide-react';
 import { weatherAPI, clothingAPI } from '../services/api';
+import analytics from '../services/analytics';
 import toast from 'react-hot-toast';
 
 const AIStyleAdviceModal = ({ isOpen, onClose, userItems = [] }) => {
@@ -51,6 +52,9 @@ const AIStyleAdviceModal = ({ isOpen, onClose, userItems = [] }) => {
 
     setLoading(true);
 
+    // 📊 Отслеживание запроса совета от ИИ
+    analytics.trackAIAdviceRequest(occasion);
+
     try {
       const weatherDescription = `${weather.temperature}°C, ${weather.condition}`;
       const response = await clothingAPI.getStyleAdvice(occasion, weatherDescription, 'casual');
@@ -74,6 +78,7 @@ const AIStyleAdviceModal = ({ isOpen, onClose, userItems = [] }) => {
       };
       
       setAdvice(realAdvice);
+      toast.success('Совет от ИИ получен!');
     } catch (error) {
       console.error('AI advice error:', error);
       

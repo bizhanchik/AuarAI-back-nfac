@@ -2,7 +2,8 @@ import os
 import io
 import json
 import re
-from typing import Dict, List
+import requests
+from typing import Dict, List, Optional
 from dotenv import load_dotenv
 from PIL import Image
 import google.generativeai as genai
@@ -47,6 +48,49 @@ def ai_classify_clothing(image_bytes: bytes) -> Dict:
     except Exception as e:
         print("❌ Error parsing AI response:", e)
         return {"error": "Invalid response from AI"}
+
+async def classify_clothing_image(image_url: str, additional_context: Optional[str] = None) -> Dict:
+    """
+    Classify clothing from an image URL.
+    Downloads the image and uses the AI classification function.
+    """
+    try:
+        # Download the image from URL
+        response = requests.get(image_url, timeout=30)
+        response.raise_for_status()
+        
+        # Get image bytes
+        image_bytes = response.content
+        
+        # Use existing classification function
+        result = ai_classify_clothing(image_bytes)
+        
+        # Map the result to match the expected schema
+        mapped_result = {
+            "clothing_type": result.get("category", "Unknown"),
+            "color": result.get("color", "Unknown"),
+            "material": result.get("material"),
+            "pattern": None,
+            "brand": result.get("brand"),
+            "confidence_score": 0.8,  # Default confidence
+            "additional_details": {
+                "name": result.get("name"),
+                "description": result.get("description"),
+                "tags": result.get("tags", []),
+                "occasions": result.get("occasions", []),
+                "weather_suitability": result.get("weather_suitability", []),
+                "gender": result.get("gender")
+            }
+        }
+        
+        return mapped_result
+        
+    except requests.RequestException as e:
+        print(f"❌ Error downloading image from {image_url}: {e}")
+        raise Exception(f"Failed to download image: {str(e)}")
+    except Exception as e:
+        print(f"❌ Error classifying image: {e}")
+        raise Exception(f"Classification failed: {str(e)}")
 
 def ai_generate_daily_outfits(forecast_data: Dict, user_items: List[Dict] = None, occasion: str = "casual") -> Dict:
     """Generate outfit recommendations for each day based on weather forecast"""

@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { XIcon, UploadIcon, CheckIcon, LoaderIcon } from 'lucide-react';
 import { clothingAPI } from '../services/api';
+import analytics from '../services/analytics';
 import toast from 'react-hot-toast';
 
 const CATEGORIES = [
@@ -218,17 +219,42 @@ const AddClothingModal = ({ isOpen, onClose, onClothingAdded }) => {
         product_url: uploadedImageUrl
       }));
 
-      // Then classify the image
-      const response = await clothingAPI.classifyImage([selectedFile]);
-      const taskIds = response.data.task_ids;
+      // Then classify the image using the uploaded URL
+      const classificationRequest = {
+        image_url: uploadedImageUrl,
+        additional_context: "clothing item classification"
+      };
       
-      if (taskIds && taskIds.length > 0) {
-        setTaskId(taskIds[0]);
-        pollClassificationResult(taskIds[0]);
-      } else if (response.data.error) {
-        toast.error(response.data.error);
-        setStep(1);
+      const response = await clothingAPI.classifyImageFromUrl(classificationRequest);
+      
+      // Handle direct classification response (not task-based)
+      if (response.data) {
+        setClassificationResult(response.data);
+        
+        // Pre-fill form with classification results
+        setFormData(prev => ({
+          ...prev,
+          name: response.data.clothing_type || `${response.data.clothing_type || 'Одежда'}`,
+          brand: response.data.brand || '',
+          category: response.data.clothing_type || '',
+          color: response.data.color || '',
+          material: response.data.material || '',
+          description: `${response.data.clothing_type || ''} ${response.data.color || ''} ${response.data.material || ''}`.trim(),
+          // Keep the uploaded image URL that was set earlier
+          image_url: prev.image_url,
+          store_name: 'User Upload',
+          store_url: '',
+          product_url: prev.product_url,
+          price: 0.0,
+          tags: response.data.pattern ? [response.data.pattern] : [],
+          occasions: [],
+          weather_suitability: []
+        }));
+        
+        setStep(3);
         setLoading(false);
+      } else {
+        throw new Error('No classification result received');
       }
     } catch (error) {
       console.error('Classification error:', error);
@@ -351,7 +377,12 @@ const AddClothingModal = ({ isOpen, onClose, onClothingAdded }) => {
 
     try {
       const response = await clothingAPI.addClothingItem(formData);
+      
+      // 📊 Отслеживание добавления одежды
+      analytics.trackClothingAdded(formData.category || 'unknown');
+      
       onClothingAdded(response.data);
+      toast.success('Одежда успешно добавлена в гардероб!');
       handleClose();
     } catch (error) {
       console.error('Submit error:', error);
@@ -470,7 +501,7 @@ const AddClothingModal = ({ isOpen, onClose, onClothingAdded }) => {
                       </motion.button>
                     </div>
                   </motion.div>
-                              ) : (
+                ) : (
                   <motion.div 
                     key="upload"
                     className="space-y-6"
@@ -478,79 +509,77 @@ const AddClothingModal = ({ isOpen, onClose, onClothingAdded }) => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5 }}
                   >
-                    <AnimatePresence mode="wait">
-                      {isDragging ? (
+                    {isDragging ? (
+                      <motion.div 
+                        key="dragging"
+                        className="space-y-4"
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.3 }}
+                      >
                         <motion.div 
-                          key="dragging"
-                          className="space-y-4"
-                          initial={{ opacity: 0, scale: 0.9 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.9 }}
-                          transition={{ duration: 0.3 }}
+                          className="w-20 h-20 bg-blue-200 rounded-full mx-auto flex items-center justify-center"
+                          animate={{ scale: [1, 1.1, 1] }}
+                          transition={{ repeat: Infinity, duration: 1 }}
                         >
-                          <motion.div 
-                            className="w-20 h-20 bg-blue-200 rounded-full mx-auto flex items-center justify-center"
-                            animate={{ scale: [1, 1.1, 1] }}
-                            transition={{ repeat: Infinity, duration: 1 }}
-                          >
-                            <UploadIcon className="h-10 w-10 text-blue-600" />
-                          </motion.div>
-                          <div>
-                            <p className="text-xl font-semibold text-blue-700">
-                              Отпустите файл для загрузки
-                            </p>
-                            <p className="text-blue-600">
-                              Мы обработаем ваше фото автоматически
-                            </p>
-                          </div>
+                          <UploadIcon className="h-10 w-10 text-blue-600" />
                         </motion.div>
-                      ) : (
+                        <div>
+                          <p className="text-xl font-semibold text-blue-700">
+                            Отпустите файл для загрузки
+                          </p>
+                          <p className="text-blue-600">
+                            Мы обработаем ваше фото автоматически
+                          </p>
+                        </div>
+                      </motion.div>
+                    ) : (
+                      <motion.div 
+                        key="not-dragging"
+                        className="space-y-4"
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.3 }}
+                      >
                         <motion.div 
-                          key="not-dragging"
-                          className="space-y-4"
-                          initial={{ opacity: 0, scale: 0.9 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.9 }}
-                          transition={{ duration: 0.3 }}
+                          className="relative"
+                          whileHover={{ scale: 1.05 }}
+                          transition={{ type: "spring", stiffness: 300 }}
                         >
+                          <UploadIcon className="h-16 w-16 text-gray-400 mx-auto" />
                           <motion.div 
-                            className="relative"
-                            whileHover={{ scale: 1.05 }}
-                            transition={{ type: "spring", stiffness: 300 }}
+                            className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center"
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
                           >
-                            <UploadIcon className="h-16 w-16 text-gray-400 mx-auto" />
-                            <motion.div 
-                              className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center"
-                              animate={{ rotate: 360 }}
-                              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                            >
-                              <span className="text-white text-xs font-bold">+</span>
-                            </motion.div>
+                            <span className="text-white text-xs font-bold">+</span>
                           </motion.div>
-                          <div>
-                            <p className="text-xl font-semibold text-gray-900">
-                              Перетащите фото или нажмите для выбора
-                            </p>
-                            <p className="text-gray-600 mt-2">
-                              Поддерживаются JPG, PNG, WebP до 5MB
-                            </p>
-                            <p className="text-sm text-gray-500 mt-1">
-                              📱 Просто перетащите файл сюда!
-                            </p>
-                          </div>
-                          <motion.button
-                            onClick={() => fileInputRef.current?.click()}
-                            className="px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl"
-                            whileHover={{ scale: 1.05, y: -2 }}
-                            whileTap={{ scale: 0.95 }}
-                          >
-                            📂 Выбрать файл
-                          </motion.button>
                         </motion.div>
-                      )}
-                    </AnimatePresence>
+                        <div>
+                          <p className="text-xl font-semibold text-gray-900">
+                            Перетащите фото или нажмите для выбора
+                          </p>
+                          <p className="text-gray-600 mt-2">
+                            Поддерживаются JPG, PNG, WebP до 5MB
+                          </p>
+                          <p className="text-sm text-gray-500 mt-1">
+                            📱 Просто перетащите файл сюда!
+                          </p>
+                        </div>
+                        <motion.button
+                          onClick={() => fileInputRef.current?.click()}
+                          className="px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl"
+                          whileHover={{ scale: 1.05, y: -2 }}
+                          whileTap={{ scale: 0.95 }}
+                        >
+                          📂 Выбрать файл
+                        </motion.button>
+                      </motion.div>
+                    )}
                   </motion.div>
-              )}
+                )}
+              </AnimatePresence>
+              
               <input
                 ref={fileInputRef}
                 type="file"
@@ -558,8 +587,6 @@ const AddClothingModal = ({ isOpen, onClose, onClothingAdded }) => {
                 onChange={handleFileSelect}
                 className="hidden"
               />
-              
-              </AnimatePresence>
               
               {/* Drag overlay */}
               <AnimatePresence>

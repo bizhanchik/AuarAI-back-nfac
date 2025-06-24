@@ -1,5 +1,9 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth, signInWithGoogle, signOutUser } from '../services/firebase';
 import { api } from '../services/api';
+import analytics from '../services/analytics';
+import toast from 'react-hot-toast';
 
 const AuthContext = createContext();
 
@@ -15,92 +19,172 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      // Проверяем валидность токена
-      api.get('/me')
-        .then(response => {
-          setUser(response.data);
-        })
-        .catch(() => {
-          localStorage.removeItem('token');
-          delete api.defaults.headers.common['Authorization'];
-        })
-        .finally(() => {
-          setLoading(false);
-        });
-    } else {
-      setLoading(false);
+  // Function to refresh and set the Firebase ID token
+  const refreshToken = async (firebaseUser) => {
+    try {
+      const idToken = await firebaseUser.getIdToken(true); // Force refresh
+      api.defaults.headers.common['Authorization'] = `Bearer ${idToken}`;
+      return idToken;
+    } catch (error) {
+      console.error('Error refreshing token:', error);
+      throw error;
     }
+  };
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        try {
+          // Get Firebase ID token
+          const idToken = await firebaseUser.getIdToken();
+          
+          // Set the token in API headers
+          api.defaults.headers.common['Authorization'] = `Bearer ${idToken}`;
+          
+          // Set user data from Firebase
+          setUser({
+            uid: firebaseUser.uid,
+            email: firebaseUser.email,
+            displayName: firebaseUser.displayName,
+            photoURL: firebaseUser.photoURL,
+            emailVerified: firebaseUser.emailVerified,
+          });
+
+          // 📊 Отслеживание успешной авторизации
+          analytics.trackUserLogin('google');
+          analytics.setUserProperties(firebaseUser.uid, {
+            userType: 'free', // Можно обновить из бэкенда
+            isPremium: false  // Можно обновить из бэкенда
+          });
+          
+          // Optional: Sync user with backend
+          try {
+            await api.post('/auth/firebase-login', {
+              uid: firebaseUser.uid,
+              email: firebaseUser.email,
+              displayName: firebaseUser.displayName,
+              photoURL: firebaseUser.photoURL,
+            });
+          } catch (error) {
+            console.error('Error syncing with backend:', error);
+            // Don't block login if backend sync fails
+          }
+          
+        } catch (error) {
+          console.error('Error getting ID token:', error);
+          toast.error('Authentication error');
+          setUser(null);
+        }
+      } else {
+        // User is signed out
+        setUser(null);
+        delete api.defaults.headers.common['Authorization'];
+      }
+      setLoading(false);
+    });
+
+    // Setup axios interceptor for automatic token refresh
+    const requestInterceptor = api.interceptors.request.use(
+      async (config) => {
+        // If we have a current user, ensure the token is fresh
+        if (auth.currentUser) {
+          try {
+            const idToken = await auth.currentUser.getIdToken();
+            config.headers['Authorization'] = `Bearer ${idToken}`;
+          } catch (error) {
+            console.error('Error getting fresh token:', error);
+          }
+        }
+        return config;
+      },
+      (error) => Promise.reject(error)
+    );
+
+    const responseInterceptor = api.interceptors.response.use(
+      (response) => response,
+      async (error) => {
+        const originalRequest = error.config;
+        
+        if (error.response?.status === 401 && !originalRequest._retry && auth.currentUser) {
+          originalRequest._retry = true;
+          
+          try {
+            // Try to refresh the token
+            const newToken = await refreshToken(auth.currentUser);
+            originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
+            
+            // Retry the original request
+            return api(originalRequest);
+          } catch (refreshError) {
+            console.error('Token refresh failed:', refreshError);
+            // Force logout if token refresh fails
+            await signOutUser();
+            toast.error('Session expired. Please sign in again.');
+            return Promise.reject(refreshError);
+          }
+        }
+        
+        return Promise.reject(error);
+      }
+    );
+
+    // Cleanup function
+    return () => {
+      unsubscribe();
+      api.interceptors.request.eject(requestInterceptor);
+      api.interceptors.response.eject(responseInterceptor);
+    };
   }, []);
 
-  const login = async (username, password) => {
+  const loginWithGoogle = async () => {
     try {
-      const formData = new FormData();
-      formData.append('username', username);
-      formData.append('password', password);
+      setLoading(true);
+      const result = await signInWithGoogle();
       
-      const response = await api.post('/login', formData, {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-      });
-      
-      const { access_token } = response.data;
-      localStorage.setItem('token', access_token);
-      api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
-      
-      // Получаем информацию о пользователе
-      const userResponse = await api.get('/me');
-      setUser(userResponse.data);
+      toast.success(`Добро пожаловать, ${result.user.displayName || result.user.email}!`);
       
       return { success: true };
     } catch (error) {
+      console.error('Google sign-in error:', error);
+      
+      let errorMessage = 'Ошибка входа через Google';
+      if (error.code === 'auth/popup-closed-by-user') {
+        errorMessage = 'Вход отменен пользователем';
+      } else if (error.code === 'auth/popup-blocked') {
+        errorMessage = 'Всплывающее окно заблокировано браузером';
+      } else if (error.code === 'auth/network-request-failed') {
+        errorMessage = 'Проблема с сетевым соединением';
+      }
+      
+      toast.error(errorMessage);
       return { 
         success: false, 
-        error: error.response?.data?.detail || 'Login failed' 
+        error: errorMessage 
       };
+    } finally {
+      setLoading(false);
     }
   };
 
-  const register = async (username, password) => {
+  const logout = async () => {
     try {
-      const response = await api.post('/register', {
-        username,
-        password,
-      });
-      
-      const { access_token } = response.data;
-      localStorage.setItem('token', access_token);
-      api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
-      
-      // Получаем информацию о пользователе
-      const userResponse = await api.get('/me');
-      setUser(userResponse.data);
-      
-      return { success: true };
+      await signOutUser();
+      toast.success('Вы успешно вышли из системы');
     } catch (error) {
-      return { 
-        success: false, 
-        error: error.response?.data?.detail || 'Registration failed' 
-      };
+      console.error('Sign-out error:', error);
+      toast.error('Ошибка при выходе из системы');
     }
-  };
-
-  const logout = () => {
-    localStorage.removeItem('token');
-    delete api.defaults.headers.common['Authorization'];
-    setUser(null);
   };
 
   const value = {
     user,
     loading,
-    login,
-    register,
+    loginWithGoogle,
     logout,
+    refreshToken,
+    // Keep these for backward compatibility (they will be removed later)
+    login: loginWithGoogle,
+    register: loginWithGoogle,
   };
 
   return (

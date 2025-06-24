@@ -10,9 +10,9 @@ from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
-from . import models, schemas, crud, auth
+from . import models, schemas, crud, auth, firebase_auth
 from .database import get_db
-from .routes import classifier, weather, photo_upload, items, stylist, v2v_assistant
+from .routes import classifier, weather, photo_upload, items, stylist, v2v_assistant, firebase_auth as firebase_auth_routes
 
 app = FastAPI(root_path="/api")
 
@@ -34,24 +34,21 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],    
 )
+
+# Include all routers
 app.include_router(classifier.router)
 app.include_router(items.router)
 app.include_router(weather.router, prefix="/weather", tags=["weather"])
 app.include_router(photo_upload.router)
 app.include_router(stylist.router)
 app.include_router(v2v_assistant.router)
+app.include_router(firebase_auth_routes.router)  # Add Firebase auth routes
 
-
-
-
-# Роутер для операций с одеждой
+# Роутер для операций с одеждой (updated to use Firebase auth)
 clothing_router = APIRouter(
     prefix="/clothing",
     tags=["clothing"]
 )
-
-auth_router = APIRouter(tags=["auth"])
-
 
 @clothing_router.post(
     "/",
@@ -61,7 +58,7 @@ auth_router = APIRouter(tags=["auth"])
 def create_item(
     item: schemas.ClothingItemCreate,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.get_current_user)
+    current_user: models.User = Depends(firebase_auth.get_current_user_firebase)
 ):
     return crud.create_clothing_item(db, item, current_user.id)
 
@@ -73,7 +70,7 @@ def update_item(
     item_id: int,
     item: schemas.ClothingItemCreate,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.get_current_user)
+    current_user: models.User = Depends(firebase_auth.get_current_user_firebase)
 ):
     db_item = crud.get_clothing_item_by_id(db, item_id, current_user.id)
     if not db_item:
@@ -84,7 +81,7 @@ def update_item(
 def delete_item(
     item_id: int,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.get_current_user)
+    current_user: models.User = Depends(firebase_auth.get_current_user_firebase)
 ):
     db_item = crud.get_clothing_item_by_id(db, item_id, current_user.id)
     if not db_item:
@@ -92,10 +89,10 @@ def delete_item(
     crud.delete_clothing_item(db, item_id)
     return {"message": "Item deleted successfully"}
 
-# Роутер для регистрации и логина
-auth_router = APIRouter(tags=["auth"])
+# === Legacy Authentication Routes (keep for backward compatibility) ===
+legacy_auth_router = APIRouter(tags=["legacy-auth"])
 
-@auth_router.post("/register", status_code=status.HTTP_201_CREATED)
+@legacy_auth_router.post("/register", status_code=status.HTTP_201_CREATED)
 def register(
     user: schemas.UserCreate,
     db: Session = Depends(get_db)
@@ -110,7 +107,7 @@ def register(
     access_token = auth.create_access_token(data={"sub": user.username})
     return {"access_token": access_token, "token_type": "bearer"}
 
-@auth_router.post("/login", response_model=schemas.Token)
+@legacy_auth_router.post("/login", response_model=schemas.Token)
 def login(
     form_data: OAuth2PasswordRequestForm = Depends(), 
     db: Session = Depends(get_db)
@@ -125,33 +122,42 @@ def login(
     access_token = auth.create_access_token(data={"sub": user.username})
     return {"access_token": access_token, "token_type": "bearer"}
 
-# Простая проверка работоспособности
+# === Main Application Routes ===
 @app.get("/")
 def root():
     return {"message": "API is up and running"}
 
-# Регистрируем роутеры
-app.include_router(auth_router, prefix="")       # /register, /login
-app.include_router(clothing_router, prefix="")   # /clothing
+# Include routers
+app.include_router(legacy_auth_router, prefix="")       # Legacy /register, /login
+app.include_router(clothing_router, prefix="")          # /clothing
 
+# Updated /me endpoint to use Firebase auth
 @app.get("/me")
-def get_me(current_user: models.User = Depends(auth.get_current_user)):
+def get_me(current_user: models.User = Depends(firebase_auth.get_current_user_firebase)):
     return {
-        "username": current_user.username,
+        "id": current_user.id,
+        "firebase_uid": current_user.firebase_uid,
+        "email": current_user.email,
+        "display_name": current_user.display_name,
+        "photo_url": current_user.photo_url,
+        "email_verified": current_user.email_verified,
         "is_premium": current_user.is_premium,
+        "created_at": current_user.created_at,
+        "updated_at": current_user.updated_at,
+        # Legacy fields for backward compatibility
+        "username": current_user.email,  # Use email as username
     }
 
 @app.get("/debug/me")
-def debug_me(current_user: models.User = Depends(auth.get_current_user)):
+def debug_me(current_user: models.User = Depends(firebase_auth.get_current_user_firebase)):
     return {
-        "username": current_user.username,
+        "firebase_uid": current_user.firebase_uid,
+        "email": current_user.email,
+        "display_name": current_user.display_name,
         "is_premium_db": current_user.is_premium,
         "raw_db_row": {
-            # если хотите — можно вывести __dict__ целиком,
-            # но осторожно не просилить приватные поля
             **current_user.__dict__
         }
     }
-
 
 # Remove duplicate CORS middleware - already added above

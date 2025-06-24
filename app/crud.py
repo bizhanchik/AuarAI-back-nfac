@@ -1,13 +1,83 @@
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from . import models, auth, schemas
+from typing import Optional
 
 def get_user_by_username(db: Session, username: str):
     return db.query(models.User).filter(models.User.username == username).first()
 
 def create_user(db: Session, username: str, password: str):
-    hashed = auth.get_password_hash(password)
-    user = models.User(username = username, hashed_password = hashed)
+    hashed_password = auth.get_password_hash(password)
+    user = models.User(username=username, hashed_password=hashed_password)
     db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+def get_user_by_firebase_uid(db: Session, firebase_uid: str) -> Optional[models.User]:
+    """Get user by Firebase UID"""
+    return db.query(models.User).filter(models.User.firebase_uid == firebase_uid).first()
+
+def get_user_by_email(db: Session, email: str) -> Optional[models.User]:
+    """Get user by email"""
+    return db.query(models.User).filter(models.User.email == email).first()
+
+def create_firebase_user(
+    db: Session, 
+    firebase_uid: str, 
+    email: str, 
+    display_name: Optional[str] = None,
+    photo_url: Optional[str] = None,
+    email_verified: bool = False
+) -> models.User:
+    """Create a new Firebase user"""
+    try:
+        user = models.User(
+            firebase_uid=firebase_uid,
+            email=email,
+            display_name=display_name,
+            photo_url=photo_url,
+            email_verified=email_verified,
+            is_premium=False
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        return user
+    except IntegrityError:
+        db.rollback()
+        # User might already exist, try to get it
+        existing_user = get_user_by_firebase_uid(db, firebase_uid)
+        if existing_user:
+            return existing_user
+        # If still not found, try by email
+        existing_user = get_user_by_email(db, email)
+        if existing_user:
+            # Update existing user with Firebase data
+            existing_user.firebase_uid = firebase_uid
+            existing_user.display_name = display_name or existing_user.display_name
+            existing_user.photo_url = photo_url or existing_user.photo_url
+            existing_user.email_verified = email_verified
+            db.commit()
+            db.refresh(existing_user)
+            return existing_user
+        raise
+
+def update_firebase_user(
+    db: Session,
+    user: models.User,
+    display_name: Optional[str] = None,
+    photo_url: Optional[str] = None,
+    email_verified: Optional[bool] = None
+) -> models.User:
+    """Update Firebase user information"""
+    if display_name is not None:
+        user.display_name = display_name
+    if photo_url is not None:
+        user.photo_url = photo_url
+    if email_verified is not None:
+        user.email_verified = email_verified
+    
     db.commit()
     db.refresh(user)
     return user
@@ -28,7 +98,6 @@ def create_clothing_item(
     db.commit()
     db.refresh(db_item)
     return db_item
-
 
 def get_clothing_items_by_owner(
     db: Session,

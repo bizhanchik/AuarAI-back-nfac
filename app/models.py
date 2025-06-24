@@ -15,9 +15,21 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
+    # Firebase fields
+    firebase_uid = Column(String, unique=True, index=True, nullable=False)
+    email = Column(String, unique=True, index=True, nullable=False)
+    display_name = Column(String, nullable=True)
+    photo_url = Column(String, nullable=True)
+    email_verified = Column(Boolean, default=False)
+    
+    # Legacy fields (keep for backward compatibility during migration)
     username = Column(String, unique=True, index=True, nullable=True)
-    hashed_password = Column(String)
+    hashed_password = Column(String, nullable=True)
+    
+    # App-specific fields
     is_premium = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
 

@@ -47,3 +47,24 @@ class ClothingItem(ClothingItemBase):
 
     class Config:
         orm_mode = True
+
+# === Firebase User Schemas ===
+class FirebaseUserLogin(BaseModel):
+    uid: str
+    email: str
+    displayName: Optional[str] = None
+    photoURL: Optional[str] = None
+
+class FirebaseUserResponse(BaseModel):
+    id: int
+    firebase_uid: str
+    email: str
+    display_name: Optional[str] = None
+    photo_url: Optional[str] = None
+    email_verified: bool
+    is_premium: bool
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True

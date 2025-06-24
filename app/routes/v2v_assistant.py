@@ -39,7 +39,7 @@ except ImportError:
     print("WARNING: PIL not available. Image processing will be limited.")
 
 from ..database import get_db
-from ..auth import get_current_user_websocket, get_current_user
+from ..firebase_auth import get_current_user_websocket_firebase, get_current_user_firebase
 from ..models import User
 
 router = APIRouter(prefix="/v2v", tags=["v2v-assistant"])

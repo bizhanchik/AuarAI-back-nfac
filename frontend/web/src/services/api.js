@@ -2,8 +2,8 @@ import axios from 'axios';
 
 // Создаем экземпляр axios с базовой конфигурацией
 export const api = axios.create({
-  // baseURL: 'http://localhost:8000', // Адрес вашего FastAPI бэкенда
-  baseURL: 'https://auarai.com/api',
+  baseURL: 'http://localhost:8000/api', // Updated to include /api prefix
+  // baseURL: 'https://auarai.com/api',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -14,10 +14,11 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Если токен недействителен, удаляем его
-      localStorage.removeItem('token');
-      delete api.defaults.headers.common['Authorization'];
-      window.location.href = '/login';
+      // For Firebase auth, we'll handle token refresh in AuthContext
+      console.warn('Authentication error:', error.response?.data?.detail || 'Unauthorized');
+      
+      // Don't automatically redirect to login for Firebase auth
+      // The AuthContext will handle token refresh
     }
     return Promise.reject(error);
   }
@@ -105,13 +106,20 @@ export const clothingAPI = {
     files.forEach(file => {
       formData.append('files', file);
     });
-    return api.post('/ai/classify-image', formData, {
+    return api.post('/classifier/classify-image', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     });
   },
-  getClassificationResult: (taskId) => api.get(`/ai/classification-result/${taskId}`),
+  classifyImageFromUrl: (requestData) => {
+    return api.post('/classifier/classify-image', requestData, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+  },
+  getClassificationResult: (taskId) => api.get(`/classifier/classification-result/${taskId}`),
   addClothingItem: (itemData) => api.post('/clothing/', itemData),
   updateClothingItem: (itemId, itemData) => api.put(`/clothing/${itemId}`, itemData),
   deleteClothingItem: (itemId) => api.delete(`/clothing/${itemId}`),

@@ -2,7 +2,7 @@ from typing import List
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
-from .. import models, schemas, crud, auth
+from .. import models, schemas, crud, firebase_auth
 from ..database import get_db
 
 router = APIRouter(prefix="/items", tags=["items"])
@@ -16,6 +16,6 @@ def read_items(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.get_current_user)
+    current_user: models.User = Depends(firebase_auth.get_current_user_firebase)
 ):
     return crud.get_clothing_items_by_owner(db, current_user.id, skip, limit) 

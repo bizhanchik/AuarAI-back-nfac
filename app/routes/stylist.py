@@ -7,7 +7,7 @@ import os
 import json
 
 from ..database import get_db
-from ..auth import get_current_user
+from ..firebase_auth import get_current_user_firebase
 from ..models import User, ClothingItem
 from ..schemas import ClothingItem as ClothingItemSchema
 
@@ -118,7 +118,7 @@ async def suggest_outfit(
     occasion: Optional[str] = "casual", 
     weather: Optional[str] = "mild",
     style_preference: Optional[str] = "casual",
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user_firebase),
     db: Session = Depends(get_db)
 ):
     """
@@ -269,7 +269,7 @@ async def suggest_outfit(
 
 @router.get("/my-wardrobe")
 async def get_my_wardrobe(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user_firebase),
     db: Session = Depends(get_db)
 ):
     """Get user's clothing items organized by category"""

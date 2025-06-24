@@ -13,33 +13,67 @@ from ..tasks import classify_image_task, redis_key_for_user
 from app import models
 import os
 
-router = APIRouter(prefix="/ai", tags=["AI"])
+from fastapi import APIRouter, HTTPException, Depends, status
+from pydantic import BaseModel
+from typing import Dict, Any, Optional
+import asyncio
+
+from ..services import ai
+from .. import models, crud
+from ..database import get_db
+from ..firebase_auth import get_current_user_firebase
+from sqlalchemy.orm import Session
+
+router = APIRouter(prefix="/classifier", tags=["classifier"])
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
 r = redis.Redis.from_url(REDIS_URL, db=1)
 
-@router.post("/classify-image")
-async def classify_images(
-    files: List[UploadFile] = File(...),
-    current_user: models.User = Depends(get_current_user)
+class ImageClassificationRequest(BaseModel):
+    image_url: str
+    additional_context: Optional[str] = None
+
+class ImageClassificationResponse(BaseModel):
+    clothing_type: str
+    color: str
+    material: Optional[str] = None
+    pattern: Optional[str] = None
+    brand: Optional[str] = None
+    confidence_score: float
+    additional_details: Dict[str, Any] = {}
+
+@router.post("/classify-image", response_model=ImageClassificationResponse)
+async def classify_clothing_image(
+    request: ImageClassificationRequest,
+    current_user: models.User = Depends(get_current_user_firebase),
+    db: Session = Depends(get_db)
 ):
-    task_ids = []
-
-    for file in files:
-        image_bytes = await file.read()
-
-        # Ограничения для freemium
-        task_set_key = redis_key_for_user(current_user.id)
-        if not current_user.is_premium and r.scard(task_set_key) >= 1:
-            return {"error": "Free users can only classify 1 item at a time."}
-        elif current_user.is_premium and r.scard(task_set_key) >= 5:
-            return {"error": "Premium users can only classify 5 items at a time."}
-
-        task = classify_image_task.delay(image_bytes, current_user.id)
-        r.sadd(task_set_key, task.id)
-        task_ids.append(task.id)
-
-    return {"task_ids": task_ids}
+    """
+    Classify a clothing item from an image URL using AI.
+    """
+    try:
+        # Use the AI service to classify the image
+        classification_result = await ai.classify_clothing_image(
+            image_url=request.image_url,
+            additional_context=request.additional_context
+        )
+        
+        if not classification_result:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Unable to classify the image. Please ensure it contains a clear view of a clothing item."
+            )
+        
+        return ImageClassificationResponse(**classification_result)
+        
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Classification failed: {str(e)}"
+        )
 
 @router.get("/classification-result/{task_id}")
 def get_result(task_id: str):
