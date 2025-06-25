@@ -177,7 +177,17 @@ export const clothingAPI = {
     });
   },
   getClassificationResult: (taskId) => api.get(`/classifier/classification-result/${taskId}`),
-  addClothingItem: (itemData) => api.post('/clothing/', itemData),
+  addClothingItem: async (itemData) => {
+    console.log('🚀 Отправка данных на сервер:', itemData);
+    try {
+      const response = await api.post('/clothing/', itemData);
+      console.log('✅ Ответ от сервера:', response.data);
+      return response;
+    } catch (error) {
+      console.error('❌ Ошибка при создании элемента:', error);
+      throw error;
+    }
+  },
   updateClothingItem: (itemId, itemData) => api.put(`/clothing/${itemId}`, itemData),
   deleteClothingItem: (itemId) => api.delete(`/clothing/${itemId}`),
   uploadImage: (file) => {

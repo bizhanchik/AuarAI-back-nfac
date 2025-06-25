@@ -360,10 +360,13 @@ const AddClothingModal = ({ isOpen, onClose, onClothingAdded }) => {
       };
 
       // Add clothing item
-      await clothingAPI.addClothingItem(clothingData);
+      const response = await clothingAPI.addClothingItem(clothingData);
+      const newItem = response.data || response;
+      
+      console.log('✅ Новый элемент создан:', newItem);
       
       toast.success(t('clothingAddedSuccess'));
-      onClothingAdded();
+      onClothingAdded(newItem);
       onClose();
     } catch (error) {
       console.error('Error adding clothing:', error);

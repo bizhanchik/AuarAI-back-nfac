@@ -79,11 +79,18 @@ const Dashboard = () => {
   };
 
   const handleClothingAdded = (newItem) => {
+    console.log('📦 Получен новый элемент в Dashboard:', newItem);
     if (newItem && newItem.id) {
-      setClothingItems(prev => [newItem, ...prev]);
+      console.log('✅ Добавляем элемент в список');
+      setClothingItems(prev => {
+        const updated = [newItem, ...prev];
+        console.log('📋 Обновленный список элементов:', updated.length);
+        return updated;
+      });
+    } else {
+      console.warn('⚠️ Элемент не добавлен - отсутствует ID:', newItem);
     }
     setIsAddModalOpen(false);
-    toast.success(t('itemAdded'));
   };
 
   const handleViewDetails = (item) => {
