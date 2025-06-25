@@ -42,13 +42,11 @@ const AIStyleAdviceModal = ({ isOpen, onClose, userItems = [] }) => {
     { id: 'casual', label: t('occasions.casual'), icon: CoffeeIcon },
     { id: 'work', label: t('occasions.work'), icon: BriefcaseIcon },
     { id: 'date', label: t('occasions.date'), icon: HeartIcon },
-    { id: 'friends', label: t('occasions.casual'), icon: StarIcon },
     { id: 'business', label: t('occasions.business'), icon: TrendingUpIcon },
     { id: 'party', label: t('occasions.party'), icon: GlassesIcon },
     { id: 'sport', label: t('occasions.sport'), icon: CarIcon },
     { id: 'travel', label: t('occasions.travel'), icon: ArrowRightIcon },
-    { id: 'home', label: t('occasions.casual'), icon: CoffeeIcon },
-    { id: 'shopping', label: t('occasions.casual'), icon: Package2Icon }
+    { id: 'formal', label: t('occasions.formal'), icon: CrownIcon }
   ], [t]);
 
   useEffect(() => {
@@ -56,6 +54,104 @@ const AIStyleAdviceModal = ({ isOpen, onClose, userItems = [] }) => {
       fetchCurrentWeather();
     }
   }, [isOpen, weather, fetchCurrentWeather]);
+
+  // Function to create outfit from user's wardrobe
+  const createOutfitFromWardrobe = useCallback((items, weatherData, selectedOccasion) => {
+    if (!items || items.length === 0) return null;
+
+    // Filter user items by category
+    const tops = items.filter(item => 
+      item.category?.toLowerCase().includes('top') || 
+      item.category?.toLowerCase().includes('shirt') ||
+      item.category?.toLowerCase().includes('blouse') ||
+      item.category?.toLowerCase().includes('t-shirt') ||
+      item.category?.toLowerCase().includes('polo')
+    );
+    const bottoms = items.filter(item => 
+      item.category?.toLowerCase().includes('bottom') || 
+      item.category?.toLowerCase().includes('pants') ||
+      item.category?.toLowerCase().includes('jeans') ||
+      item.category?.toLowerCase().includes('skirt') ||
+      item.category?.toLowerCase().includes('shorts')
+    );
+    const shoes = items.filter(item => 
+      item.category?.toLowerCase().includes('shoe') ||
+      item.category?.toLowerCase().includes('boot') ||
+      item.category?.toLowerCase().includes('sneaker') ||
+      item.category?.toLowerCase().includes('sandal')
+    );
+    const outerwear = items.filter(item => 
+      item.category?.toLowerCase().includes('jacket') ||
+      item.category?.toLowerCase().includes('coat') ||
+      item.category?.toLowerCase().includes('outerwear') ||
+      item.category?.toLowerCase().includes('hoodie')
+    );
+
+    // Select items based on weather and occasion
+    const outfit = {};
+
+    // Select top
+    if (tops.length > 0) {
+      if (selectedOccasion === 'business' || selectedOccasion === 'work') {
+        // Prefer formal tops
+        outfit.top = tops.find(item => 
+          item.name?.toLowerCase().includes('shirt') ||
+          item.name?.toLowerCase().includes('blouse')
+        ) || tops[0];
+      } else if (selectedOccasion === 'sport') {
+        // Prefer sporty tops
+        outfit.top = tops.find(item => 
+          item.name?.toLowerCase().includes('polo') ||
+          item.name?.toLowerCase().includes('t-shirt')
+        ) || tops[0];
+      } else {
+        outfit.top = tops[0];
+      }
+    }
+
+    // Select bottom
+    if (bottoms.length > 0) {
+      if (selectedOccasion === 'business' || selectedOccasion === 'work') {
+        // Prefer formal bottoms
+        outfit.bottom = bottoms.find(item => 
+          item.name?.toLowerCase().includes('pants') ||
+          item.name?.toLowerCase().includes('trousers')
+        ) || bottoms[0];
+      } else if (selectedOccasion === 'sport') {
+        // Prefer sporty bottoms
+        outfit.bottom = bottoms.find(item => 
+          item.name?.toLowerCase().includes('shorts')
+        ) || bottoms[0];
+      } else {
+        outfit.bottom = bottoms[0];
+      }
+    }
+
+    // Select shoes
+    if (shoes.length > 0) {
+      if (selectedOccasion === 'business' || selectedOccasion === 'work') {
+        // Prefer formal shoes
+        outfit.shoes = shoes.find(item => 
+          !item.name?.toLowerCase().includes('sneaker') &&
+          !item.name?.toLowerCase().includes('sandal')
+        ) || shoes[0];
+      } else if (selectedOccasion === 'sport') {
+        // Prefer sneakers
+        outfit.shoes = shoes.find(item => 
+          item.name?.toLowerCase().includes('sneaker')
+        ) || shoes[0];
+      } else {
+        outfit.shoes = shoes[0];
+      }
+    }
+
+    // Add outerwear if cold weather
+    if (weatherData.temperature < 15 && outerwear.length > 0) {
+      outfit.outerwear = outerwear[0];
+    }
+
+    return Object.keys(outfit).length > 0 ? outfit : null;
+  }, []);
 
   const generateAdvice = useCallback(async () => {
     if (!weather || !occasion) {
@@ -73,17 +169,17 @@ const AIStyleAdviceModal = ({ isOpen, onClose, userItems = [] }) => {
       const weatherDescription = `${weather.temperature}°C, ${weather.condition}`;
       const response = await clothingAPI.getStyleAdvice(occasion, weatherDescription, 'casual');
       
+      // Create outfit from user's wardrobe if API doesn't provide one
+      let outfit = response.data?.outfit;
+      if (!outfit) {
+        outfit = createOutfitFromWardrobe(userItems, weather, occasion);
+      }
+
       const realAdvice = {
-        mainAdvice: response.data.message,
-        occasionTips: `Рекомендации для "${occasion}": ${response.data.outfit.styling_tips}`,
-        recommendedItems: [
-          response.data.outfit.top?.name,
-          response.data.outfit.bottom?.name,
-          response.data.outfit.shoes?.name,
-          ...(response.data.outfit.accessories?.map(acc => acc.name) || [])
-        ].filter(Boolean),
-        outfit: response.data.outfit,
-        availableItems: response.data.available_items,
+        mainAdvice: response.data?.message || response.message || 'AI advice received successfully!',
+        occasionTips: `Рекомендации для "${occasion}": ${response.data?.outfit?.styling_tips || 'Style tips for your occasion'}`,
+        outfit: outfit,
+        availableItems: response.data?.available_items,
         weatherInfo: {
           temperature: weather.temperature,
           condition: weather.condition,
@@ -98,41 +194,34 @@ const AIStyleAdviceModal = ({ isOpen, onClose, userItems = [] }) => {
       
       // Fallback to mock advice if API fails
       const mockAdvice = generateMockAdvice(weather, occasion, userItems);
+      // Add outfit to mock advice
+      mockAdvice.outfit = createOutfitFromWardrobe(userItems, weather, occasion);
       setAdvice(mockAdvice);
       toast.error(t('usingOfflineAdvice'));
     } finally {
       setLoading(false);
       setIsGenerating(false);
     }
-  }, [weather, occasion, userItems, t]);
+  }, [weather, occasion, userItems, t, createOutfitFromWardrobe]);
 
   const generateMockAdvice = useCallback((weatherData, selectedOccasion, items) => {
     const temp = weatherData.temperature;
-    const condition = weatherData.condition?.toLowerCase() || '';
-    
+
     let baseAdvice = '';
-    let clothingItems = [];
     let colorPalette = [];
-    let accessories = [];
 
     // Weather-based recommendations
     if (temp < 0) {
-      baseAdvice = 'На улице очень холодно! Рекомендую теплую зимнюю одежду.';
-      clothingItems = ['Теплое пальто или пуховик', 'Свитер или кардиган', 'Теплые брюки', 'Зимние ботинки'];
-      accessories = ['Шарф', 'Шапка', 'Перчатки'];
+      baseAdvice = 'На улице очень холодно! Рекомендую теплую зимнюю одежду из вашего гардероба.';
       colorPalette = ['Темно-синий', 'Черный', 'Серый', 'Бордовый'];
     } else if (temp < 10) {
-      baseAdvice = 'Прохладная погода требует многослойности.';
-      clothingItems = ['Легкая куртка', 'Свитер', 'Джинсы или брюки', 'Закрытая обувь'];
-      accessories = ['Легкий шарф'];
+      baseAdvice = 'Прохладная погода требует многослойности. Используйте вещи из вашего гардероба для создания слоев.';
       colorPalette = ['Серый', 'Бежевый', 'Темно-зеленый', 'Коричневый'];
     } else if (temp < 20) {
-      baseAdvice = 'Комфортная температура для средних слоев одежды.';
-      clothingItems = ['Легкий кардиган', 'Рубашка или блуза', 'Брюки или юбка', 'Кроссовки или туфли'];
+      baseAdvice = 'Комфортная температура! Выберите удобные вещи из вашего гардероба.';
       colorPalette = ['Белый', 'Светло-серый', 'Пастельные тона'];
     } else {
-      baseAdvice = 'Теплая погода! Можно носить легкую одежду.';
-      clothingItems = ['Футболка или топ', 'Легкие брюки или шорты', 'Сандалии или кроссовки'];
+      baseAdvice = 'Теплая погода! Выберите легкие и дышащие вещи из вашего гардероба.';
       colorPalette = ['Белый', 'Светлые тона', 'Яркие цвета'];
     }
 
@@ -140,27 +229,25 @@ const AIStyleAdviceModal = ({ isOpen, onClose, userItems = [] }) => {
     let occasionTips = '';
     switch (selectedOccasion) {
       case 'work':
-        occasionTips = 'Для офиса выбирайте классический деловой стиль. Избегайте слишком ярких цветов.';
+        occasionTips = 'Для офиса выбирайте классический деловой стиль из вашего гардероба. Избегайте слишком ярких цветов.';
         break;
       case 'date':
-        occasionTips = 'Создайте романтичный образ! Подойдут элегантные детали и приятные фактуры.';
+        occasionTips = 'Создайте романтичный образ! Выберите элегантные вещи из вашего гардероба.';
         break;
-      case 'friends':
+      case 'casual':
         occasionTips = 'Casual look будет идеален! Комфорт и стиль в равных пропорциях.';
         break;
       case 'business':
-        occasionTips = 'Профессиональный вид обязателен. Классические цвета и строгие линии.';
+        occasionTips = 'Профессиональный вид обязателен. Выберите строгие вещи из вашего гардероба.';
         break;
       default:
-        occasionTips = 'Выберите то, в чем вы чувствуете себя уверенно!';
+        occasionTips = 'Выберите то, в чем вы чувствуете себя уверенно из вашего гардероба!';
     }
 
     return {
       mainAdvice: baseAdvice,
       occasionTips,
-      recommendedItems: clothingItems,
       colorPalette,
-      accessories,
       weatherInfo: {
         temperature: temp,
         condition: weatherData.condition,
@@ -281,15 +368,110 @@ const AIStyleAdviceModal = ({ isOpen, onClose, userItems = [] }) => {
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-gradient-to-br from-purple-50 to-blue-50 border border-purple-200 rounded-xl p-6"
+                className="space-y-4"
               >
-                <h3 className="text-lg font-semibold text-purple-900 mb-3 flex items-center space-x-2">
-                  <SparklesIcon className="h-5 w-5" />
-                  <span>{t('personalStyleAdvice')}</span>
-                </h3>
-                <div className="text-gray-700 whitespace-pre-line leading-relaxed">
-                  {advice.mainAdvice}
+                {/* Main Advice */}
+                <div className="bg-gradient-to-br from-purple-50 to-blue-50 border border-purple-200 rounded-xl p-6">
+                  <h3 className="text-lg font-semibold text-purple-900 mb-3 flex items-center space-x-2">
+                    <SparklesIcon className="h-5 w-5" />
+                    <span>{t('personalStyleAdvice')}</span>
+                  </h3>
+                  <div className="text-gray-700 whitespace-pre-line leading-relaxed">
+                    {advice.mainAdvice}
+                  </div>
                 </div>
+
+                {/* Occasion Tips */}
+                {advice.occasionTips && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                    <h4 className="font-semibold text-blue-900 mb-2">Occasion Tips</h4>
+                    <div className="text-blue-800 text-sm">
+                      {advice.occasionTips}
+                    </div>
+                  </div>
+                )}
+
+
+
+                {/* Color Palette */}
+                {advice.colorPalette && advice.colorPalette.length > 0 && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+                    <h4 className="font-semibold text-yellow-900 mb-2">Recommended Colors</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {advice.colorPalette.map((color, index) => (
+                        <span key={index} className="px-3 py-1 bg-yellow-100 text-yellow-800 text-sm rounded-full">
+                          {color}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Outfit Items (if available from API) */}
+                {advice.outfit && (
+                  <div className="bg-purple-50 border border-purple-200 rounded-xl p-4">
+                    <h4 className="font-semibold text-purple-900 mb-3">Recommended Outfit</h4>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {advice.outfit.top && (
+                        <OutfitItemCard 
+                          item={advice.outfit.top} 
+                          label="Top" 
+                          icon={ShirtIcon}
+                        />
+                      )}
+                      {advice.outfit.bottom && (
+                        <OutfitItemCard 
+                          item={advice.outfit.bottom} 
+                          label="Bottom" 
+                          icon={Package2Icon}
+                        />
+                      )}
+                      {advice.outfit.shoes && (
+                        <OutfitItemCard 
+                          item={advice.outfit.shoes} 
+                          label="Shoes" 
+                          icon={FootprintsIcon}
+                        />
+                      )}
+                      {advice.outfit.outerwear && (
+                        <OutfitItemCard 
+                          item={advice.outfit.outerwear} 
+                          label="Outerwear" 
+                          icon={CrownIcon}
+                        />
+                      )}
+                    </div>
+                    
+                    {/* Accessories */}
+                    {advice.outfit.accessories && advice.outfit.accessories.length > 0 && (
+                      <div className="mt-4">
+                        <h5 className="font-medium text-purple-800 mb-2">Accessories</h5>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                          {advice.outfit.accessories.map((accessory, index) => (
+                            <OutfitItemCard 
+                              key={index}
+                              item={accessory} 
+                              label="Accessory" 
+                              icon={GlassesIcon}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Weather Info */}
+                {advice.weatherInfo && (
+                  <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+                    <h4 className="font-semibold text-gray-900 mb-2">Weather Considerations</h4>
+                    <div className="text-gray-700 text-sm">
+                      Temperature: {advice.weatherInfo.temperature}°C | 
+                      Condition: {advice.weatherInfo.condition}
+                      {advice.weatherInfo.humidity && ` | Humidity: ${advice.weatherInfo.humidity}%`}
+                    </div>
+                  </div>
+                )}
               </motion.div>
             )}
           </div>
@@ -308,9 +490,9 @@ const OutfitItemCard = ({ item, label, icon: IconComponent }) => {
   }, []);
 
   return (
-    <div className="flex items-center space-x-4 p-4 bg-white bg-opacity-10 backdrop-blur-sm rounded-xl border border-white border-opacity-20">
+    <div className="flex flex-col space-y-2 p-3 bg-white bg-opacity-60 rounded-xl border border-purple-200">
       {/* Image */}
-      <div className="flex-shrink-0 w-14 h-14 rounded-xl overflow-hidden bg-white bg-opacity-20">
+      <div className="w-full h-20 rounded-lg overflow-hidden bg-gray-100">
         {item.image_url && !imageError ? (
           <img
             src={item.image_url}
@@ -320,26 +502,32 @@ const OutfitItemCard = ({ item, label, icon: IconComponent }) => {
             loading="lazy"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-white">
-            <IconComponent className="h-6 w-6" />
+          <div className="w-full h-full flex items-center justify-center text-gray-400">
+            <IconComponent className="h-8 w-8" />
           </div>
         )}
       </div>
       
       {/* Content */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-xs font-medium text-white text-opacity-70 uppercase tracking-wider font-body">
-            {label}
-          </span>
+      <div className="space-y-1">
+        <span className="text-xs font-medium text-purple-600 uppercase tracking-wider">
+          {label}
+        </span>
+        <p className="text-sm font-semibold text-purple-900 truncate">
+          {item.name}
+        </p>
+        <div className="flex flex-col space-y-1">
+          {item.color && (
+            <p className="text-xs text-purple-700">
+              Color: {item.color}
+            </p>
+          )}
           {item.brand && (
-            <span className="text-xs text-white text-opacity-60 font-body">{item.brand}</span>
+            <p className="text-xs text-purple-600">
+              {item.brand}
+            </p>
           )}
         </div>
-        <p className="text-sm font-semibold text-white truncate font-heading">{item.name}</p>
-        {item.color && (
-          <p className="text-xs text-white text-opacity-80 font-body">{item.color}</p>
-        )}
       </div>
     </div>
   );
