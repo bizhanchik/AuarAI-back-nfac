@@ -90,14 +90,19 @@ def get_gcs_client():
         return None
 
 class VideoToVoiceProcessor:
-    def __init__(self):
+    def __init__(self, language='en'):
         self.model = get_gemini_model()
         self.gcs_client = get_gcs_client()
         self.bucket_name = os.getenv("GCS_BUCKET_NAME", "v2v-assistant-frames")
         self.frame_count = 0
         self.analysis_interval = 10 
         self.last_analysis_time = 0
+        self.language = language  # Add language support
         
+    def set_language(self, language):
+        """Update the language for processing"""
+        self.language = language
+
     async def upload_frame_to_gcs(self, frame_bytes: bytes) -> Optional[str]:
         """Upload frame to Google Cloud Storage and return public URL"""
         try:
@@ -185,8 +190,11 @@ class VideoToVoiceProcessor:
                     
                 image = Image.open(tmp_file_path)
                 
-                # Generate compliment using Gemini with image - shorter prompt for faster response
-                prompt = """Give a brief, genuine compliment about this person's appearance or style. 1 sentence only. Be specific and positive."""
+                # Generate compliment using Gemini with image - language-specific prompt
+                if self.language == 'ru':
+                    prompt = """Дай краткий, искренний комплимент о внешности или стиле этого человека. Только одно предложение. Будь конкретным и позитивным. Отвечай на русском языке."""
+                else:
+                    prompt = """Give a brief, genuine compliment about this person's appearance or style. 1 sentence only. Be specific and positive. Respond in English."""
                 
                 response = self.model.generate_content([prompt, image])
                 
@@ -203,15 +211,19 @@ class VideoToVoiceProcessor:
             return None
     
     async def text_to_speech(self, text: str) -> bytes:
-        """Convert text to speech using gTTS"""
+        """Convert text to speech using gTTS with language support"""
         try:
-            logger.info("Starting text to speech conversion...")
+            logger.info(f"Starting text to speech conversion for language: {self.language}")
             if not GTTS_AVAILABLE:
                 logger.warning("gTTS not available - cannot generate speech")
                 return b""
+            
+            # Determine TTS language based on current language setting
+            tts_lang = 'ru' if self.language == 'ru' else 'en'
+            logger.info(f"Using TTS language: {tts_lang}")
                 
             # Simple TTS without async complexity
-            tts = gTTS(text=text, lang='ru', slow=False)
+            tts = gTTS(text=text, lang=tts_lang, slow=False)
             
             # Save to bytes
             audio_buffer = io.BytesIO()
@@ -241,7 +253,13 @@ async def websocket_video_chat(websocket: WebSocket):
             
             if message.get("type") == "video_frame":
                 frame_data = message.get("data")
-                logger.info(f"Received video frame data: {len(frame_data) if frame_data else 'None'}")
+                language = message.get("language", "en")  # Get language from message
+                logger.info(f"Received video frame data: {len(frame_data) if frame_data else 'None'}, language: {language}")
+                
+                # Update processor language if needed
+                if processor.language != language:
+                    processor.set_language(language)
+                    logger.info(f"Updated processor language to: {language}")
                 
                 if frame_data:
                     # Process the frame
@@ -262,10 +280,24 @@ async def websocket_video_chat(websocket: WebSocket):
                             response = {
                                 "type": "compliment",
                                 "text": compliment_text,
-                                "audio": base64.b64encode(audio_data).decode('utf-8')
+                                "audio": base64.b64encode(audio_data).decode('utf-8'),
+                                "language": language
                             }
                             await websocket.send_text(json.dumps(response))
                             logger.info("Response sent to client")
+            
+            elif message.get("type") == "language_change":
+                # Handle language change without video frame
+                language = message.get("language", "en")
+                processor.set_language(language)
+                logger.info(f"Language changed to: {language}")
+                
+                # Send confirmation
+                response = {
+                    "type": "language_updated",
+                    "language": language
+                }
+                await websocket.send_text(json.dumps(response))
             
             elif message.get("type") == "ping":
                 await websocket.send_text(json.dumps({"type": "pong"}))

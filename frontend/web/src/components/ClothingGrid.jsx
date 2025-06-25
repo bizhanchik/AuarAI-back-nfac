@@ -50,7 +50,11 @@ const ClothingItem = ({ item, onViewDetails, onEditItem, index }) => {
         delay: index * 0.05,
         ease: "easeOut"
       }}
-      whileHover={{ y: -4, transition: { duration: 0.2 } }}
+      whileHover={{ 
+        y: -4, 
+        scale: 1.02,
+        transition: { duration: 0.15, ease: "easeOut" } 
+      }}
       className="group cursor-pointer"
       onClick={handleCardClick}
       onMouseEnter={() => setIsHovered(true)}
@@ -58,20 +62,20 @@ const ClothingItem = ({ item, onViewDetails, onEditItem, index }) => {
     >
       <div className="relative">
         {/* Premium Card Container */}
-        <div className="card-premium p-6 h-full overflow-hidden transition-shadow duration-300 group-hover:shadow-xl">
+        <div className="card-premium p-6 h-full overflow-hidden transition-shadow duration-150 group-hover:shadow-xl">
           {/* Image Section */}
           <div className="relative aspect-square mb-6 rounded-2xl overflow-hidden bg-gradient-to-br from-slate-100 to-slate-200">
             {!imageError ? (
               <img
                 src={item.image_url}
                 alt={item.name}
-                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                className="w-full h-full object-cover transition-transform duration-150 group-hover:scale-105"
                 onError={handleImageError}
                 onClick={handleImageClick}
               />
             ) : (
               <div 
-                className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-slate-200 to-slate-300 text-slate-400 transition-transform duration-300 hover:scale-105"
+                className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-slate-200 to-slate-300 text-slate-400 transition-transform duration-150 hover:scale-105"
                 onClick={handleImageClick}
               >
                 <ImageIcon className="w-16 h-16 mb-3" />
@@ -80,20 +84,20 @@ const ClothingItem = ({ item, onViewDetails, onEditItem, index }) => {
             )}
             
             {/* Floating Action Buttons */}
-            <div className={`absolute top-4 right-4 flex space-x-2 transition-opacity duration-200 ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
+            <div className={`absolute top-4 right-4 flex space-x-2 transition-opacity duration-150 ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   onViewDetails(item);
                 }}
-                className="p-2 bg-white/90 backdrop-blur-sm rounded-full shadow-lg hover:bg-white transition-all duration-200 hover:scale-110"
+                className="p-2 bg-white/90 backdrop-blur-sm rounded-full shadow-lg transition-transform duration-150 ease-out hover:scale-105"
               >
                 <EyeIcon className="h-4 w-4 text-blue-600" />
               </button>
               
               <button
                 onClick={handleImageClick}
-                className="p-2 bg-white/90 backdrop-blur-sm rounded-full shadow-lg hover:bg-white transition-all duration-200 hover:scale-110"
+                className="p-2 bg-white/90 backdrop-blur-sm rounded-full shadow-lg transition-transform duration-150 ease-out hover:scale-105"
               >
                 <EditIcon className="h-4 w-4 text-purple-600" />
               </button>
@@ -113,7 +117,7 @@ const ClothingItem = ({ item, onViewDetails, onEditItem, index }) => {
           <div className="space-y-4">
             {/* Title and Brand */}
             <div>
-              <h3 className="text-xl font-black text-slate-900 mb-1 transition-colors duration-300 group-hover:text-purple-600">
+              <h3 className="text-xl font-black text-slate-900 mb-1 transition-colors duration-150 group-hover:text-purple-600">
                 {item.name}
               </h3>
               {item.brand && (
@@ -166,7 +170,7 @@ const ClothingItem = ({ item, onViewDetails, onEditItem, index }) => {
                 </div>
               </div>
               
-              <div className="p-1.5 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-transform duration-200 hover:scale-110">
+              <div className="p-1.5 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-transform duration-150 ease-out hover:scale-105">
                 <StarIcon className="h-3 w-3 text-white" />
               </div>
             </div>
@@ -199,7 +203,7 @@ const EmptyState = ({ onAddClick }) => (
       
       <button
         onClick={onAddClick}
-        className="btn-primary text-lg px-8 py-4 transition-transform duration-200 hover:scale-105"
+        className="btn-primary text-lg px-8 py-4"
       >
         <SparklesIcon className="h-5 w-5 mr-2" />
         Добавить первую вещь

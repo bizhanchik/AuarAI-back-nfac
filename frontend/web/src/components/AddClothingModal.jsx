@@ -1,8 +1,19 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { XIcon, UploadIcon, CheckIcon, LoaderIcon } from 'lucide-react';
+import { 
+  XIcon, 
+  CameraIcon, 
+  UploadIcon, 
+  CheckIcon, 
+  SparklesIcon,
+  ShirtIcon,
+  TagIcon,
+  PaletteIcon,
+  StarIcon,
+  LoaderIcon
+} from 'lucide-react';
 import { clothingAPI } from '../services/api';
-import analytics from '../services/analytics';
+import { useLanguage } from '../contexts/LanguageContext';
 import toast from 'react-hot-toast';
 
 const CATEGORIES = [
@@ -78,318 +89,250 @@ const TagsInput = ({ label, tags, onTagsChange, placeholder, colorClass }) => {
 };
 
 const AddClothingModal = ({ isOpen, onClose, onClothingAdded }) => {
-  const [step, setStep] = useState(1); // 1: upload, 2: classify, 3: edit
+  const [step, setStep] = useState(1); // 1: Upload, 2: Classification, 3: Form
   const [selectedFile, setSelectedFile] = useState(null);
-  const [previewUrl, setPreviewUrl] = useState(null);
-  const [classificationResult, setClassificationResult] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [taskId, setTaskId] = useState(null);
+  const [preview, setPreview] = useState('');
   const [isDragging, setIsDragging] = useState(false);
-  
+  const [isUploading, setIsUploading] = useState(false);
+  const [isClassifying, setIsClassifying] = useState(false);
+  const [classificationData, setClassificationData] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const fileInputRef = useRef(null);
+  const { t } = useLanguage();
+
+  // Form state
   const [formData, setFormData] = useState({
     name: '',
-    brand: '',
     category: '',
     color: '',
-    material: '',
-    description: '',
-    image_url: '',
-    store_name: 'User Upload',
-    store_url: '',
-    product_url: '',
-    price: 0.0,
+    brand: '',
+    size: '',
+    condition: 'excellent',
+    notes: '',
     tags: [],
-    occasions: [],
-    weather_suitability: []
+    weather_suitability: [],
+    occasions: []
   });
 
-  const fileInputRef = useRef(null);
+  useEffect(() => {
+    if (!isOpen) {
+      resetModal();
+    }
+  }, [isOpen]);
 
   const resetModal = () => {
     setStep(1);
     setSelectedFile(null);
-    setPreviewUrl(null);
-    setClassificationResult(null);
-    setLoading(false);
-    setTaskId(null);
+    setPreview('');
     setIsDragging(false);
+    setIsUploading(false);
+    setIsClassifying(false);
+    setClassificationData(null);
+    setIsSubmitting(false);
     setFormData({
       name: '',
-      brand: '',
       category: '',
       color: '',
-      material: '',
-      description: '',
-      image_url: '',
-      store_name: 'User Upload',
-      store_url: '',
-      product_url: '',
-      price: 0.0,
+      brand: '',
+      size: '',
+      condition: 'excellent',
+      notes: '',
       tags: [],
-      occasions: [],
-      weather_suitability: []
+      weather_suitability: [],
+      occasions: []
     });
   };
 
-  const handleClose = () => {
-    resetModal();
-    onClose();
-  };
-
-  const handleFileSelect = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      processFile(file);
+  const validateFile = (file) => {
+    if (file.size > 5 * 1024 * 1024) { // 5MB
+      toast.error(t('fileTooLarge'));
+      return false;
     }
-  };
-
-  const processFile = (file) => {
-    // Check file size - reduce to 5MB for better compatibility
-    if (file.size > 5 * 1024 * 1024) { // 5MB limit
-      toast.error('Файл слишком большой. Максимальный размер: 5MB');
-      return;
+    
+    if (!file) {
+      toast.error(t('pleaseSelectImage'));
+      return false;
     }
-
-    if (!file.type.startsWith('image/')) {
-      toast.error('Пожалуйста, выберите изображение');
-      return;
-    }
-
-    // Check file type more specifically
+    
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-    if (!allowedTypes.includes(file.type.toLowerCase())) {
-      toast.error('Поддерживаются только JPG, PNG и WebP форматы');
-      return;
+    if (!allowedTypes.includes(file.type)) {
+      toast.error(t('unsupportedFormat'));
+      return false;
     }
+    
+    return true;
+  };
+
+  const handleFileSelect = useCallback((file) => {
+    if (!validateFile(file)) return;
     
     setSelectedFile(file);
-    const url = URL.createObjectURL(file);
-    setPreviewUrl(url);
-    toast.success('Фото готово к загрузке!');
-  };
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setPreview(e.target.result);
+      toast.success(t('photoReady'));
+    };
+    reader.readAsDataURL(file);
+  }, [t]);
 
-  const handleDragEnter = (e) => {
+  const handleDrop = useCallback((e) => {
     e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    // Only set dragging to false if we're leaving the drop zone entirely
-    if (!e.currentTarget.contains(e.relatedTarget)) {
-      setIsDragging(false);
-    }
-  };
-
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-  };
-
-  const handleDrop = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
     setIsDragging(false);
+    
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) {
+      handleFileSelect(files[0]);
+    }
+  }, [handleFileSelect]);
 
-    const files = e.dataTransfer.files;
-    if (files && files.length > 0) {
-      const file = files[0];
-      processFile(file);
+  const handleDragOver = useCallback((e) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e) => {
+    e.preventDefault();
+    setIsDragging(false);
+  }, []);
+
+  const handleFileInputChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      handleFileSelect(file);
     }
   };
 
-  const handleClassify = async () => {
+  const classifyImage = async () => {
     if (!selectedFile) return;
 
-    setLoading(true);
+    setIsClassifying(true);
     setStep(2);
 
     try {
-      // First upload the photo to get the URL
-      const uploadResponse = await clothingAPI.uploadPhoto(selectedFile);
-      const uploadedImageUrl = uploadResponse.data.url;
+      const result = await clothingAPI.classifyImage(selectedFile);
+      setClassificationData(result);
       
-      // Update form data with the uploaded image URL
+      // Pre-fill form with classification data
       setFormData(prev => ({
         ...prev,
-        image_url: uploadedImageUrl,
-        product_url: uploadedImageUrl
+        name: result.predicted_name || '',
+        category: result.predicted_category || '',
+        color: result.predicted_color || '',
+        brand: result.predicted_brand || '',
+        tags: result.predicted_tags || [],
+        weather_suitability: result.weather_suitability || [],
+        occasions: result.occasions || []
       }));
-
-      // Then classify the image using the uploaded URL
-      const classificationRequest = {
-        image_url: uploadedImageUrl,
-        additional_context: "clothing item classification"
-      };
       
-      const response = await clothingAPI.classifyImageFromUrl(classificationRequest);
-      
-      // Handle direct classification response (not task-based)
-      if (response.data) {
-        setClassificationResult(response.data);
-        
-        // Pre-fill form with classification results
-        const additionalDetails = response.data.additional_details || {};
-        setFormData(prev => ({
-          ...prev,
-          name: additionalDetails.name || response.data.clothing_type || 'Одежда',
-          brand: response.data.brand || '',
-          category: response.data.clothing_type || '',
-          color: response.data.color || '',
-          material: response.data.material || '',
-          description: additionalDetails.description || `${response.data.clothing_type || ''} ${response.data.color || ''} ${response.data.material || ''}`.trim(),
-          // Keep the uploaded image URL that was set earlier
-          image_url: prev.image_url,
-          store_name: 'User Upload',
-          store_url: '',
-          product_url: prev.product_url,
-          price: 0.0,
-          tags: additionalDetails.tags || (response.data.pattern ? [response.data.pattern] : []),
-          occasions: additionalDetails.occasions || [],
-          weather_suitability: additionalDetails.weather_suitability || []
-        }));
-        
-        setStep(3);
-        setLoading(false);
-      } else {
-        throw new Error('No classification result received');
-      }
-    } catch (error) {
-      console.error('Classification error:', error);
-      setStep(1);
-      setLoading(false);
-      
-      if (error.code === 'ERR_NETWORK') {
-        toast.error('Проблема с подключением к серверу. Проверьте интернет-соединение.');
-      } else if (error.response?.status === 413) {
-        toast.error('Файл слишком большой для сервера. Попробуйте уменьшить размер.');
-      } else if (error.response?.status === 400) {
-        toast.error('Неподдерживаемый формат файла.');
-      } else if (error.response?.status === 0) {
-        toast.error('CORS ошибка. Обратитесь к администратору.');
-      } else {
-        toast.error('Ошибка загрузки или классификации изображения');
-      }
-    }
-  };
-
-  const handleSkipClassification = async () => {
-    if (!selectedFile) return;
-
-    setLoading(true);
-    setStep(2);
-
-    try {
-      // Upload the photo to get the URL
-      const uploadResponse = await clothingAPI.uploadPhoto(selectedFile);
-      const uploadedImageUrl = uploadResponse.data.url;
-      
-      // Update form data with the uploaded image URL and basic info
-      setFormData(prev => ({
-        ...prev,
-        name: 'New Clothing Item',
-        image_url: uploadedImageUrl,
-        product_url: uploadedImageUrl
-      }));
-
-      // Skip classification and go directly to edit form
-      setLoading(false);
       setStep(3);
     } catch (error) {
-      console.error('Upload error:', error);
-      setStep(1);
-      setLoading(false);
+      console.error('Classification error:', error);
       
-      if (error.code === 'ERR_NETWORK') {
-        toast.error('Проблема с подключением к серверу. Проверьте интернет-соединение.');
+      if (error.code === 'NETWORK_ERROR') {
+        toast.error(t('serverConnectionError'));
       } else if (error.response?.status === 413) {
-        toast.error('Файл слишком большой для сервера. Попробуйте уменьшить размер.');
-      } else if (error.response?.status === 400) {
-        toast.error('Неподдерживаемый формат файла.');
-      } else if (error.response?.status === 0) {
-        toast.error('CORS ошибка. Обратитесь к администратору.');
+        toast.error(t('fileTooBigForServer'));
+      } else if (error.response?.status === 415) {
+        toast.error(t('unsupportedFileFormat'));
+      } else if (error.message?.includes('CORS')) {
+        toast.error(t('corsError'));
       } else {
-        toast.error('Ошибка загрузки изображения');
+        toast.error(t('imageUploadError'));
       }
+      
+      setStep(1);
+    } finally {
+      setIsClassifying(false);
     }
   };
 
-  const pollClassificationResult = async (taskId) => {
-    const maxAttempts = 30;
-    let attempts = 0;
+  const uploadImage = async () => {
+    if (!selectedFile) return null;
 
-    const poll = async () => {
-      try {
-        const response = await clothingAPI.getClassificationResult(taskId);
-        const { status, result } = response.data;
-
-        if (status === 'completed' && result) {
-          setClassificationResult(result);
-          
-          // Pre-fill form with classification results
-          setFormData(prev => ({
-            ...prev,
-            name: result.name || `${result.category || 'Одежда'}`,
-            brand: result.brand || '',
-            category: result.category || '',
-            color: result.color || '',
-            material: result.material || '',
-            description: result.description || '',
-            // Keep the uploaded image URL that was set earlier
-            image_url: prev.image_url,
-            store_name: 'User Upload',
-            store_url: '',
-            product_url: prev.product_url,
-            price: result.price || 0.0,
-            tags: result.tags || [],
-            occasions: result.occasions || [],
-            weather_suitability: result.weather_suitability || []
-          }));
-          
-          setStep(3);
-          setLoading(false);
-        } else if (status === 'pending' || status === 'PROGRESS') {
-          attempts++;
-          if (attempts < maxAttempts) {
-            setTimeout(poll, 2000);
-          } else {
-            throw new Error('Timeout waiting for classification');
-          }
-        } else {
-          throw new Error(`Classification failed with status: ${status}`);
-        }
-      } catch (error) {
-        console.error('Polling error:', error);
-        toast.error('Ошибка получения результата классификации');
-        setStep(1);
-        setLoading(false);
+    setIsUploading(true);
+    try {
+      const result = await clothingAPI.uploadImage(selectedFile);
+      return result.image_url;
+    } catch (error) {
+      console.error('Upload error:', error);
+      
+      if (error.code === 'NETWORK_ERROR') {
+        toast.error(t('serverConnectionError'));
+      } else if (error.response?.status === 413) {
+        toast.error(t('fileTooBigForServer'));
+      } else if (error.response?.status === 415) {
+        toast.error(t('unsupportedFileFormat'));
+      } else if (error.message?.includes('CORS')) {
+        toast.error(t('corsError'));
+      } else {
+        toast.error(t('imageUploadError'));
       }
-    };
+      
+      throw error;
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
-    poll();
+  const getClassificationResult = async (taskId) => {
+    if (!taskId) return null;
+
+    const maxAttempts = 10;
+    const delay = 2000;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      try {
+        const result = await clothingAPI.getClassificationResult(taskId);
+        
+        if (result.status === 'completed') {
+          return result.result;
+        } else if (result.status === 'failed') {
+          throw new Error('Classification failed');
+        }
+        
+        // Wait before next attempt
+        await new Promise(resolve => setTimeout(resolve, delay));
+      } catch (error) {
+        if (attempt === maxAttempts - 1) {
+          throw error;
+        }
+      }
+    }
+    
+    throw new Error('Classification timeout');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
+    
+    if (!selectedFile || !formData.name.trim()) {
+      return;
+    }
+
+    setIsSubmitting(true);
 
     try {
-      const response = await clothingAPI.addClothingItem(formData);
+      // Upload image first
+      const imageUrl = await uploadImage();
       
-      // 📊 Отслеживание добавления одежды
-      analytics.trackClothingAdded(formData.category || 'unknown');
+      // Prepare clothing data
+      const clothingData = {
+        ...formData,
+        image_url: imageUrl,
+        classification_data: classificationData
+      };
+
+      // Add clothing item
+      await clothingAPI.addClothingItem(clothingData);
       
-      onClothingAdded(response.data);
-      toast.success('Одежда успешно добавлена в гардероб!');
-      handleClose();
+      toast.success(t('clothingAddedSuccess'));
+      onClothingAdded();
+      onClose();
     } catch (error) {
-      console.error('Submit error:', error);
-      toast.error('Ошибка добавления одежды');
+      console.error('Error adding clothing:', error);
+      toast.error(t('addClothingError'));
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -414,7 +357,7 @@ const AddClothingModal = ({ isOpen, onClose, onClothingAdded }) => {
             {step === 3 && 'Редактировать данные'}
           </h2>
           <button
-            onClick={handleClose}
+            onClick={onClose}
             className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
           >
             <XIcon className="h-6 w-6" />
@@ -430,7 +373,7 @@ const AddClothingModal = ({ isOpen, onClose, onClothingAdded }) => {
             transition={{ duration: 0.5 }}
           >
             <motion.div 
-              className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-300 relative ${
+              className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-150 relative ${
                 isDragging 
                   ? 'border-blue-500 bg-blue-50' 
                   : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50'
@@ -446,7 +389,7 @@ const AddClothingModal = ({ isOpen, onClose, onClothingAdded }) => {
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
             >
               <AnimatePresence mode="wait">
-                {previewUrl ? (
+                {preview ? (
                   <motion.div 
                     key="preview"
                     className="space-y-4"
@@ -457,7 +400,7 @@ const AddClothingModal = ({ isOpen, onClose, onClothingAdded }) => {
                   >
                     <div className="relative">
                       <img
-                        src={previewUrl}
+                        src={preview}
                         alt="Preview"
                         className="max-w-full max-h-64 mx-auto rounded-xl shadow-lg"
                       />
@@ -485,20 +428,12 @@ const AddClothingModal = ({ isOpen, onClose, onClothingAdded }) => {
                         Выбрать другое фото
                       </motion.button>
                       <motion.button
-                        onClick={handleClassify}
+                        onClick={classifyImage}
                         className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all shadow-md hover:shadow-lg"
                         whileHover={{ scale: 1.05, y: -2 }}
                         whileTap={{ scale: 0.95 }}
                       >
                         ✨ Классифицировать
-                      </motion.button>
-                      <motion.button
-                        onClick={handleSkipClassification}
-                        className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                      >
-                        Пропустить
                       </motion.button>
                     </div>
                   </motion.div>
@@ -585,13 +520,13 @@ const AddClothingModal = ({ isOpen, onClose, onClothingAdded }) => {
                 ref={fileInputRef}
                 type="file"
                 accept="image/*"
-                onChange={handleFileSelect}
+                onChange={handleFileInputChange}
                 className="hidden"
               />
               
               {/* Drag overlay */}
               <AnimatePresence>
-                {isDragging && !previewUrl && (
+                {isDragging && !preview && (
                   <motion.div 
                     className="absolute inset-0 bg-blue-500 bg-opacity-10 rounded-2xl border-2 border-blue-500 border-dashed flex items-center justify-center"
                     initial={{ opacity: 0 }}
@@ -631,7 +566,16 @@ const AddClothingModal = ({ isOpen, onClose, onClothingAdded }) => {
         {step === 2 && (
           <div className="p-6 text-center">
             <div className="space-y-4">
-              <LoaderIcon className="h-12 w-12 text-blue-600 mx-auto animate-spin" />
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ 
+                  duration: 1, 
+                  repeat: Infinity, 
+                  ease: "linear" 
+                }}
+              >
+                <LoaderIcon className="h-12 w-12 text-blue-600 mx-auto" />
+              </motion.div>
               <div>
                 <p className="text-lg font-medium text-gray-900">
                   Анализируем ваше изображение...
@@ -640,9 +584,9 @@ const AddClothingModal = ({ isOpen, onClose, onClothingAdded }) => {
                   Это может занять несколько секунд
                 </p>
               </div>
-              {previewUrl && (
+              {preview && (
                 <img
-                  src={previewUrl}
+                  src={preview}
                   alt="Analyzing"
                   className="max-w-48 max-h-48 mx-auto rounded-lg"
                 />
@@ -658,16 +602,16 @@ const AddClothingModal = ({ isOpen, onClose, onClothingAdded }) => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 {/* Left Column: Image */}
                 <div className="md:col-span-1">
-                  {(formData.image_url || previewUrl) && (
+                  {(formData.image_url || preview) && (
                     <div className="space-y-4">
                       <img
-                        src={formData.image_url || previewUrl}
+                        src={formData.image_url || preview}
                         alt="Item"
                         className="w-full rounded-xl border border-gray-200 shadow-sm"
                       />
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
                         <span className="text-sm text-blue-800">
-                          {classificationResult ? (
+                          {classificationData ? (
                             <>AI определило категорию: <strong>{formData.category || '...'}</strong></>
                           ) : (
                             <>Изображение загружено. Заполните данные вручную.</>
@@ -769,17 +713,17 @@ const AddClothingModal = ({ isOpen, onClose, onClothingAdded }) => {
             <div className="flex justify-end space-x-4 p-6 bg-gray-50 border-t border-gray-200 rounded-b-2xl">
               <button
                 type="button"
-                onClick={handleClose}
+                onClick={onClose}
                 className="px-6 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
               >
                 Отмена
               </button>
               <button
                 type="submit"
-                disabled={loading}
+                disabled={isSubmitting}
                 className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                {loading ? 'Сохранение...' : 'Сохранить'}
+                {isSubmitting ? 'Сохранение...' : 'Сохранить'}
               </button>
             </div>
           </form>

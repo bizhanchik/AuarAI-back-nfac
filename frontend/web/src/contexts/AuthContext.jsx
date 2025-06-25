@@ -1,8 +1,15 @@
-import { createContext, useContext, useState, useEffect } from 'react';
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth, signInWithGoogle, signOutUser } from '../services/firebase';
-import { api } from '../services/api';
-import analytics from '../services/analytics';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword, 
+  signOut, 
+  onAuthStateChanged,
+  GoogleAuthProvider,
+  signInWithPopup,
+  updateProfile
+} from 'firebase/auth';
+import { auth } from '../services/firebase';
+import { useLanguage } from './LanguageContext';
 import toast from 'react-hot-toast';
 
 const AuthContext = createContext();
@@ -18,149 +25,82 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { t } = useLanguage();
 
-  // Function to refresh and set the Firebase ID token
-  const refreshToken = async (firebaseUser) => {
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUser(user);
+      setLoading(false);
+    });
+
+    return unsubscribe;
+  }, []);
+
+  const register = async (email, password, username) => {
     try {
-      const idToken = await firebaseUser.getIdToken(true); // Force refresh
-      api.defaults.headers.common['Authorization'] = `Bearer ${idToken}`;
-      return idToken;
+      const result = await createUserWithEmailAndPassword(auth, email, password);
+      
+      // Update the user's profile with the username
+      if (username) {
+        await updateProfile(result.user, {
+          displayName: username
+        });
+        // Update local user state
+        setUser({
+          ...result.user,
+          displayName: username
+        });
+      }
+      
+      return result;
     } catch (error) {
-      console.error('Error refreshing token:', error);
       throw error;
     }
   };
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        try {
-          // Get Firebase ID token
-          const idToken = await firebaseUser.getIdToken();
-          
-          // Set the token in API headers
-          api.defaults.headers.common['Authorization'] = `Bearer ${idToken}`;
-          
-          // Set user data from Firebase
-          setUser({
-            uid: firebaseUser.uid,
-            email: firebaseUser.email,
-            displayName: firebaseUser.displayName,
-            photoURL: firebaseUser.photoURL,
-            emailVerified: firebaseUser.emailVerified,
-          });
-
-          // 📊 Отслеживание успешной авторизации
-          analytics.trackUserLogin('google');
-          analytics.setUserProperties(firebaseUser.uid, {
-            userType: 'free', // Можно обновить из бэкенда
-            isPremium: false  // Можно обновить из бэкенда
-          });
-          
-          // Optional: Sync user with backend
-          try {
-            await api.post('/auth/firebase-login', {
-              uid: firebaseUser.uid,
-              email: firebaseUser.email,
-              displayName: firebaseUser.displayName,
-              photoURL: firebaseUser.photoURL,
-            });
-          } catch (error) {
-            console.error('Error syncing with backend:', error);
-            // Don't block login if backend sync fails
-          }
-          
-        } catch (error) {
-          console.error('Error getting ID token:', error);
-          toast.error('Authentication error');
-          setUser(null);
-        }
-      } else {
-        // User is signed out
-        setUser(null);
-        delete api.defaults.headers.common['Authorization'];
-      }
-      setLoading(false);
-    });
-
-    // Setup axios interceptor for automatic token refresh
-    const requestInterceptor = api.interceptors.request.use(
-      async (config) => {
-        // If we have a current user, ensure the token is fresh
-        if (auth.currentUser) {
-          try {
-            const idToken = await auth.currentUser.getIdToken();
-            config.headers['Authorization'] = `Bearer ${idToken}`;
-          } catch (error) {
-            console.error('Error getting fresh token:', error);
-          }
-        }
-        return config;
-      },
-      (error) => Promise.reject(error)
-    );
-
-    const responseInterceptor = api.interceptors.response.use(
-      (response) => response,
-      async (error) => {
-        const originalRequest = error.config;
-        
-        if (error.response?.status === 401 && !originalRequest._retry && auth.currentUser) {
-          originalRequest._retry = true;
-          
-          try {
-            // Try to refresh the token
-            const newToken = await refreshToken(auth.currentUser);
-            originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
-            
-            // Retry the original request
-            return api(originalRequest);
-          } catch (refreshError) {
-            console.error('Token refresh failed:', refreshError);
-            // Force logout if token refresh fails
-            await signOutUser();
-            toast.error('Session expired. Please sign in again.');
-            return Promise.reject(refreshError);
-          }
-        }
-        
-        return Promise.reject(error);
-      }
-    );
-
-    // Cleanup function
-    return () => {
-      unsubscribe();
-      api.interceptors.request.eject(requestInterceptor);
-      api.interceptors.response.eject(responseInterceptor);
-    };
-  }, []);
+  const login = async (email, password) => {
+    try {
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      const userName = result.user.displayName || result.user.email;
+      toast.success(t('welcomeUser').replace('{name}', userName));
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  };
 
   const loginWithGoogle = async () => {
     try {
       setLoading(true);
-      const result = await signInWithGoogle();
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({
+        prompt: 'select_account',
+        hd: undefined // Allow any domain
+      });
       
-      toast.success(`Добро пожаловать, ${result.user.displayName || result.user.email}!`);
+      const result = await signInWithPopup(auth, provider);
+      const userName = result.user.displayName || result.user.email;
       
-      return { success: true };
+      // Show success message in Russian
+      toast.success(`Добро пожаловать, ${userName}! 🎉`);
+      
+      return result;
     } catch (error) {
-      console.error('Google sign-in error:', error);
+      setLoading(false);
+      console.error('Google login error:', error);
       
-      let errorMessage = 'Ошибка входа через Google';
+      // Handle specific error cases
       if (error.code === 'auth/popup-closed-by-user') {
-        errorMessage = 'Вход отменен пользователем';
+        toast.error('Окно авторизации было закрыто');
       } else if (error.code === 'auth/popup-blocked') {
-        errorMessage = 'Всплывающее окно заблокировано браузером';
-      } else if (error.code === 'auth/network-request-failed') {
-        errorMessage = 'Проблема с сетевым соединением';
+        toast.error('Всплывающее окно заблокировано браузером');
+      } else if (error.code === 'auth/cancelled-popup-request') {
+        toast.error('Запрос авторизации отменен');
+      } else {
+        toast.error('Ошибка входа через Google. Попробуйте еще раз.');
       }
       
-      toast.error(errorMessage);
-      return { 
-        success: false, 
-        error: errorMessage 
-      };
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -168,23 +108,21 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await signOutUser();
-      toast.success('Вы успешно вышли из системы');
+      await signOut(auth);
+      toast.success(t('logoutSuccess'));
     } catch (error) {
-      console.error('Sign-out error:', error);
-      toast.error('Ошибка при выходе из системы');
+      toast.error(t('logoutError'));
+      throw error;
     }
   };
 
   const value = {
     user,
-    loading,
+    register,
+    login,
     loginWithGoogle,
     logout,
-    refreshToken,
-    // Keep these for backward compatibility (they will be removed later)
-    login: loginWithGoogle,
-    register: loginWithGoogle,
+    loading
   };
 
   return (

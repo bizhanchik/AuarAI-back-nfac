@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
+import { useLanguage } from '../contexts/LanguageContext';
+import { useWeather } from '../contexts/WeatherContext';
 import { useNavigate } from 'react-router-dom';
-import { weatherAPI, clothingAPI } from '../services/api';
+import { clothingAPI } from '../services/api';
 import WeatherWidget from '../components/WeatherWidget';
 import ClothingGrid from '../components/ClothingGrid';
 import AddClothingModal from '../components/AddClothingModal';
@@ -12,6 +14,7 @@ import ClothingDetailsModal from '../components/ClothingDetailsModal';
 import EditClothingModal from '../components/EditClothingModal';
 import LocationPermissionPrompt from '../components/LocationPermissionPrompt';
 import WeatherForecastModal from '../components/WeatherForecastModal';
+import LanguageSelector from '../components/LanguageSelector';
 import { 
   PlusIcon, 
   LogOutIcon, 
@@ -26,14 +29,19 @@ import {
   HeartIcon,
   EyeIcon,
   SettingsIcon,
-  UserIcon
+  UserIcon,
+  HomeIcon,
+  GridIcon,
+  PaletteIcon,
+  CloudIcon
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const Dashboard = () => {
   const { user, logout } = useAuth();
+  const { t } = useLanguage();
+  const { currentWeather: weather } = useWeather();
   const navigate = useNavigate();
-  const [weather, setWeather] = useState(null);
   const [clothingItems, setClothingItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -52,19 +60,11 @@ const Dashboard = () => {
     try {
       setLoading(true);
       
-      const [weatherResponse, clothingResponse] = await Promise.all([
-        weatherAPI.getUserLocationWeather().catch(() => null),
-        clothingAPI.getUserItems().catch(() => ({ data: [] }))
-      ]);
-
-      if (weatherResponse) {
-        setWeather(weatherResponse.data);
-      }
-      
+      const clothingResponse = await clothingAPI.getUserItems().catch(() => ({ data: [] }));
       setClothingItems(clothingResponse.data || []);
     } catch (error) {
       console.error('Error fetching data:', error);
-      toast.error('Ошибка загрузки данных');
+      toast.error(t('errorLoading'));
     } finally {
       setLoading(false);
     }
@@ -72,13 +72,13 @@ const Dashboard = () => {
 
   const handleLogout = () => {
     logout();
-    toast.success('Вы вышли из системы');
+    toast.success(t('loggedOut'));
   };
 
   const handleClothingAdded = (newItem) => {
     setClothingItems(prev => [newItem, ...prev]);
     setIsAddModalOpen(false);
-    toast.success('Одежда успешно добавлена!');
+    toast.success(t('itemAdded'));
   };
 
   const handleViewDetails = (item) => {
@@ -97,12 +97,14 @@ const Dashboard = () => {
     );
     setIsEditModalOpen(false);
     setSelectedItem(null);
+    toast.success(t('itemUpdated'));
   };
 
   const handleItemDeleted = (itemId) => {
     setClothingItems(prev => prev.filter(item => item.id !== itemId));
     setIsEditModalOpen(false);
     setSelectedItem(null);
+    toast.success(t('itemDeleted'));
   };
 
   const handleEditFromDetails = (item) => {
@@ -113,31 +115,43 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-dawn relative overflow-hidden">
         {/* Animated Background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-purple-900 to-blue-900">
-          <div className="absolute inset-0 opacity-20">
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10"></div>
-          </div>
+        <div className="absolute inset-0">
+          <div className="absolute inset-0 bg-gradient-mystical opacity-20 animate-gradient"></div>
+          <div className="absolute inset-0 bg-gradient-sunset opacity-30 animate-breath"></div>
         </div>
         
         {/* Loading Animation */}
         <div className="relative z-10 flex flex-col items-center space-y-8">
-          <div className="relative">
-            <div className="w-24 h-24 rounded-full border-4 border-transparent bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 p-1 animate-spin">
-              <div className="w-full h-full rounded-full bg-slate-900 flex items-center justify-center">
-                <Sparkles className="h-8 w-8 text-white" />
-              </div>
-            </div>
-          </div>
+          <div className="fashion-loader"></div>
           
           <div className="text-center space-y-2">
-            <h2 className="text-3xl font-bold text-white font-display">
-              Загружаем ваш стиль...
+            <h2 className="text-4xl font-bold text-neutral-900 font-display">
+              {t('loadingStyle')}
             </h2>
-            <p className="text-gray-300 text-lg">
-              Подготавливаем магию моды
+            <p className="text-neutral-700 text-xl font-body">
+              {t('preparingMagic')}
             </p>
+          </div>
+
+          {/* Loading indicators */}
+          <div className="flex space-x-2">
+            {[...Array(3)].map((_, i) => (
+              <motion.div
+                key={i}
+                className="w-3 h-3 bg-primary-500 rounded-full"
+                animate={{
+                  scale: [1, 1.2, 1],
+                  opacity: [0.7, 1, 0.7]
+                }}
+                transition={{
+                  duration: 1.5,
+                  repeat: Infinity,
+                  delay: i * 0.2
+                }}
+              />
+            ))}
           </div>
         </div>
       </div>
@@ -145,13 +159,12 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-dawn relative overflow-hidden">
       {/* Stunning Background */}
-      <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-purple-900/50 to-blue-900/30">
-        <div className="absolute inset-0 opacity-30">
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 via-purple-500/20 to-pink-500/20"></div>
-        </div>
-        <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent"></div>
+      <div className="fixed inset-0">
+        <div className="absolute inset-0 bg-gradient-mystical opacity-20"></div>
+        <div className="absolute inset-0 bg-gradient-sunset opacity-10 animate-gradient"></div>
+        <div className="absolute inset-0 bg-gradient-accent opacity-30"></div>
       </div>
 
       <LocationPermissionPrompt 
@@ -160,54 +173,57 @@ const Dashboard = () => {
       />
       
       {/* Premium Header */}
-      <header className="relative z-40 bg-white/5 backdrop-blur-xl border-b border-white/10">
+      <header className="relative z-40 glass-light border-b border-accent-200/50">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
             {/* Logo Section */}
             <div className="flex items-center space-x-4">
               <button
                 onClick={() => navigate('/')}
-                className="flex items-center space-x-3 group transition-transform duration-200 hover:scale-105"
+                className="flex items-center space-x-3 group hover-lift"
               >
                 <div className="relative">
-                  <div className="w-12 h-12 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-2xl flex items-center justify-center shadow-2xl transition-shadow duration-300 group-hover:shadow-purple-500/25">
+                  <div className="w-14 h-14 logo-white-bg rounded-3xl flex items-center justify-center shadow-bold">
                     <img 
                       src="/img/logo.png" 
                       alt="AuarAI Logo" 
-                      className="h-8 w-8 object-contain"
+                      className="h-9 w-9 object-contain"
                     />
                   </div>
                 </div>
                 <div>
-                  <h1 className="text-3xl font-black text-white font-display tracking-tight">
+                  <h1 className="text-4xl font-black text-neutral-900 font-display tracking-tight">
                     AuarAI
                   </h1>
-                  <p className="text-xs text-purple-300 font-medium">AI Fashion Studio</p>
+                  <p className="text-xs text-primary-600 font-medium font-body">AI Fashion Studio</p>
                 </div>
               </button>
             </div>
             
-            {/* Center - Weather Widget */}
-            <div>
-              <WeatherWidget weather={weather} />
+            {/* Center - Empty space */}
+            <div className="flex-1 flex justify-center">
             </div>
             
             {/* User Section */}
             <div className="flex items-center space-x-4">
-              <div className="hidden sm:flex items-center space-x-3 px-4 py-2 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20">
-                <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+              <LanguageSelector variant="light" />
+              
+              <div className="hidden sm:flex items-center space-x-3 px-4 py-2 card-glass rounded-2xl">
+                <div className="w-8 h-8 bg-gradient-secondary rounded-full flex items-center justify-center">
                   <UserIcon className="h-4 w-4 text-white" />
                 </div>
-                <span className="text-white font-medium">{user?.username}</span>
+                <span className="text-neutral-800 font-medium font-body">{user?.username}</span>
               </div>
               
-              <button
+              <motion.button
                 onClick={handleLogout}
-                className="p-3 bg-red-500/20 hover:bg-red-500/30 text-red-300 hover:text-red-200 rounded-2xl border border-red-500/30 hover:border-red-500/50 transition-all duration-300 hover:scale-105"
-                title="Выход"
+                className="p-3 bg-red-500/20 hover:bg-red-500/30 text-red-600 hover:text-red-700 rounded-xl border border-red-500/30 hover:border-red-500/50 transition-all duration-150"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                title={t('logout')}
               >
                 <LogOutIcon className="h-5 w-5" />
-              </button>
+              </motion.button>
             </div>
           </div>
         </div>
@@ -215,93 +231,118 @@ const Dashboard = () => {
 
       {/* Main Content */}
       <main className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 py-12">
+        {/* Weather Widget - Top Right Corner */}
+        <motion.div 
+          className="absolute top-4 right-4 z-20"
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <WeatherWidget />
+        </motion.div>
         {/* Hero Section */}
         <div className="mb-16">
           <div className="text-center mb-12">
-            <h2 className="text-6xl lg:text-7xl font-black text-white mb-6 font-display">
-              Мой{' '}
+            <motion.h2 
+              className="text-6xl lg:text-7xl font-black text-neutral-900 mb-6 font-display"
+              initial={{ y: 30, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.8 }}
+            >
+              {t('myWardrobe').split(' ')[0]}{' '}
               <span className="text-gradient-primary">
-                Гардероб
+                {t('myWardrobe').split(' ')[1]}
               </span>
-            </h2>
+            </motion.h2>
             
-            <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto leading-relaxed">
-              Управляйте своей коллекцией одежды с помощью искусственного интеллекта
-            </p>
+            <motion.p 
+              className="text-xl text-neutral-700 mb-8 max-w-2xl mx-auto leading-relaxed font-body"
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+            >
+              {t('wardrobeDescription')}
+            </motion.p>
 
             {clothingItems.length > 0 && (
-              <div className="flex justify-center items-center space-x-8 text-sm">
-                <div className="flex items-center space-x-2 px-4 py-2 bg-blue-500/20 rounded-full border border-blue-500/30">
-                  <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
-                  <span className="text-blue-300 font-medium">
-                    {clothingItems.length} {clothingItems.length === 1 ? 'вещь' : 'вещей'}
+              <motion.div 
+                className="flex justify-center items-center space-x-8 text-sm"
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.8, delay: 0.4 }}
+              >
+                <div className="flex items-center space-x-2 px-4 py-2 glass-primary rounded-full">
+                  <div className="w-2 h-2 bg-primary-400 rounded-full animate-pulse"></div>
+                  <span className="text-primary-700 font-medium font-body">
+                    {clothingItems.length} {t('items')}
                   </span>
                 </div>
-                <div className="flex items-center space-x-2 px-4 py-2 bg-green-500/20 rounded-full border border-green-500/30">
-                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                  <span className="text-green-300 font-medium">Все синхронизировано</span>
+                <div className="flex items-center space-x-2 px-4 py-2 glass-light rounded-full border border-green-400/30">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <span className="text-green-700 font-medium font-body">{t('allSynced')}</span>
                 </div>
-              </div>
+              </motion.div>
             )}
           </div>
           
           {/* Action Buttons */}
-          <div className="flex flex-wrap justify-center gap-6">
-            <button
+          <motion.div 
+            className="flex flex-wrap justify-center gap-6"
+            initial={{ y: 30, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.8, delay: 0.6 }}
+          >
+            <ActionButton
               onClick={() => setIsForecastModalOpen(true)}
-              className="group relative px-8 py-4 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white font-bold rounded-2xl shadow-2xl hover:shadow-purple-500/25 transform hover:scale-105 transition-all duration-300"
-            >
-              <div className="flex items-center space-x-3">
-                <CalendarIcon className="h-6 w-6" />
-                <span className="text-lg">Прогноз стиля</span>
-                <StarIcon className="h-5 w-5 text-yellow-300" />
-              </div>
-            </button>
+              icon={CalendarIcon}
+              label={t('styleForecast')}
+              accent={StarIcon}
+              gradient="bg-gradient-ocean"
+              delay={0}
+            />
             
-            <button
+            <ActionButton
               onClick={() => setIsAIAdviceModalOpen(true)}
-              className="group relative px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold rounded-2xl shadow-2xl hover:shadow-pink-500/25 transform hover:scale-105 transition-all duration-300"
-            >
-              <div className="flex items-center space-x-3">
-                <BrainIcon className="h-6 w-6" />
-                <span className="text-lg">Совет ИИ</span>
-                <ZapIcon className="h-5 w-5 text-yellow-300" />
-              </div>
-            </button>
+              icon={BrainIcon}
+              label={t('aiAdvice')}
+              accent={ZapIcon}
+              gradient="bg-gradient-secondary"
+              delay={0.1}
+            />
             
-            <button
+            <ActionButton
               onClick={() => setIsV2VModalOpen(true)}
-              className="group relative px-8 py-4 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold rounded-2xl shadow-2xl hover:shadow-cyan-500/25 transform hover:scale-105 transition-all duration-300"
-            >
-              <div className="flex items-center space-x-3">
-                <Video className="h-6 w-6" />
-                <span className="text-lg">Голосовой помощник</span>
-                <HeartIcon className="h-5 w-5 text-red-300" />
-              </div>
-            </button>
+              icon={Video}
+              label={t('voiceAssistant')}
+              accent={HeartIcon}
+              gradient="bg-gradient-ocean"
+              delay={0.2}
+            />
             
-            <button
+            <ActionButton
               onClick={() => setIsAddModalOpen(true)}
-              className="group relative px-8 py-4 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold rounded-2xl shadow-2xl hover:shadow-emerald-500/25 transform hover:scale-105 transition-all duration-300"
-            >
-              <div className="flex items-center space-x-3">
-                <PlusIcon className="h-6 w-6 transition-transform duration-300 group-hover:rotate-90" />
-                <span className="text-lg">Добавить одежду</span>
-                <ShirtIcon className="h-5 w-5 text-white" />
-              </div>
-            </button>
-          </div>
+              icon={PlusIcon}
+              label={t('addClothing')}
+              accent={ShirtIcon}
+              gradient="bg-gradient-twilight"
+              delay={0.3}
+            />
+          </motion.div>
         </div>
 
         {/* Clothing Grid */}
-        <div>
+        <motion.div
+          initial={{ y: 30, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.8, delay: 0.8 }}
+        >
           <ClothingGrid
             items={clothingItems}
             onViewDetails={handleViewDetails}
             onEditItem={handleEditItem}
             onAddClick={() => setIsAddModalOpen(true)}
           />
-        </div>
+        </motion.div>
       </main>
 
       {/* Modals */}
@@ -334,6 +375,7 @@ const Dashboard = () => {
           <WeatherForecastModal
             isOpen={isForecastModalOpen}
             onClose={() => setIsForecastModalOpen(false)}
+            clothingItems={clothingItems}
           />
         )}
         
@@ -359,5 +401,26 @@ const Dashboard = () => {
     </div>
   );
 };
+
+// Action Button Component
+const ActionButton = ({ onClick, icon: Icon, label, accent: AccentIcon, gradient, delay }) => (
+  <motion.button
+    onClick={onClick}
+    className="group relative overflow-hidden"
+    whileHover={{ scale: 1.05 }}
+    whileTap={{ scale: 0.95 }}
+    initial={{ y: 20, opacity: 0 }}
+    animate={{ y: 0, opacity: 1 }}
+    transition={{ duration: 0.5, delay }}
+  >
+    <div className={`px-8 py-4 ${gradient} text-white font-bold rounded-2xl shadow-bold transition-transform duration-150 ease-out`}>
+      <div className="flex items-center space-x-3 relative z-10">
+        <Icon className="h-6 w-6" />
+        <span className="text-lg font-heading">{label}</span>
+        <AccentIcon className="h-5 w-5 text-yellow-300" />
+      </div>
+    </div>
+  </motion.button>
+);
 
 export default Dashboard; 

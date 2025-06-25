@@ -1,249 +1,272 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useLanguage } from '../contexts/LanguageContext';
+import LanguageSelector from '../components/LanguageSelector';
 import { 
-  SparklesIcon, 
-  StarIcon,
+  SparklesIcon,
+  ShieldCheckIcon,
   HeartIcon,
-  ZapIcon
+  ZapIcon,
+  StarIcon,
+  TrendingUpIcon
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const LoginPage = () => {
-  const [isLoading, setIsLoading] = useState(false);
-  
+  const [loading, setLoading] = useState(false);
   const { loginWithGoogle } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
 
   const handleGoogleSignIn = async () => {
-    setIsLoading(true);
-    
     try {
+      setLoading(true);
       const result = await loginWithGoogle();
-      if (result.success) {
-        navigate('/dashboard');
-      }
+      // Navigation will be handled automatically by the auth state change
+      // The onAuthStateChanged listener will detect the user and navigate
+      console.log('Google sign in successful:', result);
     } catch (error) {
       console.error('Login failed:', error);
+      toast.error('Ошибка входа. Попробуйте еще раз.');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const FloatingElement = ({ children, delay = 0, duration = 6 }) => (
-    <motion.div
-      animate={{ 
-        y: [0, -20, 0],
-        rotate: [0, 5, -5, 0],
-        scale: [1, 1.05, 1]
-      }}
-      transition={{ 
-        duration, 
-        repeat: Infinity, 
-        delay,
-        ease: "easeInOut"
-      }}
-    >
-      {children}
-    </motion.div>
-  );
-
   return (
     <div className="min-h-screen relative overflow-hidden">
-      {/* Stunning Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-purple-900 to-blue-900">
-        <div className="absolute inset-0 opacity-30">
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 via-purple-500/20 to-pink-500/20"></div>
-        </div>
-        <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent"></div>
-      </div>
-
-      {/* Floating Elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <FloatingElement delay={0}>
-          <div className="absolute top-20 left-20 w-16 h-16 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-full blur-xl"></div>
-        </FloatingElement>
-        <FloatingElement delay={1}>
-          <div className="absolute top-40 right-32 w-8 h-8 bg-gradient-to-r from-pink-500/30 to-red-500/30 rounded-full blur-lg"></div>
-        </FloatingElement>
-        <FloatingElement delay={2}>
-          <div className="absolute bottom-32 left-40 w-12 h-12 bg-gradient-to-r from-cyan-500/25 to-blue-500/25 rounded-full blur-lg"></div>
-        </FloatingElement>
-        <FloatingElement delay={0.5}>
-          <div className="absolute top-60 right-20 w-20 h-20 bg-gradient-to-r from-purple-500/15 to-pink-500/15 rounded-full blur-2xl"></div>
-        </FloatingElement>
-      </div>
-
-      <div className="relative z-10 min-h-screen flex items-center justify-center px-6">
+      {/* Floating Background Elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <motion.div
-          initial={{ opacity: 0, y: 50, scale: 0.9 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.8, type: "spring", stiffness: 100 }}
-          className="max-w-md w-full"
-        >
-          {/* Premium Card */}
-          <div className="card-glass p-8 relative overflow-hidden">
-            {/* Animated Border */}
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-2xl opacity-20 blur"></div>
-            
-            {/* Header */}
-            <motion.div 
-              className="text-center mb-8"
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2, duration: 0.6 }}
-            >
-              <motion.div
-                className="flex justify-center mb-6"
-                whileHover={{ scale: 1.1, rotate: 10 }}
-                transition={{ duration: 0.3 }}
-              >
-                <div className="relative">
-                  <div className="w-16 h-16 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-2xl flex items-center justify-center shadow-2xl">
-                    <SparklesIcon className="h-8 w-8 text-white animate-pulse" />
-                  </div>
-                  <div className="absolute -inset-2 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-2xl blur opacity-30 animate-pulse"></div>
-                </div>
-              </motion.div>
-              
-              <motion.h1 
-                className="text-4xl font-black text-white mb-3 font-display"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.3 }}
-              >
-                Добро пожаловать в AuarAI
-              </motion.h1>
-              
-              <motion.p 
-                className="text-gray-300 text-lg mb-6"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.4 }}
-              >
-                Войдите с помощью Google аккаунта
-              </motion.p>
-            </motion.div>
+          className="absolute top-10 left-10 w-32 h-32 bg-gradient-primary opacity-20 rounded-full blur-3xl"
+          animate={{
+            y: [0, -30, 0],
+            x: [0, 20, 0],
+            scale: [1, 1.1, 1],
+          }}
+          transition={{
+            duration: 8,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
+        <motion.div
+          className="absolute top-40 right-20 w-24 h-24 bg-gradient-secondary opacity-25 rounded-full blur-2xl"
+          animate={{
+            y: [0, 40, 0],
+            x: [0, -30, 0],
+            scale: [1, 1.2, 1],
+          }}
+          transition={{
+            duration: 10,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 2
+          }}
+        />
+        <motion.div
+          className="absolute bottom-20 left-1/4 w-40 h-40 bg-gradient-ocean opacity-15 rounded-full blur-3xl"
+          animate={{
+            y: [0, -20, 0],
+            x: [0, 30, 0],
+            scale: [1, 1.05, 1],
+          }}
+          transition={{
+            duration: 12,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 4
+          }}
+        />
+        <motion.div
+          className="absolute top-1/2 right-10 w-28 h-28 bg-gradient-sunset opacity-20 rounded-full blur-2xl"
+          animate={{
+            y: [0, 25, 0],
+            x: [0, -15, 0],
+            scale: [1, 1.15, 1],
+          }}
+          transition={{
+            duration: 9,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 1
+          }}
+        />
+      </div>
 
-            {/* Google Sign In Button */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5, duration: 0.6 }}
+      {/* Navigation */}
+      <nav className="relative z-40 nav-glass">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex justify-between items-center">
+            <motion.button
+              onClick={() => navigate('/')}
+              className="flex items-center space-x-3 hover-lift"
+              whileHover={{ scale: 1.05 }}
             >
-              <motion.button
-                onClick={handleGoogleSignIn}
-                disabled={isLoading}
-                className="w-full bg-white hover:bg-gray-50 text-gray-900 font-semibold py-4 px-6 rounded-xl flex items-center justify-center space-x-3 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                whileHover={{ scale: 1.02, y: -2 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                {isLoading ? (
-                  <div className="flex items-center justify-center">
-                    <motion.div
-                      className="w-5 h-5 border-2 border-gray-900 border-t-transparent rounded-full mr-3"
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                    />
-                    Вход в систему...
-                  </div>
-                ) : (
-                  <>
-                    <svg className="w-5 h-5" viewBox="0 0 24 24">
-                      <path
-                        fill="#4285F4"
-                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                      />
-                      <path
-                        fill="#34A853"
-                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                      />
-                      <path
-                        fill="#FBBC05"
-                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                      />
-                      <path
-                        fill="#EA4335"
-                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                      />
-                    </svg>
-                    <span className="text-lg">Войти через Google</span>
-                  </>
-                )}
-              </motion.button>
-            </motion.div>
-
-            {/* Features */}
-            <motion.div
-              className="mt-8 pt-6 border-t border-white/10"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.7, duration: 0.6 }}
-            >
-              <div className="grid grid-cols-1 gap-4 text-center">
-                <div className="flex items-center justify-center text-gray-300 text-sm">
-                  <SparklesIcon className="h-4 w-4 mr-2 text-blue-400" />
-                  <span>ИИ-стилист персонально для вас</span>
-                </div>
-                <div className="flex items-center justify-center text-gray-300 text-sm">
-                  <HeartIcon className="h-4 w-4 mr-2 text-pink-400" />
-                  <span>Умные рекомендации нарядов</span>
-                </div>
-                <div className="flex items-center justify-center text-gray-300 text-sm">
-                  <ZapIcon className="h-4 w-4 mr-2 text-yellow-400" />
-                  <span>Голосовой помощник по стилю</span>
-                </div>
+              <div className="w-14 h-14 logo-white-bg rounded-3xl flex items-center justify-center shadow-bold">
+                <img 
+                  src="/img/logo.png" 
+                  alt="AuarAI Logo" 
+                  className="h-9 w-9 object-contain"
+                />
               </div>
-            </motion.div>
-
-            {/* Decorative Elements */}
-            <div className="absolute top-4 right-4 opacity-30">
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-              >
-                <StarIcon className="h-6 w-6 text-yellow-400" />
-              </motion.div>
-            </div>
+              <span className="text-4xl font-extra-bold text-neutral-900 font-display">AuarAI</span>
+            </motion.button>
             
-            <div className="absolute bottom-4 left-4 opacity-30">
-              <motion.div
-                animate={{ scale: [1, 1.2, 1] }}
-                transition={{ duration: 2, repeat: Infinity }}
-              >
-                <HeartIcon className="h-5 w-5 text-pink-400" />
-              </motion.div>
-            </div>
-            
-            <div className="absolute top-1/2 left-4 opacity-20">
-              <motion.div
-                animate={{ y: [0, -10, 0] }}
-                transition={{ duration: 3, repeat: Infinity }}
-              >
-                <ZapIcon className="h-4 w-4 text-blue-400" />
-              </motion.div>
+            <div className="flex items-center space-x-4">
+              <LanguageSelector variant="light" />
             </div>
           </div>
+        </div>
+      </nav>
 
-          {/* Bottom Link */}
+      {/* Main Content */}
+      <div className="relative z-10 flex items-center justify-center min-h-[calc(100vh-80px)] px-6 py-12">
+        <div className="w-full max-w-lg">
+          {/* Welcome Section */}
+          <motion.div
+            className="text-center mb-12"
+            initial={{ y: 50, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.8 }}
+          >
+            <motion.div
+              className="mb-8"
+              whileHover={{ scale: 1.1, rotate: 5 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="relative inline-block">
+                <div className="w-24 h-24 bg-gradient-primary rounded-3xl flex items-center justify-center shadow-glow-primary mx-auto">
+                  <SparklesIcon className="h-12 w-12 text-white animate-pulse" />
+                </div>
+                <div className="absolute -inset-4 bg-gradient-primary rounded-3xl blur opacity-30 animate-pulse"></div>
+              </div>
+            </motion.div>
+            
+            <h1 className="text-6xl font-ultra-bold text-neutral-900 mb-6 font-display leading-tight">
+              {t('welcomeBack')}
+            </h1>
+            <p className="text-2xl text-neutral-700 font-subheading font-semibold">
+              {t('loginDescription')}
+            </p>
+          </motion.div>
+
+          {/* Login Card */}
+          <motion.div
+            className="card-premium p-12 shadow-dramatic"
+            initial={{ y: 60, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+          >
+            {/* Google Sign In Button */}
+            <motion.button
+              onClick={handleGoogleSignIn}
+              disabled={loading}
+              className="w-full btn-google text-xl py-6 disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden group mb-8"
+              whileHover={{ scale: loading ? 1 : 1.02 }}
+              whileTap={{ scale: loading ? 1 : 0.98 }}
+            >
+              {loading ? (
+                <div className="flex items-center justify-center space-x-3">
+                  <motion.div
+                    className="w-6 h-6 border-3 border-gray-300 border-t-gray-900 rounded-full"
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  />
+                  <span className="font-bold">Вход...</span>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center space-x-4">
+                  <svg className="w-8 h-8" viewBox="0 0 24 24">
+                    <path
+                      fill="#4285F4"
+                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                    />
+                    <path
+                      fill="#34A853"
+                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                    />
+                    <path
+                      fill="#FBBC05"
+                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                    />
+                    <path
+                      fill="#EA4335"
+                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                    />
+                  </svg>
+                  <span className="text-xl font-bold">Sign in with Google</span>
+                </div>
+              )}
+              
+              {/* Button animation overlay */}
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+            </motion.button>
+
+            {/* Features Preview */}
+            <div className="pt-8 border-t-2 border-accent-200">
+              <h3 className="text-2xl font-bold text-neutral-800 mb-6 font-heading text-center">
+                What awaits you inside:
+              </h3>
+              <div className="space-y-4">
+                <FeatureItem 
+                  icon={SparklesIcon}
+                  text="AI-powered outfit recommendations"
+                  color="bg-gradient-primary"
+                />
+                <FeatureItem 
+                  icon={ShieldCheckIcon}
+                  text="Weather-aware styling"
+                  color="bg-gradient-secondary"
+                />
+                <FeatureItem 
+                  icon={HeartIcon}
+                  text="Personalized wardrobe management"
+                  color="bg-gradient-ocean"
+                />
+                <FeatureItem 
+                  icon={ZapIcon}
+                  text="Voice assistant for fashion advice"
+                  color="bg-gradient-sunset"
+                />
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Back to Home Link */}
           <motion.div
             className="text-center mt-8"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.8, duration: 0.5 }}
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.8, delay: 0.4 }}
           >
             <Link
               to="/"
-              className="text-gray-400 hover:text-white transition-colors text-sm font-medium"
+              className="text-primary-600 hover:text-primary-700 font-semibold transition-colors text-lg font-heading"
             >
-              ← Вернуться на главную
+              ← Back to home
             </Link>
           </motion.div>
-        </motion.div>
+        </div>
       </div>
     </div>
   );
 };
+
+// Feature Item Component
+const FeatureItem = ({ icon: Icon, text, color }) => (
+  <motion.div
+    className="flex items-center space-x-4 text-neutral-700 group"
+    whileHover={{ x: 10 }}
+    transition={{ duration: 0.2 }}
+  >
+    <div className={`w-12 h-12 ${color} rounded-2xl flex items-center justify-center flex-shrink-0 shadow-medium group-hover:shadow-bold transition-all duration-300`}>
+      <Icon className="h-6 w-6 text-white" />
+    </div>
+    <span className="font-body text-lg font-medium group-hover:text-neutral-900 transition-colors">{text}</span>
+  </motion.div>
+);
 
 export default LoginPage; 

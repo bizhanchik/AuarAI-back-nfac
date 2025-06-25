@@ -1,60 +1,58 @@
-import { CloudIcon, SunIcon, CloudRainIcon, SnowflakeIcon } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { 
+  CloudIcon, 
+  SunIcon, 
+  CloudRainIcon, 
+  SnowflakeIcon,
+  MapPinIcon,
+  ThermometerIcon
+} from 'lucide-react';
+import { useLanguage } from '../contexts/LanguageContext';
+import { useWeather } from '../contexts/WeatherContext';
 
-const WeatherWidget = ({ weather }) => {
-  if (!weather) {
+const WeatherWidget = () => {
+  const { t } = useLanguage();
+  const { currentWeather: weather, loading } = useWeather();
+
+  const getWeatherIcon = (condition) => {
+    const iconProps = { className: "h-6 w-6 text-white" };
+    
+    if (condition.includes('cloud')) return <CloudIcon {...iconProps} />;
+    if (condition.includes('rain')) return <CloudRainIcon {...iconProps} />;
+    if (condition.includes('snow')) return <SnowflakeIcon {...iconProps} />;
+    return <SunIcon {...iconProps} />;
+  };
+
+  if (loading) {
     return (
-      <div className="flex items-center px-3 py-2 bg-gray-100 rounded-lg animate-pulse">
-        <div className="w-8 h-8 bg-gray-300 rounded mr-2"></div>
-        <div className="space-y-1">
-          <div className="w-16 h-3 bg-gray-300 rounded"></div>
-          <div className="w-12 h-2 bg-gray-300 rounded"></div>
+      <div className="weather-widget animate-pulse">
+        <div className="weather-icon">
+          <div className="w-6 h-6 bg-white/30 rounded"></div>
+        </div>
+        <div>
+          <div className="h-6 w-12 bg-white/30 rounded mb-1"></div>
+          <div className="h-4 w-20 bg-white/30 rounded mb-1"></div>
+          <div className="h-3 w-16 bg-white/30 rounded"></div>
         </div>
       </div>
     );
   }
 
-  const getWeatherIcon = (condition) => {
-    const iconClass = "h-6 w-6";
-    
-    if (condition?.toLowerCase().includes('rain')) {
-      return <CloudRainIcon className={`${iconClass} text-blue-500`} />;
-    } else if (condition?.toLowerCase().includes('snow')) {
-      return <SnowflakeIcon className={`${iconClass} text-blue-300`} />;
-    } else if (condition?.toLowerCase().includes('cloud')) {
-      return <CloudIcon className={`${iconClass} text-gray-500`} />;
-    } else {
-      return <SunIcon className={`${iconClass} text-yellow-500`} />;
-    }
-  };
-
-  const formatTemperature = (temp) => {
-    if (typeof temp === 'number') {
-      return `${Math.round(temp)}°C`;
-    }
-    return temp || 'N/A';
-  };
-
   return (
-    <div className="flex items-center px-3 py-2 bg-blue-50 rounded-lg border border-blue-200">
-      <div className="mr-2">
-        {getWeatherIcon(weather.description || weather.condition)}
+    <motion.div 
+      className="weather-widget"
+      whileHover={{ scale: 1.05 }}
+      transition={{ duration: 0.2 }}
+    >
+      <div className="weather-icon">
+        {getWeatherIcon(weather?.condition || 'sunny')}
       </div>
-      
-      <div className="text-sm">
-        <div className="font-medium text-gray-900">
-          {formatTemperature(weather.temperature || weather.temp)}
-        </div>
-        <div className="text-xs text-gray-600 truncate max-w-24">
-          {weather.city || 'Loading...'}
-        </div>
+      <div>
+        <div className="weather-temp">{weather?.temperature || 24}°C</div>
+        <div className="weather-location">{weather?.location || 'Gorny Gigant'}</div>
+        <div className="weather-condition">{weather?.condition || 'few clouds'}</div>
       </div>
-      
-      {weather.description && (
-        <div className="ml-2 text-xs text-gray-500 hidden sm:block max-w-20 truncate">
-          {weather.description}
-        </div>
-      )}
-    </div>
+    </motion.div>
   );
 };
 

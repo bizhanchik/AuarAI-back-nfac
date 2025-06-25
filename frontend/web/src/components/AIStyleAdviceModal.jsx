@@ -1,56 +1,70 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { XIcon, SparklesIcon, CloudIcon, CalendarIcon, LoaderIcon } from 'lucide-react';
-import { weatherAPI, clothingAPI } from '../services/api';
+import { 
+  XIcon, 
+  SparklesIcon, 
+  CloudIcon, 
+  CalendarIcon, 
+  BrainIcon,
+  ThermometerIcon,
+  WindIcon,
+  DropletIcon,
+  ShirtIcon,
+  Package2Icon,
+  FootprintsIcon,
+  CrownIcon,
+  GlassesIcon,
+  StarIcon,
+  HeartIcon,
+  BriefcaseIcon,
+  CoffeeIcon,
+  CarIcon,
+  TrendingUpIcon,
+  ArrowRightIcon,
+  RefreshCwIcon
+} from 'lucide-react';
+import { clothingAPI } from '../services/api';
+import { useWeather } from '../contexts/WeatherContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import analytics from '../services/analytics';
 import toast from 'react-hot-toast';
 
 const AIStyleAdviceModal = ({ isOpen, onClose, userItems = [] }) => {
-  const [weather, setWeather] = useState(null);
+  const { currentWeather: weather, loading: weatherLoading, fetchCurrentWeather } = useWeather();
+  const { t } = useLanguage();
   const [occasion, setOccasion] = useState('');
   const [advice, setAdvice] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [weatherLoading, setWeatherLoading] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
 
-  const occasions = [
-    'Повседневные дела',
-    'Работа/Офис',
-    'Свидание',
-    'Встреча с друзьями',
-    'Деловая встреча',
-    'Праздничное мероприятие',
-    'Спорт/Фитнес',
-    'Путешествие',
-    'Дома/Отдых',
-    'Шоппинг'
-  ];
+  // Memoize occasions to prevent re-creation on each render
+  const occasions = useMemo(() => [
+    { id: 'casual', label: 'Повседневные дела', icon: CoffeeIcon },
+    { id: 'work', label: 'Работа/Офис', icon: BriefcaseIcon },
+    { id: 'date', label: 'Свидание', icon: HeartIcon },
+    { id: 'friends', label: 'Встреча с друзьями', icon: StarIcon },
+    { id: 'business', label: 'Деловая встреча', icon: TrendingUpIcon },
+    { id: 'party', label: 'Праздничное мероприятие', icon: GlassesIcon },
+    { id: 'sport', label: 'Спорт/Фитнес', icon: CarIcon },
+    { id: 'travel', label: 'Путешествие', icon: ArrowRightIcon },
+    { id: 'home', label: 'Дома/Отдых', icon: CoffeeIcon },
+    { id: 'shopping', label: 'Шоппинг', icon: Package2Icon }
+  ], [t]);
 
   useEffect(() => {
-    if (isOpen) {
-      fetchWeather();
+    if (isOpen && !weather) {
+      fetchCurrentWeather();
     }
-  }, [isOpen]);
+  }, [isOpen, weather, fetchCurrentWeather]);
 
-  const fetchWeather = async () => {
-    setWeatherLoading(true);
-    try {
-      const response = await weatherAPI.getUserLocationWeather();
-      setWeather(response.data);
-    } catch (error) {
-      console.error('Weather fetch error:', error);
-      toast.error('Не удалось загрузить погоду');
-    } finally {
-      setWeatherLoading(false);
-    }
-  };
-
-  const generateAdvice = async () => {
+  const generateAdvice = useCallback(async () => {
     if (!weather || !occasion) {
-      toast.error('Выберите повод и дождитесь загрузки погоды');
+      toast.error(t('selectOccasionAndWait'));
       return;
     }
 
     setLoading(true);
+    setIsGenerating(true);
 
     // 📊 Отслеживание запроса совета от ИИ
     analytics.trackAIAdviceRequest(occasion);
@@ -78,20 +92,21 @@ const AIStyleAdviceModal = ({ isOpen, onClose, userItems = [] }) => {
       };
       
       setAdvice(realAdvice);
-      toast.success('Совет от ИИ получен!');
+      toast.success(t('aiAdviceReceived'));
     } catch (error) {
       console.error('AI advice error:', error);
       
       // Fallback to mock advice if API fails
       const mockAdvice = generateMockAdvice(weather, occasion, userItems);
       setAdvice(mockAdvice);
-      toast.error('Используем оффлайн советы - проблема с AI сервисом');
+      toast.error(t('usingOfflineAdvice'));
     } finally {
       setLoading(false);
+      setIsGenerating(false);
     }
-  };
+  }, [weather, occasion, userItems, t]);
 
-  const generateMockAdvice = (weatherData, selectedOccasion, items) => {
+  const generateMockAdvice = useCallback((weatherData, selectedOccasion, items) => {
     const temp = weatherData.temperature;
     const condition = weatherData.condition?.toLowerCase() || '';
     
@@ -124,16 +139,16 @@ const AIStyleAdviceModal = ({ isOpen, onClose, userItems = [] }) => {
     // Occasion-based adjustments
     let occasionTips = '';
     switch (selectedOccasion) {
-      case 'Работа/Офис':
+      case 'work':
         occasionTips = 'Для офиса выбирайте классический деловой стиль. Избегайте слишком ярких цветов.';
         break;
-      case 'Свидание':
+      case 'date':
         occasionTips = 'Создайте романтичный образ! Подойдут элегантные детали и приятные фактуры.';
         break;
-      case 'Встреча с друзьями':
-        occasionTips = 'Casuall look будет идеален! Комфорт и стиль в равных пропорциях.';
+      case 'friends':
+        occasionTips = 'Casual look будет идеален! Комфорт и стиль в равных пропорциях.';
         break;
-      case 'Деловая встреча':
+      case 'business':
         occasionTips = 'Профессиональный вид обязателен. Классические цвета и строгие линии.';
         break;
       default:
@@ -152,286 +167,173 @@ const AIStyleAdviceModal = ({ isOpen, onClose, userItems = [] }) => {
         humidity: weatherData.humidity
       }
     };
-  };
+  }, []);
 
-  const resetModal = () => {
+  const resetModal = useCallback(() => {
     setAdvice(null);
     setOccasion('');
     setLoading(false);
-  };
+    setIsGenerating(false);
+  }, []);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     resetModal();
     onClose();
-  };
+  }, [resetModal, onClose]);
+
+  const handleOccasionSelect = useCallback((occasionId) => {
+    setOccasion(occasionId);
+  }, []);
 
   if (!isOpen) return null;
 
   return (
     <AnimatePresence>
-      <motion.div 
-        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+      <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        transition={{ duration: 0.3 }}
+        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
       >
-        <motion.div 
-          className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
-          initial={{ scale: 0.9, opacity: 0, y: 50 }}
-          animate={{ scale: 1, opacity: 1, y: 0 }}
-          exit={{ scale: 0.9, opacity: 0, y: 50 }}
-          transition={{ duration: 0.3, type: "spring", stiffness: 300 }}
+        <motion.div
+          initial={{ scale: 0.95, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.95, opacity: 0 }}
+          className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl"
         >
-        {/* Header */}
-        <div className="flex justify-between items-center p-6 border-b border-gray-200">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl flex items-center justify-center">
-              <SparklesIcon className="h-6 w-6 text-white" />
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900">
-              ИИ Советы по Стилю
+          {/* Header */}
+          <div className="flex justify-between items-center p-6 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+            <h2 className="text-2xl font-bold flex items-center space-x-2">
+              <SparklesIcon className="h-6 w-6" />
+              <span>{t('aiAdvice')}</span>
             </h2>
+            <button
+              onClick={handleClose}
+              className="p-2 text-white/70 hover:text-white transition-colors"
+            >
+              <XIcon className="h-6 w-6" />
+            </button>
           </div>
-          <button
-            onClick={handleClose}
-            className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <XIcon className="h-6 w-6" />
-          </button>
-        </div>
 
-        <div className="p-6 space-y-6">
-          {/* Weather Info */}
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-            <div className="flex items-center space-x-3 mb-3">
-              <CloudIcon className="h-6 w-6 text-blue-600" />
-              <h3 className="text-lg font-semibold text-blue-900">
-                Погода {weather?.city ? `в ${weather.city}` : ''}
+          {/* Content */}
+          <div className="p-6 space-y-6">
+            {/* Weather Info */}
+            {weather && (
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                <h3 className="font-semibold text-blue-900 mb-2">{t('todaysWeather')}</h3>
+                <div className="flex items-center space-x-4 text-blue-800">
+                  <span className="text-2xl">{weather.temperature}°C</span>
+                  <span className="capitalize">{weather.condition}</span>
+                  <span>{t('feelsLike')} {weather.feels_like}°C</span>
+                </div>
+              </div>
+            )}
+
+            {/* Occasion Selection */}
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                {t('whatsTheOccasion')}
               </h3>
-            </div>
-            {weatherLoading ? (
-              <div className="flex items-center space-x-2">
-                <LoaderIcon className="h-4 w-4 animate-spin text-blue-600" />
-                <span className="text-blue-600">Загрузка...</span>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {occasions.map((occasion) => (
+                  <button
+                    key={occasion.id}
+                    onClick={() => handleOccasionSelect(occasion.id)}
+                    className={`p-3 rounded-xl border-2 transition-all ${
+                      occasion === occasion.id
+                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        : 'border-gray-200 hover:border-gray-300 text-gray-700'
+                    }`}
+                  >
+                    <div className="text-2xl mb-1">{occasion.icon}</div>
+                    <div className="text-sm font-medium">{occasion.label}</div>
+                  </button>
+                ))}
               </div>
-            ) : weather ? (
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-blue-700 font-medium">Температура:</span>
-                  <span className="ml-2 text-blue-900">{weather.temperature}°C</span>
-                </div>
-                <div>
-                  <span className="text-blue-700 font-medium">Условия:</span>
-                  <span className="ml-2 text-blue-900">{weather.condition}</span>
-                </div>
-                <div>
-                  <span className="text-blue-700 font-medium">Влажность:</span>
-                  <span className="ml-2 text-blue-900">{weather.humidity}%</span>
-                </div>
-                <div>
-                  <span className="text-blue-700 font-medium">Ветер:</span>
-                  <span className="ml-2 text-blue-900">{weather.wind_speed} км/ч</span>
-                </div>
-              </div>
-            ) : (
-              <p className="text-blue-600">Не удалось загрузить данные о погоде</p>
-            )}
-          </div>
-
-          {/* Occasion Selection */}
-          <div>
-            <div className="flex items-center space-x-3 mb-3">
-              <CalendarIcon className="h-6 w-6 text-purple-600" />
-              <h3 className="text-lg font-semibold text-gray-900">Повод</h3>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              {occasions.map((occ, index) => (
-                <motion.button
-                  key={occ}
-                  onClick={() => setOccasion(occ)}
-                  className={`p-3 rounded-xl border-2 transition-all text-left ${
-                    occasion === occ
-                      ? 'border-purple-500 bg-purple-50 text-purple-700'
-                      : 'border-gray-200 hover:border-gray-300 text-gray-700'
-                  }`}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                >
-                  {occ}
-                </motion.button>
-              ))}
-            </div>
-          </div>
 
-          {/* Generate Button */}
-          <motion.button
-            onClick={generateAdvice}
-            disabled={!weather || !occasion || loading}
-            className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
-            whileHover={!loading && weather && occasion ? { scale: 1.02, y: -2 } : {}}
-            whileTap={!loading && weather && occasion ? { scale: 0.98 } : {}}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-          >
-            {loading ? (
-              <>
-                <LoaderIcon className="h-5 w-5 animate-spin" />
-                <span>Генерируем совет...</span>
-              </>
-            ) : (
-              <>
-                <SparklesIcon className="h-5 w-5" />
-                <span>Получить совет ИИ</span>
-              </>
-            )}
-          </motion.button>
+            {/* Generate Button */}
+            <button
+              onClick={generateAdvice}
+              disabled={!occasion || weatherLoading || isGenerating}
+              className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:from-blue-700 hover:to-purple-700 transition-all"
+            >
+              {isGenerating ? (
+                <div className="flex items-center justify-center space-x-2">
+                  <RefreshCwIcon className="h-5 w-5 animate-spin" />
+                  <span>{t('generatingAdvice')}</span>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center space-x-2">
+                  <SparklesIcon className="h-5 w-5" />
+                  <span>{t('getAIAdvice')}</span>
+                </div>
+              )}
+            </button>
 
-          {/* AI Advice Results */}
-          <AnimatePresence>
+            {/* AI Advice Results */}
             {advice && (
-              <motion.div 
-                className="space-y-4 mt-6 p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border border-purple-200"
-                initial={{ opacity: 0, y: 30, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -30, scale: 0.95 }}
-                transition={{ duration: 0.5, type: "spring", stiffness: 300 }}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-gradient-to-br from-purple-50 to-blue-50 border border-purple-200 rounded-xl p-6"
               >
-              <h3 className="text-xl font-bold text-gray-900 flex items-center space-x-2">
-                <SparklesIcon className="h-6 w-6 text-purple-600" />
-                <span>Рекомендации ИИ</span>
-              </h3>
-              
-              <div className="space-y-4">
-                <div>
-                  <h4 className="font-semibold text-gray-800 mb-2">Основной совет:</h4>
-                  <p className="text-gray-700">{advice.mainAdvice}</p>
+                <h3 className="text-lg font-semibold text-purple-900 mb-3 flex items-center space-x-2">
+                  <SparklesIcon className="h-5 w-5" />
+                  <span>{t('personalStyleAdvice')}</span>
+                </h3>
+                <div className="text-gray-700 whitespace-pre-line leading-relaxed">
+                  {advice.mainAdvice}
                 </div>
-
-                <div>
-                  <h4 className="font-semibold text-gray-800 mb-2">Для повода "{occasion}":</h4>
-                  <p className="text-gray-700">{advice.occasionTips}</p>
-                </div>
-
-                {/* Complete Outfit Section */}
-                {advice.outfit && (
-                  <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4 border border-blue-200">
-                    <h4 className="font-semibold text-gray-800 mb-3 flex items-center">
-                      <span className="text-2xl mr-2">👔</span>
-                      Полный образ:
-                    </h4>
-                    <div className="grid grid-cols-1 gap-4">
-                      {advice.outfit.hat && (
-                        <OutfitItemCard item={advice.outfit.hat} label="Головной убор" icon="🎩" />
-                      )}
-                      {advice.outfit.top && (
-                        <OutfitItemCard item={advice.outfit.top} label="Верх" icon="👕" />
-                      )}
-                      {advice.outfit.bottom && (
-                        <OutfitItemCard item={advice.outfit.bottom} label="Низ" icon="👖" />
-                      )}
-                      {advice.outfit.shoes && (
-                        <OutfitItemCard item={advice.outfit.shoes} label="Обувь" icon="👟" />
-                      )}
-                    </div>
-                    {advice.outfit.accessories && advice.outfit.accessories.length > 0 && (
-                      <div className="mt-4">
-                        <div className="flex items-center space-x-2 mb-3">
-                          <span className="text-lg">✨</span>
-                          <span className="font-medium text-gray-800">Аксессуары:</span>
-                        </div>
-                        <div className="grid grid-cols-1 gap-3">
-                          {advice.outfit.accessories.map((accessory, index) => (
-                            <OutfitItemCard key={accessory.id || index} item={accessory} label="Аксессуар" icon="💍" />
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                <div>
-                  <h4 className="font-semibold text-gray-800 mb-2">Все рекомендованные вещи:</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {advice.recommendedItems.map((item, index) => (
-                      <span key={index} className="px-3 py-1 bg-blue-100 rounded-full text-sm text-blue-700">
-                        {item}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                {advice.availableItems && advice.availableItems.length > 0 && (
-                  <div>
-                    <h4 className="font-semibold text-gray-800 mb-2">Доступно в гардеробе ({advice.availableItems.length} вещей):</h4>
-                    <div className="flex flex-wrap gap-1">
-                      {advice.availableItems.slice(0, 10).map((item, index) => (
-                        <span key={index} className="px-2 py-1 bg-gray-100 rounded text-xs text-gray-600">
-                          {item}
-                        </span>
-                      ))}
-                      {advice.availableItems.length > 10 && (
-                        <span className="px-2 py-1 bg-gray-200 rounded text-xs text-gray-700">
-                          +{advice.availableItems.length - 10} еще
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
               </motion.div>
             )}
-          </AnimatePresence>
-        </div>
+          </div>
         </motion.div>
       </motion.div>
     </AnimatePresence>
   );
 };
 
-// Add OutfitItemCard component
-const OutfitItemCard = ({ item, label, icon }) => {
+// Optimized OutfitItemCard component
+const OutfitItemCard = ({ item, label, icon: IconComponent }) => {
   const [imageError, setImageError] = useState(false);
 
-  const handleImageError = () => {
+  const handleImageError = useCallback(() => {
     setImageError(true);
-  };
+  }, []);
 
   return (
-    <div className="flex items-center space-x-3 p-3 bg-white rounded-lg border border-gray-200">
+    <div className="flex items-center space-x-4 p-4 bg-white bg-opacity-10 backdrop-blur-sm rounded-xl border border-white border-opacity-20">
       {/* Image */}
-      <div className="flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden bg-gray-100">
+      <div className="flex-shrink-0 w-14 h-14 rounded-xl overflow-hidden bg-white bg-opacity-20">
         {item.image_url && !imageError ? (
           <img
             src={item.image_url}
             alt={item.name}
             className="w-full h-full object-cover"
             onError={handleImageError}
+            loading="lazy"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-gray-400">
-            <span className="text-lg">{icon}</span>
+          <div className="w-full h-full flex items-center justify-center text-white">
+            <IconComponent className="h-6 w-6" />
           </div>
         )}
       </div>
       
       {/* Content */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-xs font-medium text-white text-opacity-70 uppercase tracking-wider font-body">
             {label}
           </span>
           {item.brand && (
-            <span className="text-xs text-gray-400">{item.brand}</span>
+            <span className="text-xs text-white text-opacity-60 font-body">{item.brand}</span>
           )}
         </div>
-        <p className="text-sm font-medium text-gray-900 truncate">{item.name}</p>
+        <p className="text-sm font-semibold text-white truncate font-heading">{item.name}</p>
         {item.color && (
-          <p className="text-xs text-gray-500">{item.color}</p>
+          <p className="text-xs text-white text-opacity-80 font-body">{item.color}</p>
         )}
       </div>
     </div>

@@ -21,11 +21,24 @@ export const auth = getAuth(app);
 // Initialize Google Auth Provider
 const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({
-  prompt: 'select_account'
+  prompt: 'select_account',
+  hd: undefined // Allow any domain
 });
 
-// Google Sign In function
-export const signInWithGoogle = () => signInWithPopup(auth, googleProvider);
+// Add additional scopes if needed
+googleProvider.addScope('email');
+googleProvider.addScope('profile');
+
+// Google Sign In function with better error handling
+export const signInWithGoogle = async () => {
+  try {
+    const result = await signInWithPopup(auth, googleProvider);
+    return result;
+  } catch (error) {
+    console.error('Google sign in error:', error);
+    throw error;
+  }
+};
 
 // Sign Out function
 export const signOutUser = () => signOut(auth);

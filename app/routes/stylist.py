@@ -84,11 +84,9 @@ def find_clothing_item_by_name(name: str, items: List[ClothingItem]) -> Optional
     return None
 
 def get_items_by_category(items: List[ClothingItem], categories: List[str]) -> List[ClothingItem]:
-    """Get items that match any of the given categories"""
     return [item for item in items if item.category and item.category.lower() in [cat.lower() for cat in categories]]
 
 def convert_orm_to_schema(item: ClothingItem) -> ClothingItemSchema:
-    """Convert SQLAlchemy ORM object to Pydantic schema"""
     return ClothingItemSchema(
         id=item.id,
         owner_id=item.owner_id,

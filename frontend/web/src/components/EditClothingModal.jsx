@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { XIcon, SaveIcon, TrashIcon, ShirtIcon, LoaderIcon } from 'lucide-react';
 import { clothingAPI } from '../services/api';
+import { useLanguage } from '../contexts/LanguageContext';
 import toast from 'react-hot-toast';
 
 const CATEGORIES = [
@@ -71,6 +72,7 @@ const TagsInput = ({ label, tags, onTagsChange, placeholder, colorClass }) => {
 };
 
 const EditClothingModal = ({ isOpen, onClose, item, onItemUpdated, onItemDeleted }) => {
+  const { t } = useLanguage();
   const [formData, setFormData] = useState({
     name: '',
     brand: '',
@@ -139,18 +141,18 @@ const EditClothingModal = ({ isOpen, onClose, item, onItemUpdated, onItemDeleted
       };
       
       onItemUpdated(updatedItem);
-      toast.success('Одежда обновлена успешно!');
+      toast.success(t('clothingUpdatedSuccess'));
       onClose();
     } catch (error) {
-      console.error('Update error:', error);
-      toast.error('Ошибка обновления одежды');
+      console.error('Error updating item:', error);
+      toast.error(t('updateClothingError'));
     } finally {
       setLoading(false);
     }
   };
 
   const handleDelete = async () => {
-    if (!window.confirm('Вы уверены, что хотите удалить эту вещь? Это действие нельзя отменить.')) {
+    if (!window.confirm('Are you sure you want to delete this item?')) {
       return;
     }
 
@@ -160,11 +162,11 @@ const EditClothingModal = ({ isOpen, onClose, item, onItemUpdated, onItemDeleted
       await clothingAPI.deleteClothingItem(item.id);
       
       onItemDeleted(item.id);
-      toast.success('Вещь удалена успешно!');
+      toast.success(t('clothingDeletedSuccess'));
       onClose();
     } catch (error) {
-      console.error('Delete error:', error);
-      toast.error('Ошибка удаления одежды');
+      console.error('Error deleting item:', error);
+      toast.error(t('deleteClothingError'));
     } finally {
       setDeleteLoading(false);
     }
@@ -192,7 +194,7 @@ const EditClothingModal = ({ isOpen, onClose, item, onItemUpdated, onItemDeleted
         <div className="flex justify-between items-center p-6 border-b border-gray-200">
           <h2 className="text-2xl font-bold text-gray-900 flex items-center space-x-2">
             <ShirtIcon className="h-6 w-6 text-blue-600" />
-            <span>Редактировать одежду</span>
+            <span>{t('editItem')}</span>
           </h2>
           <button
             onClick={onClose}
@@ -234,7 +236,7 @@ const EditClothingModal = ({ isOpen, onClose, item, onItemUpdated, onItemDeleted
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Название *
+                      {t('itemName')} *
                     </label>
                     <input
                       type="text"
@@ -248,7 +250,7 @@ const EditClothingModal = ({ isOpen, onClose, item, onItemUpdated, onItemDeleted
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Бренд
+                      {t('brand')}
                     </label>
                     <input
                       type="text"
@@ -261,7 +263,7 @@ const EditClothingModal = ({ isOpen, onClose, item, onItemUpdated, onItemDeleted
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Категория
+                      {t('category')}
                     </label>
                     <select
                       name="category"
@@ -295,7 +297,7 @@ const EditClothingModal = ({ isOpen, onClose, item, onItemUpdated, onItemDeleted
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Цвет
+                      {t('color')}
                     </label>
                     <input
                       type="text"
@@ -308,7 +310,7 @@ const EditClothingModal = ({ isOpen, onClose, item, onItemUpdated, onItemDeleted
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Размер
+                      {t('size')}
                     </label>
                     <input
                       type="text"
@@ -351,7 +353,7 @@ const EditClothingModal = ({ isOpen, onClose, item, onItemUpdated, onItemDeleted
                 {/* Description */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Описание
+                    {t('description')}
                   </label>
                   <textarea
                     name="description"
@@ -404,12 +406,12 @@ const EditClothingModal = ({ isOpen, onClose, item, onItemUpdated, onItemDeleted
               {deleteLoading ? (
                 <>
                   <LoaderIcon className="h-5 w-5 animate-spin mr-2" />
-                  Удаление...
+                  {t('deleting')}...
                 </>
               ) : (
                 <>
                   <TrashIcon className="h-5 w-5 mr-2" />
-                  Удалить
+                  {t('delete')}
                 </>
               )}
             </button>
@@ -420,7 +422,7 @@ const EditClothingModal = ({ isOpen, onClose, item, onItemUpdated, onItemDeleted
                 onClick={onClose}
                 className="px-6 py-3 bg-gray-200 text-gray-800 font-semibold rounded-xl hover:bg-gray-300 transition-colors"
               >
-                Отмена
+                {t('cancel')}
               </button>
               <button
                 type="submit"
@@ -430,12 +432,12 @@ const EditClothingModal = ({ isOpen, onClose, item, onItemUpdated, onItemDeleted
                 {loading ? (
                   <>
                     <LoaderIcon className="h-5 w-5 animate-spin mr-2" />
-                    Сохранение...
+                    {t('saving')}...
                   </>
                 ) : (
                   <>
                     <SaveIcon className="h-5 w-5 mr-2" />
-                    Сохранить
+                    {t('save')}
                   </>
                 )}
               </button>

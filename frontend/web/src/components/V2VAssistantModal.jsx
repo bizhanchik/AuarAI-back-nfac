@@ -2,13 +2,19 @@ import { useState, useRef, useEffect } from 'react';
 import { X, Video, VideoOff, Volume2 } from 'lucide-react';
 import analytics from '../services/analytics';
 import toast from 'react-hot-toast';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const V2VAssistantModal = ({ isOpen, onClose }) => {
+  const { t, currentLanguage } = useLanguage();
   const [isVideoActive, setIsVideoActive] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [currentCompliment, setCurrentCompliment] = useState('');
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState('disconnected');
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isVideoOff, setIsVideoOff] = useState(false);
+  const [error, setError] = useState(null);
   
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -19,6 +25,9 @@ const V2VAssistantModal = ({ isOpen, onClose }) => {
 
   // WebSocket connection
   const connectWebSocket = () => {
+    setIsConnecting(true);
+    setError(null);
+
     try {
       const token = localStorage.getItem('token');
       
@@ -51,7 +60,7 @@ const V2VAssistantModal = ({ isOpen, onClose }) => {
       wsRef.current.onopen = () => {
         setIsConnected(true);
         setConnectionStatus('connected');
-        toast.success('Подключен к AI стилисту!');
+        toast.success(t('connectedToAI'));
       };
       
       wsRef.current.onmessage = (event) => {
@@ -82,29 +91,36 @@ const V2VAssistantModal = ({ isOpen, onClose }) => {
                 });
             }
           }
+        } else if (data.type === 'language_updated') {
+          console.log('Language updated on backend:', data.language);
+          // Show notification in the new language
+          toast.success(t('languageChanged'));
         }
       };
       
       wsRef.current.onclose = () => {
         setIsConnected(false);
         setConnectionStatus('disconnected');
-        toast.error('Соединение с AI стилистом потеряно');
+        toast.error(t('connectionLost'));
       };
       
       wsRef.current.onerror = (error) => {
         console.error('WebSocket error:', error);
         setConnectionStatus('error');
+        setError(t('connectionError'));
         
         if (hostname === 'localhost' || hostname === '127.0.0.1') {
-          toast.error('Ошибка подключения к AI стилисту. Проверьте, что бэкенд запущен на порту 8000.');
+          toast.error(t('localConnectionError'));
         } else {
-          toast.error('Сервис видео-чата временно недоступен. Попробуйте позже.');
+          toast.error(t('serviceUnavailable'));
         }
       };
       
     } catch (error) {
       console.error('Error connecting WebSocket:', error);
-      toast.error('Не удалось подключиться к AI стилисту');
+      toast.error(t('failedToConnect'));
+    } finally {
+      setIsConnecting(false);
     }
   };
 
@@ -153,7 +169,7 @@ const V2VAssistantModal = ({ isOpen, onClose }) => {
       
     } catch (error) {
       console.error('Error accessing camera:', error);
-      toast.error('Не удалось получить доступ к камере');
+      toast.error(t('cameraAccessError'));
     }
   };
 
@@ -198,10 +214,11 @@ const V2VAssistantModal = ({ isOpen, onClose }) => {
         // Convert to base64
         const frameData = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
         
-        // Send frame to backend
+        // Send frame to backend with language information
         const message = {
           type: 'video_frame',
-          data: frameData
+          data: frameData,
+          language: currentLanguage
         };
         
         wsRef.current.send(JSON.stringify(message));
@@ -224,6 +241,17 @@ const V2VAssistantModal = ({ isOpen, onClose }) => {
       stopVideo();
     } else {
       startVideo();
+    }
+  };
+
+  // Toggle mute
+  const toggleMute = () => {
+    if (streamRef.current) {
+      const audioTrack = streamRef.current.getAudioTracks()[0];
+      if (audioTrack) {
+        audioTrack.enabled = !audioTrack.enabled;
+        setIsMuted(!audioTrack.enabled);
+      }
     }
   };
 
@@ -254,6 +282,18 @@ const V2VAssistantModal = ({ isOpen, onClose }) => {
     };
   }, [isOpen]);
 
+  // Send language change to backend when language changes
+  useEffect(() => {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN && isConnected) {
+      const message = {
+        type: 'language_change',
+        language: currentLanguage
+      };
+      wsRef.current.send(JSON.stringify(message));
+      console.log('Language changed to:', currentLanguage);
+    }
+  }, [currentLanguage, isConnected]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -281,7 +321,10 @@ const V2VAssistantModal = ({ isOpen, onClose }) => {
                 🎬 AI Stylist Video Chat
               </h3>
               <p className="text-gray-600 mt-1">
-                Включите камеру для получения комплиментов от ИИ
+                {currentLanguage === 'ru' 
+                  ? 'Включите камеру для получения комплиментов от ИИ'
+                  : 'Turn on camera to get AI compliments'
+                }
               </p>
             </div>
             
@@ -293,7 +336,7 @@ const V2VAssistantModal = ({ isOpen, onClose }) => {
             </button>
           </div>
 
-                      {/* Connection Status */}
+          {/* Connection Status */}
           <div className="mb-4 flex items-center justify-between">
             <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm ${
               connectionStatus === 'connected' 
@@ -309,8 +352,8 @@ const V2VAssistantModal = ({ isOpen, onClose }) => {
                   ? 'bg-red-500'
                   : 'bg-yellow-500'
               }`}></div>
-              {connectionStatus === 'connected' ? 'Подключен к AI стилисту' : 
-               connectionStatus === 'error' ? 'Ошибка подключения' : 'Подключение...'}
+              {connectionStatus === 'connected' ? t('connectedToAI') : 
+               connectionStatus === 'error' ? t('connectionError') : t('connecting')}
             </div>
             
             {connectionStatus === 'error' && (
@@ -318,7 +361,7 @@ const V2VAssistantModal = ({ isOpen, onClose }) => {
                 onClick={connectWebSocket}
                 className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
               >
-                Повторить
+                {t('tryAgain')}
               </button>
             )}
           </div>
@@ -326,15 +369,24 @@ const V2VAssistantModal = ({ isOpen, onClose }) => {
           {/* Service Status Info */}
           <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-sm text-blue-800">
-              🏥 <strong>Статус сервиса:</strong> Backend V2V доступен и готов к работе
+              🏥 <strong>{t('serviceStatus')}:</strong> {currentLanguage === 'ru' 
+                ? 'Backend V2V доступен и готов к работе'
+                : 'Backend V2V is available and ready to work'
+              }
             </p>
             <p className="text-xs text-blue-600 mt-1">
-              Если подключение не удается, возможно WebSocket блокируется прокси-сервером
+              {currentLanguage === 'ru'
+                ? 'Если подключение не удается, возможно WebSocket блокируется прокси-сервером'
+                : 'If connection fails, WebSocket might be blocked by proxy server'
+              }
             </p>
             {connectionStatus === 'error' && (
               <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
                 <p className="text-xs text-yellow-800">
-                  <strong>Решение:</strong> Обратитесь к администратору для настройки WebSocket через nginx/apache
+                  <strong>{t('solution')}:</strong> {currentLanguage === 'ru'
+                    ? 'Обратитесь к администратору для настройки WebSocket через nginx/apache'
+                    : 'Contact administrator to configure WebSocket through nginx/apache'
+                  }
                 </p>
               </div>
             )}
@@ -357,8 +409,8 @@ const V2VAssistantModal = ({ isOpen, onClose }) => {
                   <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
                     <div className="text-center text-white">
                       <Video className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                      <p className="text-lg">Камера выключена</p>
-                      <p className="text-sm opacity-75">Нажмите кнопку для включения</p>
+                      <p className="text-lg">{t('cameraOff')}</p>
+                      <p className="text-sm opacity-75">{t('clickToTurnOn')}</p>
                     </div>
                   </div>
                 )}
@@ -381,12 +433,12 @@ const V2VAssistantModal = ({ isOpen, onClose }) => {
                   {isVideoActive ? (
                     <>
                       <VideoOff className="w-5 h-5 mr-2" />
-                      Остановить видео
+                      {t('turnOffVideo')}
                     </>
                   ) : (
                     <>
                       <Video className="w-5 h-5 mr-2" />
-                      Включить видео
+                      {t('turnOnVideo')}
                     </>
                   )}
                 </button>
@@ -398,7 +450,7 @@ const V2VAssistantModal = ({ isOpen, onClose }) => {
               <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-6 h-full">
                 <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                   <Volume2 className="w-5 h-5 mr-2" />
-                  Комплименты AI
+                  {t('compliments')} AI
                 </h4>
                 
                 {currentCompliment ? (
@@ -415,7 +467,7 @@ const V2VAssistantModal = ({ isOpen, onClose }) => {
                           {isAudioPlaying && (
                             <div className="flex items-center mt-2 text-sm text-purple-600">
                               <Volume2 className="w-4 h-4 mr-1 animate-pulse" />
-                              Воспроизводится...
+                              {t('playing')}...
                             </div>
                           )}
                         </div>
@@ -424,7 +476,7 @@ const V2VAssistantModal = ({ isOpen, onClose }) => {
                     
                     <div className="text-center">
                       <div className="inline-flex items-center px-3 py-1 bg-white rounded-full text-sm text-gray-600">
-                        ✨ Получайте комплименты в реальном времени
+                        ✨ {t('getCompliments')}
                       </div>
                     </div>
                   </div>
@@ -432,10 +484,10 @@ const V2VAssistantModal = ({ isOpen, onClose }) => {
                   <div className="text-center py-8">
                     <div className="text-4xl mb-4">🎭</div>
                     <p className="text-gray-600 mb-2">
-                      Включите камеру для получения комплиментов
+                      {t('turnOnCamera')}
                     </p>
                     <p className="text-sm text-gray-500">
-                      AI проанализирует ваш образ и даст персональные комплименты
+                      AI {t('analyze')}
                     </p>
                   </div>
                 )}
@@ -445,19 +497,19 @@ const V2VAssistantModal = ({ isOpen, onClose }) => {
 
           {/* Instructions */}
           <div className="mt-6 p-4 bg-blue-50 rounded-xl">
-            <h5 className="font-semibold text-blue-900 mb-2">Как это работает:</h5>
+            <h5 className="font-semibold text-blue-900 mb-2">{t('howItWorks')}:</h5>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-blue-800">
               <div className="flex items-center">
                 <div className="w-6 h-6 bg-blue-200 rounded-full flex items-center justify-center text-xs font-bold mr-2">1</div>
-                Включите камеру
+                {t('turnOnCamera')}
               </div>
               <div className="flex items-center">
                 <div className="w-6 h-6 bg-blue-200 rounded-full flex items-center justify-center text-xs font-bold mr-2">2</div>
-                AI анализирует ваш образ
+                AI {t('analyze')}
               </div>
               <div className="flex items-center">
                 <div className="w-6 h-6 bg-blue-200 rounded-full flex items-center justify-center text-xs font-bold mr-2">3</div>
-                Получайте голосовые комплименты
+                {t('getCompliments')}
               </div>
             </div>
           </div>

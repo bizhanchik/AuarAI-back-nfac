@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { auth } from './firebase';
 
 // Создаем экземпляр axios с базовой конфигурацией
 export const api = axios.create({
@@ -9,16 +10,49 @@ export const api = axios.create({
   },
 });
 
+// Interceptor для добавления токена авторизации
+api.interceptors.request.use(
+  async (config) => {
+    try {
+      const user = auth.currentUser;
+      if (user) {
+        const token = await user.getIdToken();
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    } catch (error) {
+      console.error('Error getting Firebase token:', error);
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
 // Interceptor для обработки ошибок
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     if (error.response?.status === 401) {
-      // For Firebase auth, we'll handle token refresh in AuthContext
-      console.warn('Authentication error:', error.response?.data?.detail || 'Unauthorized');
+      console.error('Authentication error:', error.response?.data?.detail || 'Authorization header missing');
       
-      // Don't automatically redirect to login for Firebase auth
-      // The AuthContext will handle token refresh
+      // Try to refresh the token and retry the request
+      const user = auth.currentUser;
+      if (user) {
+        try {
+          const token = await user.getIdToken(true); // Force refresh
+          const originalRequest = error.config;
+          originalRequest.headers.Authorization = `Bearer ${token}`;
+          return api.request(originalRequest);
+        } catch (refreshError) {
+          console.error('Token refresh failed:', refreshError);
+          // Redirect to login if token refresh fails
+          window.location.href = '/login';
+        }
+      } else {
+        // No user, redirect to login
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }
