@@ -214,26 +214,46 @@ const AddClothingModal = ({ isOpen, onClose, onClothingAdded }) => {
     setStep(2);
 
     try {
-      const result = await clothingAPI.classifyImage(selectedFile);
+      const response = await clothingAPI.classifyImage(selectedFile);
+      const result = response.data || response;
       setClassificationData(result);
       
-      // Pre-fill form with classification data
+      // If we got an image URL from the upload, save it
+      if (result.image_url) {
+        setFormData(prev => ({
+          ...prev,
+          image_url: result.image_url
+        }));
+      }
+      
+      // Pre-fill form with classification data - safely handle arrays
       setFormData(prev => ({
         ...prev,
-        name: result.predicted_name || '',
-        category: result.predicted_category || '',
-        color: result.predicted_color || '',
-        brand: result.predicted_brand || '',
-        tags: result.predicted_tags || [],
-        weather_suitability: result.weather_suitability || [],
-        occasions: result.occasions || []
+        name: result.predicted_name || result.clothing_type || '',
+        category: result.predicted_category || result.clothing_type || '',
+        color: result.predicted_color || result.color || '',
+        brand: result.predicted_brand || result.brand || '',
+        material: result.predicted_material || result.material || '',
+        tags: Array.isArray(result.predicted_tags) ? result.predicted_tags : [],
+        weather_suitability: Array.isArray(result.weather_suitability) ? result.weather_suitability : [],
+        occasions: Array.isArray(result.occasions) ? result.occasions : []
       }));
       
       setStep(3);
     } catch (error) {
       console.error('Classification error:', error);
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response,
+        code: error.code,
+        stack: error.stack
+      });
       
-      if (error.code === 'NETWORK_ERROR') {
+             if (error.message?.includes('No files provided')) {
+         toast.error('Файл не выбран для классификации');
+       } else if (error.response?.status === 422) {
+         toast.error('Не удалось распознать одежду на изображении. Попробуйте другое фото.');
+       } else if (error.code === 'NETWORK_ERROR') {
         toast.error(t('serverConnectionError'));
       } else if (error.response?.status === 413) {
         toast.error(t('fileTooBigForServer'));
@@ -241,6 +261,8 @@ const AddClothingModal = ({ isOpen, onClose, onClothingAdded }) => {
         toast.error(t('unsupportedFileFormat'));
       } else if (error.message?.includes('CORS')) {
         toast.error(t('corsError'));
+      } else if (error.message?.includes('forEach')) {
+        toast.error('Ошибка обработки файла. Попробуйте выбрать файл заново.');
       } else {
         toast.error(t('imageUploadError'));
       }
@@ -252,12 +274,17 @@ const AddClothingModal = ({ isOpen, onClose, onClothingAdded }) => {
   };
 
   const uploadImage = async () => {
+    // If we already have an image URL from classification, use it
+    if (formData.image_url) {
+      return formData.image_url;
+    }
+    
     if (!selectedFile) return null;
 
     setIsUploading(true);
     try {
       const result = await clothingAPI.uploadImage(selectedFile);
-      return result.image_url;
+      return result.data?.url || result.url || result.image_url;
     } catch (error) {
       console.error('Upload error:', error);
       

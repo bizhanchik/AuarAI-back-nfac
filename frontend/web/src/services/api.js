@@ -135,16 +135,60 @@ export const weatherAPI = {
 
 export const clothingAPI = {
   getUserItems: () => api.get('/items/'),
-  classifyImage: (files) => {
-    const formData = new FormData();
-    files.forEach(file => {
-      formData.append('files', file);
-    });
-    return api.post('/classifier/classify-image', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+  classifyImage: async (files) => {
+    if (!files) {
+      return Promise.reject(new Error('No files provided for classification'));
+    }
+    
+    try {
+      // Step 1: Upload the file to get URL
+      let file;
+      if (Array.isArray(files)) {
+        if (files.length === 0) {
+          return Promise.reject(new Error('No files provided for classification'));
+        }
+        file = files[0]; // Use first file if array
+      } else {
+        file = files; // Single file
+      }
+      
+             // Upload file first
+       const formData = new FormData();
+       formData.append('file', file);
+       const uploadResponse = await api.post('/upload-photo', formData, {
+         headers: {
+           'Content-Type': 'multipart/form-data',
+         },
+       });
+       const imageUrl = uploadResponse.data?.url || uploadResponse.url;
+      
+      if (!imageUrl) {
+        throw new Error('Failed to upload image');
+      }
+      
+             // Step 2: Classify using the uploaded image URL
+       const classificationResponse = await api.post('/classifier/classify-image', {
+         image_url: imageUrl,
+         additional_context: null
+       }, {
+         headers: {
+           'Content-Type': 'application/json',
+         },
+       });
+       
+       // Add the image URL to the response
+       if (classificationResponse.data) {
+         classificationResponse.data.image_url = imageUrl;
+       } else {
+         classificationResponse.image_url = imageUrl;
+       }
+       
+       return classificationResponse;
+      
+    } catch (error) {
+      console.error('Classification process error:', error);
+      throw error;
+    }
   },
   classifyImageFromUrl: (requestData) => {
     return api.post('/classifier/classify-image', requestData, {
@@ -157,7 +201,24 @@ export const clothingAPI = {
   addClothingItem: (itemData) => api.post('/clothing/', itemData),
   updateClothingItem: (itemId, itemData) => api.put(`/clothing/${itemId}`, itemData),
   deleteClothingItem: (itemId) => api.delete(`/clothing/${itemId}`),
+  uploadImage: (file) => {
+    if (!file) {
+      return Promise.reject(new Error('No file provided for upload'));
+    }
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post('/upload-photo', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
   uploadPhoto: (file) => {
+    if (!file) {
+      return Promise.reject(new Error('No file provided for upload'));
+    }
+    
     const formData = new FormData();
     formData.append('file', file);
     return api.post('/upload-photo', formData, {
