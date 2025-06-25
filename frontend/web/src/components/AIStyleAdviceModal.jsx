@@ -39,16 +39,16 @@ const AIStyleAdviceModal = ({ isOpen, onClose, userItems = [] }) => {
 
   // Memoize occasions to prevent re-creation on each render
   const occasions = useMemo(() => [
-    { id: 'casual', label: 'Повседневные дела', icon: CoffeeIcon },
-    { id: 'work', label: 'Работа/Офис', icon: BriefcaseIcon },
-    { id: 'date', label: 'Свидание', icon: HeartIcon },
-    { id: 'friends', label: 'Встреча с друзьями', icon: StarIcon },
-    { id: 'business', label: 'Деловая встреча', icon: TrendingUpIcon },
-    { id: 'party', label: 'Праздничное мероприятие', icon: GlassesIcon },
-    { id: 'sport', label: 'Спорт/Фитнес', icon: CarIcon },
-    { id: 'travel', label: 'Путешествие', icon: ArrowRightIcon },
-    { id: 'home', label: 'Дома/Отдых', icon: CoffeeIcon },
-    { id: 'shopping', label: 'Шоппинг', icon: Package2Icon }
+    { id: 'casual', label: t('occasions.casual'), icon: CoffeeIcon },
+    { id: 'work', label: t('occasions.work'), icon: BriefcaseIcon },
+    { id: 'date', label: t('occasions.date'), icon: HeartIcon },
+    { id: 'friends', label: t('occasions.casual'), icon: StarIcon },
+    { id: 'business', label: t('occasions.business'), icon: TrendingUpIcon },
+    { id: 'party', label: t('occasions.party'), icon: GlassesIcon },
+    { id: 'sport', label: t('occasions.sport'), icon: CarIcon },
+    { id: 'travel', label: t('occasions.travel'), icon: ArrowRightIcon },
+    { id: 'home', label: t('occasions.casual'), icon: CoffeeIcon },
+    { id: 'shopping', label: t('occasions.casual'), icon: Package2Icon }
   ], [t]);
 
   useEffect(() => {
@@ -235,20 +235,25 @@ const AIStyleAdviceModal = ({ isOpen, onClose, userItems = [] }) => {
                 {t('whatsTheOccasion')}
               </h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {occasions.map((occasion) => (
-                  <button
-                    key={occasion.id}
-                    onClick={() => handleOccasionSelect(occasion.id)}
-                    className={`p-3 rounded-xl border-2 transition-all ${
-                      occasion === occasion.id
-                        ? 'border-blue-500 bg-blue-50 text-blue-700'
-                        : 'border-gray-200 hover:border-gray-300 text-gray-700'
-                    }`}
-                  >
-                    <div className="text-2xl mb-1">{occasion.icon}</div>
-                    <div className="text-sm font-medium">{occasion.label}</div>
-                  </button>
-                ))}
+                {occasions.map((occasionItem) => {
+                  const IconComponent = occasionItem.icon;
+                  return (
+                    <button
+                      key={occasionItem.id}
+                      onClick={() => handleOccasionSelect(occasionItem.id)}
+                      className={`p-3 rounded-xl border-2 transition-all ${
+                        occasion === occasionItem.id
+                          ? 'border-blue-500 bg-blue-50 text-blue-700'
+                          : 'border-gray-200 hover:border-gray-300 text-gray-700'
+                      }`}
+                    >
+                      <div className="text-2xl mb-1">
+                        <IconComponent className="h-6 w-6 mx-auto" />
+                      </div>
+                      <div className="text-sm font-medium">{occasionItem.label}</div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
