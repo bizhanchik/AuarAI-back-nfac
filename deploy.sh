@@ -4,7 +4,7 @@ set -e
 set -o pipefail
 
 echo "📁 Переход в директорию проекта..."
-# Уже в нужной директории
+cd ~/AuarAI-back-nfac
 
 echo "📦 Получаем свежий код из GitHub..."
 GIT_SSH_COMMAND="ssh -i ~/.ssh/id_github" git pull --no-rebase origin main
