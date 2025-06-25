@@ -185,6 +185,11 @@ const AddClothingModal = ({ isOpen, onClose, onClothingAdded }) => {
     }
   }, [handleFileSelect]);
 
+  const handleDragEnter = useCallback((e) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
+
   const handleDragOver = useCallback((e) => {
     e.preventDefault();
     setIsDragging(true);
