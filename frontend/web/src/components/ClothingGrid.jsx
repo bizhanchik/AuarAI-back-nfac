@@ -217,9 +217,16 @@ const ClothingGrid = ({ items, onViewDetails, onEditItem, onAddClick }) => {
     return <EmptyState onAddClick={onAddClick} />;
   }
 
+  // Filter out any undefined or invalid items
+  const validItems = items.filter(item => item && item.id);
+
+  if (validItems.length === 0) {
+    return <EmptyState onAddClick={onAddClick} />;
+  }
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-      {items.map((item, index) => (
+      {validItems.map((item, index) => (
         <ClothingItem 
           key={item.id} 
           item={item} 

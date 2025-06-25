@@ -449,7 +449,7 @@ const WeatherForecastModal = ({ isOpen, onClose, clothingItems = [] }) => {
                     </h3>
                     
                     <div className="space-y-3 overflow-y-auto flex-1 pr-2">
-                      {outfitData.daily_outfits.map((day, index) => (
+                      {(outfitData.daily_outfits || []).map((day, index) => (
                         <button
                           key={day.date}
                           onClick={() => setSelectedDay(index)}
@@ -558,15 +558,16 @@ const WeatherForecastModal = ({ isOpen, onClose, clothingItems = [] }) => {
                             {t('occasionsFor')}
                           </h4>
                           <div className="flex flex-wrap gap-3">
-                            {outfitData.daily_outfits[selectedDay].occasions.map(occasionId => {
+                            {(outfitData.daily_outfits[selectedDay].occasions || []).map(occasionId => {
                               const occasion = OCCASION_OPTIONS.find(opt => opt.id === occasionId);
+                              if (!occasion) return null;
                               return (
                                 <div key={occasionId} className="flex items-center space-x-2 bg-blue-600 text-white rounded-full px-4 py-2 shadow-soft">
                                   <occasion.icon className="h-4 w-4" />
                                   <span className="text-sm font-medium">{t(`occasions.${occasionId}`)}</span>
                                 </div>
                               );
-                            })}
+                            }).filter(Boolean)}
                           </div>
                         </div>
                       </div>

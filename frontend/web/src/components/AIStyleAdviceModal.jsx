@@ -322,7 +322,8 @@ const AIStyleAdviceModal = ({ isOpen, onClose, userItems = [] }) => {
                 {t('whatsTheOccasion')}
               </h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {occasions.map((occasionItem) => {
+                {(occasions || []).map((occasionItem) => {
+                  if (!occasionItem || !occasionItem.icon) return null;
                   const IconComponent = occasionItem.icon;
                   return (
                     <button
@@ -340,7 +341,7 @@ const AIStyleAdviceModal = ({ isOpen, onClose, userItems = [] }) => {
                       <div className="text-sm font-medium">{occasionItem.label}</div>
                     </button>
                   );
-                })}
+                }).filter(Boolean)}
               </div>
             </div>
 
@@ -398,7 +399,7 @@ const AIStyleAdviceModal = ({ isOpen, onClose, userItems = [] }) => {
                   <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
                     <h4 className="font-semibold text-yellow-900 mb-2">Recommended Colors</h4>
                     <div className="flex flex-wrap gap-2">
-                      {advice.colorPalette.map((color, index) => (
+                      {(advice.colorPalette || []).map((color, index) => (
                         <span key={index} className="px-3 py-1 bg-yellow-100 text-yellow-800 text-sm rounded-full">
                           {color}
                         </span>
@@ -447,7 +448,7 @@ const AIStyleAdviceModal = ({ isOpen, onClose, userItems = [] }) => {
                       <div className="mt-4">
                         <h5 className="font-medium text-purple-800 mb-2">Accessories</h5>
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                          {advice.outfit.accessories.map((accessory, index) => (
+                          {(advice.outfit.accessories || []).map((accessory, index) => (
                             <OutfitItemCard 
                               key={index}
                               item={accessory} 

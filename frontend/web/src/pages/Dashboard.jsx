@@ -61,7 +61,10 @@ const Dashboard = () => {
       setLoading(true);
       
       const clothingResponse = await clothingAPI.getUserItems().catch(() => ({ data: [] }));
-      setClothingItems(clothingResponse.data || []);
+      const items = clothingResponse.data || [];
+      // Filter out any invalid items
+      const validItems = items.filter(item => item && item.id);
+      setClothingItems(validItems);
     } catch (error) {
       console.error('Error fetching data:', error);
       toast.error(t('errorLoading'));
@@ -76,7 +79,9 @@ const Dashboard = () => {
   };
 
   const handleClothingAdded = (newItem) => {
-    setClothingItems(prev => [newItem, ...prev]);
+    if (newItem && newItem.id) {
+      setClothingItems(prev => [newItem, ...prev]);
+    }
     setIsAddModalOpen(false);
     toast.success(t('itemAdded'));
   };
@@ -93,7 +98,7 @@ const Dashboard = () => {
 
   const handleItemUpdated = (updatedItem) => {
     setClothingItems(prev => 
-      prev.map(item => item.id === updatedItem.id ? updatedItem : item)
+      prev.filter(item => item && item.id).map(item => item.id === updatedItem.id ? updatedItem : item)
     );
     setIsEditModalOpen(false);
     setSelectedItem(null);
@@ -101,7 +106,7 @@ const Dashboard = () => {
   };
 
   const handleItemDeleted = (itemId) => {
-    setClothingItems(prev => prev.filter(item => item.id !== itemId));
+    setClothingItems(prev => prev.filter(item => item && item.id && item.id !== itemId));
     setIsEditModalOpen(false);
     setSelectedItem(null);
     toast.success(t('itemDeleted'));

@@ -159,7 +159,7 @@ const ClothingDetailsModal = ({ isOpen, onClose, item, onEdit }) => {
                     <span>Теги</span>
                   </h3>
                   <div className="flex flex-wrap gap-2">
-                    {item.tags.map((tag, index) => (
+                    {(item.tags || []).map((tag, index) => (
                       <Tag 
                         key={index} 
                         text={tag} 
@@ -179,7 +179,7 @@ const ClothingDetailsModal = ({ isOpen, onClose, item, onEdit }) => {
                     <span>Поводы</span>
                   </h3>
                   <div className="flex flex-wrap gap-2">
-                    {item.occasions.map((occasion, index) => (
+                    {(item.occasions || []).map((occasion, index) => (
                       <Tag 
                         key={index} 
                         text={occasion} 
@@ -199,7 +199,7 @@ const ClothingDetailsModal = ({ isOpen, onClose, item, onEdit }) => {
                     <span>Погодные условия</span>
                   </h3>
                   <div className="flex flex-wrap gap-2">
-                    {item.weather_suitability.map((weather, index) => (
+                    {(item.weather_suitability || []).map((weather, index) => (
                       <Tag 
                         key={index} 
                         text={weather} 
