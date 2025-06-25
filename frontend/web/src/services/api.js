@@ -135,55 +135,34 @@ export const weatherAPI = {
 
 export const clothingAPI = {
   getUserItems: () => api.get('/items/'),
-  classifyImage: async (files) => {
+    classifyImage: async (files) => {
     if (!files) {
       return Promise.reject(new Error('No files provided for classification'));
     }
     
     try {
-      // Step 1: Upload the file to get URL
-      let file;
+      // Prepare files for upload
+      const formData = new FormData();
+      
       if (Array.isArray(files)) {
         if (files.length === 0) {
           return Promise.reject(new Error('No files provided for classification'));
         }
-        file = files[0]; // Use first file if array
+        files.forEach(file => {
+          formData.append('files', file);
+        });
       } else {
-        file = files; // Single file
+        formData.append('files', files);
       }
       
-             // Upload file first
-       const formData = new FormData();
-       formData.append('file', file);
-       const uploadResponse = await api.post('/upload-photo', formData, {
-         headers: {
-           'Content-Type': 'multipart/form-data',
-         },
-       });
-       const imageUrl = uploadResponse.data?.url || uploadResponse.url;
+      // Use the direct file classification endpoint
+      const classificationResponse = await api.post('/classifier/classify-image-file', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
       
-      if (!imageUrl) {
-        throw new Error('Failed to upload image');
-      }
-      
-             // Step 2: Classify using the uploaded image URL
-       const classificationResponse = await api.post('/classifier/classify-image', {
-         image_url: imageUrl,
-         additional_context: null
-       }, {
-         headers: {
-           'Content-Type': 'application/json',
-         },
-       });
-       
-       // Add the image URL to the response
-       if (classificationResponse.data) {
-         classificationResponse.data.image_url = imageUrl;
-       } else {
-         classificationResponse.image_url = imageUrl;
-       }
-       
-       return classificationResponse;
+      return classificationResponse;
       
     } catch (error) {
       console.error('Classification process error:', error);

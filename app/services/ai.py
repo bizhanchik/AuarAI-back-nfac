@@ -87,13 +87,18 @@ async def classify_clothing_image(image_url: str, additional_context: Optional[s
             "pattern": None,
             "brand": result.get("brand"),
             "confidence_score": 0.8,  # Default confidence
+            "description": result.get("description"),
+            "predicted_tags": result.get("tags", []),
+            "occasions": result.get("occasions", []),
+            "weather_suitability": result.get("weather_suitability", []),
+            "predicted_name": result.get("name"),
+            "predicted_category": result.get("category"),
+            "predicted_color": result.get("color"),
+            "predicted_brand": result.get("brand"),
+            "predicted_material": result.get("material"),
             "additional_details": {
-                "name": result.get("name"),
-                "description": result.get("description"),
-                "tags": result.get("tags", []),
-                "occasions": result.get("occasions", []),
-                "weather_suitability": result.get("weather_suitability", []),
-                "gender": result.get("gender")
+                "gender": result.get("gender"),
+                "size": result.get("size")
             }
         }
         
