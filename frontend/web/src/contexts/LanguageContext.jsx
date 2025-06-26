@@ -540,18 +540,21 @@ const translations = {
 export const LanguageProvider = ({ children }) => {
   const [currentLanguage, setCurrentLanguage] = useState('en');
 
-  useEffect(() => {
-    const saved = localStorage.getItem('auarai-language');
-    if (saved && translations[saved]) {
-      setCurrentLanguage(saved);
-    }
-  }, []);
+  // Temporarily disabled loading from localStorage - using English by default
+  // useEffect(() => {
+  //   const saved = localStorage.getItem('auarai-language');
+  //   if (saved && translations[saved]) {
+  //     setCurrentLanguage(saved);
+  //   }
+  // }, []);
 
   const switchLanguage = (lang) => {
-    if (translations[lang]) {
-      setCurrentLanguage(lang);
-      localStorage.setItem('auarai-language', lang);
-    }
+    // Temporarily disabled - using English only
+    // if (translations[lang]) {
+    //   setCurrentLanguage(lang);
+    //   localStorage.setItem('auarai-language', lang);
+    // }
+    console.log('Language switching temporarily disabled - using English only');
   };
 
   const t = (key) => {

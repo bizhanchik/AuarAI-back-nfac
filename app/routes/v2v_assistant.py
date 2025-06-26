@@ -41,6 +41,7 @@ except ImportError:
 from ..database import get_db
 from ..firebase_auth import get_current_user_websocket_firebase, get_current_user_firebase
 from ..models import User
+from ..services.image_compression import ImageCompressionService
 
 router = APIRouter(prefix="/v2v", tags=["v2v-assistant"])
 
@@ -178,9 +179,16 @@ class VideoToVoiceProcessor:
                 
             frame_bytes = img_encoded.tobytes()
             
-            # Save frame temporarily and use Gemini with local file
+            # Compress frame for AI processing to reduce costs
+            try:
+                compressed_frame_bytes = ImageCompressionService.compress_for_ai_processing(frame_bytes)
+            except Exception as e:
+                logger.error(f"Failed to compress frame: {e}")
+                compressed_frame_bytes = frame_bytes  # Fallback to original
+            
+            # Save compressed frame temporarily and use Gemini with local file
             with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp_file:
-                tmp_file.write(frame_bytes)
+                tmp_file.write(compressed_frame_bytes)
                 tmp_file_path = tmp_file.name
             
             try:

@@ -218,31 +218,46 @@ const AddClothingModal = ({ isOpen, onClose, onClothingAdded }) => {
     setStep(2);
 
     try {
-      const response = await clothingAPI.classifyImage(selectedFile);
+      // Use the new combined upload and classify endpoint for better efficiency
+      const response = await clothingAPI.uploadAndClassify(selectedFile);
       const result = response.data || response;
-      setClassificationData(result);
       
-      // If we got an image URL from the upload, save it
-      if (result.image_url) {
+      // Save the uploaded image URL
+      if (result.url) {
         setFormData(prev => ({
           ...prev,
-          image_url: result.image_url
+          image_url: result.url
         }));
       }
       
-      // Pre-fill form with classification data - safely handle arrays
-      setFormData(prev => ({
-        ...prev,
-        name: result.predicted_name || result.clothing_type || '',
-        category: result.predicted_category || result.clothing_type || '',
-        color: result.predicted_color || result.color || '',
-        brand: result.predicted_brand || result.brand || '',
-        material: result.predicted_material || result.material || '',
-        description: result.description || '',
-        tags: Array.isArray(result.predicted_tags) ? result.predicted_tags : [],
-        weather_suitability: Array.isArray(result.weather_suitability) ? result.weather_suitability : [],
-        occasions: Array.isArray(result.occasions) ? result.occasions : []
-      }));
+      // Check if we have classification data
+      if (result.classification) {
+        const classification = result.classification;
+        setClassificationData(classification);
+        
+        // Pre-fill form with classification data - safely handle arrays
+        setFormData(prev => ({
+          ...prev,
+          name: classification.predicted_name || classification.clothing_type || '',
+          category: classification.predicted_category || classification.clothing_type || '',
+          color: classification.predicted_color || classification.color || '',
+          brand: classification.predicted_brand || classification.brand || '',
+          material: classification.predicted_material || classification.material || '',
+          description: classification.description || '',
+          tags: Array.isArray(classification.predicted_tags) ? classification.predicted_tags : [],
+          weather_suitability: Array.isArray(classification.weather_suitability) ? classification.weather_suitability : [],
+          occasions: Array.isArray(classification.occasions) ? classification.occasions : []
+        }));
+      } else {
+        // No classification data, just proceed with upload
+        setClassificationData(null);
+        toast.info('Image uploaded successfully, but classification failed. Please fill in the details manually.');
+      }
+      
+      // Show compression info if available
+      if (result.compression_ratio) {
+        toast.success(`Image compressed by ${result.compression_ratio}% (${result.original_size_mb}MB → ${result.compressed_size_mb}MB)`);
+      }
       
       setStep(3);
     } catch (error) {
@@ -288,6 +303,7 @@ const AddClothingModal = ({ isOpen, onClose, onClothingAdded }) => {
 
     setIsUploading(true);
     try {
+      // Use the compressed image upload endpoint
       const result = await clothingAPI.uploadImage(selectedFile);
       return result.data?.url || result.url || result.image_url;
     } catch (error) {

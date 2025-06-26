@@ -216,6 +216,19 @@ export const clothingAPI = {
       },
     });
   },
+  uploadAndClassify: (file) => {
+    if (!file) {
+      return Promise.reject(new Error('No file provided for upload and classification'));
+    }
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post('/upload-and-classify', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
   getStyleAdvice: (occasion, weather, stylePreference = 'casual') => 
     api.post('/stylist/suggest-outfit', null, { 
       params: { 

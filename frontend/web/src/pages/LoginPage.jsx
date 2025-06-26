@@ -116,7 +116,7 @@ const LoginPage = () => {
             </motion.button>
             
             <div className="flex items-center space-x-4">
-              <LanguageSelector variant="light" />
+              {/* <LanguageSelector variant="light" /> */}
             </div>
           </div>
         </div>

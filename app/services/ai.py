@@ -7,12 +7,15 @@ from typing import Dict, List, Optional
 from dotenv import load_dotenv
 from PIL import Image
 import google.generativeai as genai
+from .image_compression import ImageCompressionService
 
 load_dotenv()
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
 def ai_classify_clothing(image_bytes: bytes) -> Dict:
-    image = Image.open(io.BytesIO(image_bytes))
+    # Compress image for AI processing to reduce costs
+    compressed_bytes = ImageCompressionService.compress_for_ai_processing(image_bytes)
+    image = Image.open(io.BytesIO(compressed_bytes))
 
     model = genai.GenerativeModel("gemini-1.5-flash")
 

@@ -129,7 +129,7 @@ const Navigation = ({ navigate }) => {
           </motion.div>
           
           <div className="flex items-center space-x-4">
-            <LanguageSelector variant="light" />
+            {/* <LanguageSelector variant="light" /> */}
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
