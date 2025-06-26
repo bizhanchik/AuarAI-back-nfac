@@ -88,16 +88,14 @@ def create_clothing_item(
     owner_id: int
 ) -> models.ClothingItem:
     data = item_in.dict()
-    # Приведение HttpUrl -> str (можно сделать и через кастомный encoder)
-    data["image_url"]   = str(data["image_url"])
-    data["store_url"]   = str(data["store_url"]) if data["store_url"] else None
-    data["product_url"] = str(data["product_url"])
+    
+    data["image_url"]   = str(data["image_url"]) if data.get("image_url") else None
+    data["store_url"]   = str(data["store_url"]) if data.get("store_url") else None
+    data["product_url"] = str(data["product_url"]) if data.get("product_url") else None
     
     db_item = models.ClothingItem(**data, owner_id=owner_id)
     db.add(db_item)
-    db.commit()
-    db.refresh(db_item)
-    return db_item
+    return db_item 
 
 def get_clothing_items_by_owner(
     db: Session,
