@@ -56,6 +56,12 @@ const Dashboard = () => {
     fetchData();
   }, []);
 
+  function Button() {
+    return <button>Нажми меня</button>;
+  }
+
+
+  Button()
   const fetchData = async () => {
     try {
       setLoading(true);

@@ -161,3 +161,11 @@ def debug_me(current_user: models.User = Depends(firebase_auth.get_current_user_
     }
 
 # Remove duplicate CORS middleware - already added above
+
+
+from pydantic import BaseModel
+
+class User(BaseModel):
+    name: str
+    age: int
+

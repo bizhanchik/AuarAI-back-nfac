@@ -51,6 +51,7 @@ async def firebase_login(
                 "email": user.email,
                 "display_name": user.display_name,
                 "photo_url": user.photo_url,
+                "email_verified": user.email_verified,
                 "is_premium": user.is_premium
             }
         }
