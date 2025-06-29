@@ -3,8 +3,8 @@ import { auth } from './firebase';
 
 // Создаем экземпляр axios с базовой конфигурацией
 export const api = axios.create({
-  baseURL: 'http://localhost:8000/api', // Updated to include /api prefix
-  // baseURL: 'https://auarai.com/api',
+  // baseURL: 'http://localhost:8000/api', // Updated to include /api prefix
+  baseURL: 'https://auarai.com/api',
   headers: {
     'Content-Type': 'application/json',
   },
