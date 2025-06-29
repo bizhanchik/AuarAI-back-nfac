@@ -18,6 +18,9 @@ export default {
         'extra-bold': '800',
         'ultra-bold': '900',
       },
+      screens: {
+        'xs': '475px',
+      },
       colors: {
         // AuarAI Fashion Palette
         'moonstone': '#E8EAE7',
@@ -155,6 +158,8 @@ export default {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    require('@tailwindcss/line-clamp'),
+  ],
 }
 

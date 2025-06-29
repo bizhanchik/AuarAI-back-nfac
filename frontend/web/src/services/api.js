@@ -3,8 +3,8 @@ import { auth } from './firebase';
 
 // Создаем экземпляр axios с базовой конфигурацией
 export const api = axios.create({
-  // baseURL: 'http://localhost:8000/api', // Updated to include /api prefix
-  baseURL: 'https://auarai.com/api',
+  baseURL: 'http://localhost:8000/api', // Updated to include /api prefix
+  // baseURL: 'https://auarai.com/api',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -260,5 +260,52 @@ export const clothingAPI = {
         }
       });
     }
+  },
+  
+  // Bulk upload methods
+  bulkUpload: (files) => {
+    if (!files || files.length === 0) {
+      return Promise.reject(new Error('No files provided for bulk upload'));
+    }
+    
+    if (files.length > 10) {
+      return Promise.reject(new Error('Maximum 10 files allowed per batch'));
+    }
+    
+    const formData = new FormData();
+    files.forEach(file => {
+      formData.append('files', file);
+    });
+    
+    return api.post('/bulk-upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+  
+  getBulkUploadStatus: (batchId) => {
+    if (!batchId) {
+      return Promise.reject(new Error('Batch ID is required'));
+    }
+    
+    return api.get(`/bulk-status/${batchId}`);
+  },
+  
+  // Bulk delete method
+  bulkDeleteItems: (itemIds) => {
+    if (!itemIds || itemIds.length === 0) {
+      return Promise.reject(new Error('No item IDs provided for bulk deletion'));
+    }
+    
+    if (itemIds.length > 50) {
+      return Promise.reject(new Error('Cannot delete more than 50 items at once'));
+    }
+    
+    return api.post('/clothing/bulk-delete', itemIds, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
   }
 }; 

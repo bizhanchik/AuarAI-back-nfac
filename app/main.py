@@ -89,6 +89,42 @@ def delete_item(
     crud.delete_clothing_item(db, item_id)
     return {"message": "Item deleted successfully"}
 
+@clothing_router.post("/bulk-delete")
+def bulk_delete_items(
+    item_ids: List[int],
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(firebase_auth.get_current_user_firebase)
+):
+    """Delete multiple clothing items at once"""
+    if not item_ids:
+        raise HTTPException(status_code=400, detail="No item IDs provided")
+    
+    if len(item_ids) > 50:  # Reasonable limit
+        raise HTTPException(status_code=400, detail="Cannot delete more than 50 items at once")
+    
+    deleted_count = 0
+    not_found_ids = []
+    
+    for item_id in item_ids:
+        db_item = crud.get_clothing_item_by_id(db, item_id, current_user.id)
+        if db_item:
+            crud.delete_clothing_item(db, item_id)
+            deleted_count += 1
+        else:
+            not_found_ids.append(item_id)
+    
+    result = {
+        "message": f"Successfully deleted {deleted_count} items",
+        "deleted_count": deleted_count,
+        "total_requested": len(item_ids)
+    }
+    
+    if not_found_ids:
+        result["not_found_ids"] = not_found_ids
+        result["message"] += f". {len(not_found_ids)} items were not found or don't belong to you."
+    
+    return result
+
 # === Legacy Authentication Routes (keep for backward compatibility) ===
 legacy_auth_router = APIRouter(tags=["legacy-auth"])
 

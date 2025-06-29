@@ -68,3 +68,33 @@ class FirebaseUserResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+# === Bulk Upload Schemas ===
+class BulkUploadResponse(BaseModel):
+    batch_id: str
+    task_id: str
+    message: str
+    total_files: int
+    status: str
+
+class BulkUploadResult(BaseModel):
+    filename: str
+    status: str
+    clothing_item_id: Optional[int] = None
+    image_url: Optional[str] = None
+    classification: Optional[dict] = None
+
+class BulkUploadError(BaseModel):
+    filename: str
+    error: str
+
+class BulkUploadStatus(BaseModel):
+    batch_id: str
+    status: str  # "processing", "completed", "failed"
+    total: int
+    processed: int
+    success: int
+    failed: int
+    results: List[BulkUploadResult] = Field(default_factory=list)
+    errors: List[BulkUploadError] = Field(default_factory=list)
+    error: Optional[str] = None  # For batch-level errors
