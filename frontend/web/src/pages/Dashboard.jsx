@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { clothingAPI } from '../services/api';
 import WeatherWidget from '../components/WeatherWidget';
 import ClothingGrid from '../components/ClothingGrid';
-
+import SkeletonClothingItem from '../components/SkeletonClothingItem';
 import BulkUploadModal from '../components/BulkUploadModal';
 import V2VAssistantModal from '../components/V2VAssistantModal';
 import AIStyleAdviceModal from '../components/AIStyleAdviceModal';
@@ -54,6 +54,11 @@ const Dashboard = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isForecastModalOpen, setIsForecastModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
+  
+  // Real-time upload states
+  const [pendingUploads, setPendingUploads] = useState([]);
+  const [currentBatchId, setCurrentBatchId] = useState(null);
+  const [realTimePolling, setRealTimePolling] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -145,6 +150,98 @@ const Dashboard = () => {
       prev.filter(item => item && item.id && !deletedItemIds.includes(item.id))
     );
     toast.success(`Successfully deleted ${deletedItemIds.length} items`);
+  };
+
+  const handleStartRealTimeUpload = ({ batchId, totalFiles, previewData }) => {
+    console.log('🚀 Starting real-time upload:', { batchId, totalFiles, previewData });
+    
+    // Set up pending uploads with preview data
+    setPendingUploads(previewData);
+    setCurrentBatchId(batchId);
+    
+    // Start real-time polling
+    const interval = setInterval(async () => {
+      try {
+        const statusResponse = await clothingAPI.getBulkUploadStatus(batchId);
+        const status = statusResponse.data || statusResponse;
+        
+        console.log('📊 Real-time status:', status);
+        
+        // Update pending uploads based on results
+        if (status.results && status.results.length > 0) {
+          const completedResults = status.results.filter(result => result.status === 'success');
+          
+          // Replace skeletons with actual items
+          if (completedResults.length > 0) {
+            const newItems = completedResults.map(result => ({
+              id: result.clothing_item_id,
+              name: result.filename || 'Classified Item',
+              image_url: result.image_url,
+              category: result.classification?.category || 'Unknown',
+              color: result.classification?.color || 'Unknown',
+              brand: result.classification?.brand || null,
+              isNewlyAdded: true // Flag for animation
+            }));
+            
+            // Add new items to clothing list (at the beginning for visibility)
+            setClothingItems(prev => {
+              const existingIds = prev.map(item => item.id);
+              const uniqueNewItems = newItems.filter(item => !existingIds.includes(item.id));
+              return [...uniqueNewItems, ...prev];
+            });
+            
+            // Remove completed items from pending uploads
+            setPendingUploads(prev => 
+              prev.slice(0, Math.max(0, totalFiles - completedResults.length))
+            );
+          }
+        }
+        
+        // Check if processing is complete
+        const isComplete = status.status === 'completed' || 
+                         status.processed >= status.total ||
+                         (status.success > 0 && status.processed >= status.total - 1);
+        
+        if (isComplete) {
+          console.log('✅ Real-time processing complete');
+          clearInterval(interval);
+          setRealTimePolling(null);
+          setPendingUploads([]);
+          setCurrentBatchId(null);
+          
+          // Show completion message
+          toast.success(`${status.success || totalFiles} items added to your wardrobe!`);
+          
+          // Remove "newly added" flags after animation
+          setTimeout(() => {
+            setClothingItems(prev => 
+              prev.map(item => ({ ...item, isNewlyAdded: false }))
+            );
+          }, 3000);
+        }
+        
+      } catch (error) {
+        console.error('Real-time polling error:', error);
+        clearInterval(interval);
+        setRealTimePolling(null);
+        setPendingUploads([]);
+        setCurrentBatchId(null);
+        toast.success('Items are being processed. Refresh to see updates!');
+      }
+    }, 2000);
+    
+    setRealTimePolling(interval);
+    
+    // Safety timeout
+    setTimeout(() => {
+      if (interval) {
+        clearInterval(interval);
+        setRealTimePolling(null);
+        setPendingUploads([]);
+        setCurrentBatchId(null);
+        console.log('⏰ Real-time polling timeout reached');
+      }
+    }, 180000); // 3 minutes max
   };
 
   if (loading) {
@@ -386,6 +483,28 @@ const Dashboard = () => {
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.8, delay: 0.8 }}
         >
+          {/* Skeleton Upload Progress (shown at top when uploading) */}
+          {pendingUploads.length > 0 && (
+            <div className="mb-8">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-white">Processing Upload...</h3>
+                <div className="text-sm text-blue-300">
+                  {pendingUploads.length} items remaining
+                </div>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 lg:gap-8">
+                {pendingUploads.map((uploadData, index) => (
+                  <SkeletonClothingItem 
+                    key={uploadData.id}
+                    previewData={uploadData}
+                    index={index}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Main Clothing Grid */}
           <ClothingGrid
             items={clothingItems}
             onViewDetails={handleViewDetails}
@@ -403,6 +522,7 @@ const Dashboard = () => {
             isOpen={isBulkUploadModalOpen}
             onClose={() => setIsBulkUploadModalOpen(false)}
             onItemsAdded={handleBulkItemsAdded}
+            onStartRealTimeUpload={handleStartRealTimeUpload}
           />
         )}
         

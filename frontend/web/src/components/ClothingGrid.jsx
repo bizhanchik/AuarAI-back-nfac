@@ -199,12 +199,21 @@ const ClothingItem = ({
 
               {/* Tags Section */}
               <div className="flex flex-wrap gap-1">
-                {(item.tags || []).slice(0, 2).map((tag) => (
+                {(item.tags || []).slice(0, 1).map((tag) => (
                   <Tag 
                     key={tag}
                     text={tag} 
                     colorClass="bg-blue-100/80 text-blue-700 border border-blue-200/50" 
                     icon={TagIcon}
+                  />
+                ))}
+                
+                {(item.occasions || []).slice(0, 1).map((occasion) => (
+                  <Tag 
+                    key={occasion}
+                    text={occasion} 
+                    colorClass="bg-green-100/80 text-green-700 border border-green-200/50" 
+                    icon={HeartIcon}
                   />
                 ))}
                 
@@ -217,9 +226,10 @@ const ClothingItem = ({
                   />
                 ))}
                 
-                {(item.tags?.length || 0) > 2 && (
+                {/* Show +N if there are more tags/occasions/weather beyond what's displayed */}
+                {((item.tags?.length || 0) + (item.occasions?.length || 0) + (item.weather_suitability?.length || 0)) > 3 && (
                   <Tag 
-                    text={`+${(item.tags.length || 0) - 2}`} 
+                    text={`+${((item.tags?.length || 0) + (item.occasions?.length || 0) + (item.weather_suitability?.length || 0)) - 3}`} 
                     colorClass="bg-slate-100/80 text-slate-600 border border-slate-200/50" 
                     icon={ZapIcon}
                   />
@@ -340,20 +350,20 @@ const EmptyState = ({ onAddClick }) => (
   </motion.div>
 );
 
-const ClothingGrid = ({ items, onViewDetails, onEditItem, onAddClick, onItemsDeleted }) => {
+const ClothingGrid = ({ items, onViewDetails, onEditItem, onAddClick, onItemsDeleted, hideEmptyState }) => {
   const [selectedItems, setSelectedItems] = useState(new Set());
   const [selectionMode, setSelectionMode] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
   if (!items || items.length === 0) {
-    return <EmptyState onAddClick={onAddClick} />;
+    return hideEmptyState ? null : <EmptyState onAddClick={onAddClick} />;
   }
 
   // Filter out any undefined or invalid items
   const validItems = items.filter(item => item && item.id);
 
   if (validItems.length === 0) {
-    return <EmptyState onAddClick={onAddClick} />;
+    return hideEmptyState ? null : <EmptyState onAddClick={onAddClick} />;
   }
 
   const handleToggleSelect = (itemId) => {
