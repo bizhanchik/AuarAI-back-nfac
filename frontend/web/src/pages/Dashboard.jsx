@@ -13,7 +13,7 @@ import V2VAssistantModal from '../components/V2VAssistantModal';
 import AIStyleAdviceModal from '../components/AIStyleAdviceModal';
 import ClothingDetailsModal from '../components/ClothingDetailsModal';
 import EditClothingModal from '../components/EditClothingModal';
-import LocationPermissionPrompt from '../components/LocationPermissionPrompt';
+
 import WeatherForecastModal from '../components/WeatherForecastModal';
 import LanguageSelector from '../components/LanguageSelector';
 import { 
@@ -298,10 +298,7 @@ const Dashboard = () => {
         <div className="absolute inset-0 bg-gradient-accent opacity-30"></div>
       </div>
 
-      <LocationPermissionPrompt 
-        onPermissionGranted={() => fetchData()}
-        onPermissionDenied={() => console.log('Location permission denied, using fallback weather')}
-      />
+
       
       {/* Responsive Header */}
       <header className="relative z-40 glass-light border-b border-accent-200/50">

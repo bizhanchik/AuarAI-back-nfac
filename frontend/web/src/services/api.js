@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { auth } from './firebase';
+import locationService from './locationService.js';
 
 // Создаем экземпляр axios с базовой конфигурацией
 export const api = axios.create({
@@ -58,47 +59,26 @@ api.interceptors.response.use(
   }
 );
 
-// Geolocation utility
-export const geolocationAPI = {
-  getCurrentPosition: () => {
-    return new Promise((resolve, reject) => {
-      if (!navigator.geolocation) {
-        reject(new Error('Geolocation is not supported by this browser'));
-        return;
-      }
-
-      const options = {
-        enableHighAccuracy: true,
-        timeout: 10000, // 10 seconds
-        maximumAge: 300000 // 5 minutes
-      };
-
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          resolve({
-            lat: position.coords.latitude,
-            lon: position.coords.longitude,
-            accuracy: position.coords.accuracy
-          });
-        },
-        (error) => {
-          let errorMessage = 'Unknown geolocation error';
-          switch(error.code) {
-            case error.PERMISSION_DENIED:
-              errorMessage = 'Location access denied by user';
-              break;
-            case error.POSITION_UNAVAILABLE:
-              errorMessage = 'Location information unavailable';
-              break;
-            case error.TIMEOUT:
-              errorMessage = 'Location request timed out';
-              break;
-          }
-          reject(new Error(errorMessage));
-        },
-        options
-      );
-    });
+// Location utility (IP-based - no GPS permission required)
+export const locationAPI = {
+  getCurrentPosition: async () => {
+    const coordinates = await locationService.getCoordinates();
+    return coordinates;
+  },
+  
+  getCurrentLocation: async () => {
+    const location = await locationService.getCurrentLocation();
+    return location;
+  },
+  
+  getLocationWithDisplay: async () => {
+    const location = await locationService.getLocationWithDisplay();
+    return location;
+  },
+  
+  refreshLocation: async () => {
+    const location = await locationService.refreshLocation();
+    return location;
   }
 };
 
@@ -113,24 +93,33 @@ export const weatherAPI = {
   }),
   getUserLocationWeather: async () => {
     try {
-      const position = await geolocationAPI.getCurrentPosition();
+      const position = await locationAPI.getCurrentPosition();
+      console.log('🌍 Getting weather for IP location:', position);
       return await weatherAPI.getWeatherByCoordinates(position.lat, position.lon);
     } catch (error) {
-      // Fallback to Almaty weather if geolocation fails
-      console.warn('Geolocation failed, falling back to Almaty weather:', error.message);
+      // Fallback to Almaty weather if IP location fails
+      console.warn('⚠️ IP location failed, falling back to Almaty weather:', error.message);
       return await weatherAPI.getAlmatyWeather();
     }
   },
   getUserLocationForecast: async (days = 5) => {
     try {
-      const position = await geolocationAPI.getCurrentPosition();
+      const position = await locationAPI.getCurrentPosition();
+      console.log('🌍 Getting forecast for IP location:', position);
       return await weatherAPI.getWeatherForecast(position.lat, position.lon, days);
     } catch (error) {
-      // Fallback to Almaty coordinates if geolocation fails
-      console.warn('Geolocation failed, using Almaty coordinates for forecast:', error.message);
+      // Fallback to Almaty coordinates if IP location fails
+      console.warn('⚠️ IP location failed, using Almaty coordinates for forecast:', error.message);
       return await weatherAPI.getWeatherForecast(43.2220, 76.8512, days);
     }
   }
+};
+
+// Location API (backend-based fallback)
+export const backendLocationAPI = {
+  detectLocation: () => api.get('/location/detect'),
+  getLocationInfo: () => api.get('/location/info'),
+  getLocationForIP: (ip) => api.get(`/location/ip/${ip}`)
 };
 
 export const clothingAPI = {
@@ -239,7 +228,8 @@ export const clothingAPI = {
     }),
   getForecastOutfits: async (days = 5, occasion = 'casual') => {
     try {
-      const position = await geolocationAPI.getCurrentPosition();
+      const position = await locationAPI.getCurrentPosition();
+      console.log('🌍 Getting outfit forecast for IP location:', position);
       return api.post('/stylist/forecast-outfits', null, {
         params: {
           lat: position.lat,
@@ -249,8 +239,8 @@ export const clothingAPI = {
         }
       });
     } catch (error) {
-      // Fallback to Almaty coordinates if geolocation fails
-      console.warn('Geolocation failed, using Almaty coordinates for forecast outfits:', error.message);
+      // Fallback to Almaty coordinates if IP location fails
+      console.warn('⚠️ IP location failed, using Almaty coordinates for forecast outfits:', error.message);
       return api.post('/stylist/forecast-outfits', null, {
         params: {
           lat: 43.2220,

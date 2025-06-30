@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from . import models, schemas, crud, auth, firebase_auth
 from .database import get_db
-from .routes import classifier, weather, photo_upload, items, stylist, v2v_assistant, firebase_auth as firebase_auth_routes
+from .routes import classifier, weather, photo_upload, items, stylist, v2v_assistant, firebase_auth as firebase_auth_routes, ip_location
 
 app = FastAPI(root_path="/api")
 
@@ -43,6 +43,7 @@ app.include_router(photo_upload.router)
 app.include_router(stylist.router)
 app.include_router(v2v_assistant.router)
 app.include_router(firebase_auth_routes.router)  # Add Firebase auth routes
+app.include_router(ip_location.router)  # Add IP location routes
 
 # Роутер для операций с одеждой (updated to use Firebase auth)
 clothing_router = APIRouter(
