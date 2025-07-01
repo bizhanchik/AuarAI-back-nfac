@@ -75,6 +75,25 @@ function App() {
   useEffect(() => {
     analytics.trackUserVisit();
     
+    // Track session start
+    analytics.trackSessionStart();
+    
+    // Check if this is a first visit
+    const isFirstVisit = !localStorage.getItem('has_visited_before');
+    if (isFirstVisit) {
+      analytics.trackFirstVisit();
+      localStorage.setItem('has_visited_before', 'true');
+    }
+    
+    // Track user engagement after a short delay
+    setTimeout(() => {
+      analytics.trackUserEngagement('initial_load', {
+        is_first_visit: isFirstVisit,
+        user_agent: navigator.userAgent,
+        screen_resolution: `${window.screen.width}x${window.screen.height}`
+      });
+    }, 3000);
+    
     // Debug analytics after a short delay to ensure GA is loaded
     setTimeout(() => {
       analytics.debugAnalytics();

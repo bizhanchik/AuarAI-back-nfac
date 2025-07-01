@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { clothingAPI } from '../services/api';
 import { useLanguage } from '../contexts/LanguageContext';
+import analytics from '../services/analytics';
 import toast from 'react-hot-toast';
 
 const CATEGORIES = [
@@ -117,7 +118,12 @@ const AddClothingModal = ({ isOpen, onClose, onClothingAdded }) => {
   });
 
   useEffect(() => {
-    if (!isOpen) {
+    if (isOpen) {
+      // Track modal open engagement
+      analytics.trackUserEngagement('add_clothing_modal_open', {
+        modal_type: 'add_clothing'
+      });
+    } else {
       resetModal();
     }
   }, [isOpen]);
@@ -380,6 +386,9 @@ const AddClothingModal = ({ isOpen, onClose, onClothingAdded }) => {
       const newItem = response.data || response;
       
       console.log('✅ Новый элемент создан:', newItem);
+      
+      // Track clothing added analytics
+      analytics.trackClothingAdded(formData.category || 'unknown');
       
       toast.success(t('clothingAddedSuccess'));
       onClothingAdded(newItem);

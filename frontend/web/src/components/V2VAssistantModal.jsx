@@ -258,6 +258,11 @@ const V2VAssistantModal = ({ isOpen, onClose }) => {
   // Initialize when modal opens
   useEffect(() => {
     if (isOpen) {
+      // Track modal open engagement
+      analytics.trackUserEngagement('v2v_modal_open', {
+        modal_type: 'v2v_assistant'
+      });
+      
       connectWebSocket();
       
       // Create audio element

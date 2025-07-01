@@ -50,8 +50,15 @@ const AIStyleAdviceModal = ({ isOpen, onClose, userItems = [] }) => {
   ], [t]);
 
   useEffect(() => {
-    if (isOpen && !weather) {
-      fetchCurrentWeather();
+    if (isOpen) {
+      // Track modal open engagement
+      analytics.trackUserEngagement('ai_advice_modal_open', {
+        modal_type: 'ai_style_advice'
+      });
+      
+      if (!weather) {
+        fetchCurrentWeather();
+      }
     }
   }, [isOpen, weather, fetchCurrentWeather]);
 

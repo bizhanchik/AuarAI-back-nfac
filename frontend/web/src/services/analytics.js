@@ -116,6 +116,47 @@ class AnalyticsService {
     console.log(`📊 Аналитика: Запрос совета от ИИ - ${adviceType}`);
   }
 
+  // Отслеживание начала сессии
+  trackSessionStart() {
+    if (!this.isEnabled) return;
+
+    window.gtag('event', 'session_start', {
+      event_category: 'User Engagement',
+      event_label: 'Session Start',
+      value: 1
+    });
+
+    console.log('📊 Аналитика: Начало сессии');
+  }
+
+  // Отслеживание первого визита
+  trackFirstVisit() {
+    if (!this.isEnabled) return;
+
+    window.gtag('event', 'first_visit', {
+      event_category: 'User Engagement',
+      event_label: 'First Visit',
+      value: 1
+    });
+
+    console.log('📊 Аналитика: Первый визит');
+  }
+
+  // Отслеживание пользовательской активности
+  trackUserEngagement(engagementType = 'general', details = {}) {
+    if (!this.isEnabled) return;
+
+    window.gtag('event', 'user_engagement', {
+      event_category: 'User Engagement',
+      event_label: engagementType,
+      engagement_type: engagementType,
+      ...details,
+      value: 1
+    });
+
+    console.log(`📊 Аналитика: Пользовательская активность - ${engagementType}`);
+  }
+
   // Отслеживание пользовательских событий
   trackCustomEvent(eventName, category, label = null, value = null, customParameters = {}) {
     if (!this.isEnabled) return;

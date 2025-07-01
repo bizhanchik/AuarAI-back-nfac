@@ -10,6 +10,7 @@ import {
 } from 'firebase/auth';
 import { auth } from '../services/firebase';
 import { useLanguage } from './LanguageContext';
+import analytics from '../services/analytics';
 import toast from 'react-hot-toast';
 
 const AuthContext = createContext();
@@ -62,6 +63,10 @@ export const AuthProvider = ({ children }) => {
     try {
       const result = await signInWithEmailAndPassword(auth, email, password);
       const userName = result.user.displayName || result.user.email;
+      
+      // Track login analytics
+      analytics.trackUserLogin('email');
+      
       toast.success(t('welcomeUser').replace('{name}', userName));
       return result;
     } catch (error) {
@@ -80,6 +85,9 @@ export const AuthProvider = ({ children }) => {
       
       const result = await signInWithPopup(auth, provider);
       const userName = result.user.displayName || result.user.email;
+      
+      // Track login analytics
+      analytics.trackUserLogin('google');
       
       // Show success message in Russian
       toast.success(`Добро пожаловать, ${userName}! 🎉`);
