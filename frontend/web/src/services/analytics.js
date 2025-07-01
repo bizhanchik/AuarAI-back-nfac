@@ -5,6 +5,30 @@ class AnalyticsService {
     this.measurementId = 'G-EH59M60G1Z';
   }
 
+  // Safe event tracking with retry mechanism
+  safeTrackEvent(eventName, eventData, retryCount = 0) {
+    const maxRetries = 3;
+    
+    if (!this.isEnabled || typeof window === 'undefined' || !window.gtag) {
+      console.warn(`❌ Analytics not ready for event: ${eventName}`);
+      
+      // Retry after delay if analytics not ready
+      if (retryCount < maxRetries) {
+        setTimeout(() => {
+          this.safeTrackEvent(eventName, eventData, retryCount + 1);
+        }, 1000 * (retryCount + 1));
+      }
+      return;
+    }
+
+    try {
+      window.gtag('event', eventName, eventData);
+      console.log(`✅ Analytics event sent: ${eventName}`, eventData);
+    } catch (error) {
+      console.error(`❌ Failed to send analytics event: ${eventName}`, error);
+    }
+  }
+
   // Инициализация аналитики
   init() {
     if (!this.isEnabled) {
@@ -57,36 +81,32 @@ class AnalyticsService {
 
   // Отслеживание авторизации
   trackUserLogin(method = 'google') {
-    if (!this.isEnabled) return;
-
-    window.gtag('event', 'login', {
+    const eventData = {
       method: method,
       event_category: 'Authentication',
       event_label: 'User Login',
       value: 1
-    });
+    };
 
+    this.safeTrackEvent('login', eventData);
     console.log(`📊 Аналитика: Пользователь авторизовался через ${method}`);
   }
 
   // Отслеживание добавления одежды
   trackClothingAdded(category = 'unknown') {
-    if (!this.isEnabled) return;
-
-    window.gtag('event', 'clothing_added', {
+    const eventData = {
       event_category: 'Wardrobe Management',
       event_label: 'Add Clothing Item',
       clothing_category: category,
       value: 1
-    });
+    };
 
+    this.safeTrackEvent('clothing_added', eventData);
     console.log(`📊 Аналитика: Добавлена одежда категории ${category}`);
   }
 
   // Отслеживание V2V диалога с ИИ
   trackV2VDialogue(duration = null) {
-    if (!this.isEnabled) return;
-
     const eventData = {
       event_category: 'AI Interaction',
       event_label: 'V2V Dialogue',
@@ -97,22 +117,20 @@ class AnalyticsService {
       eventData.custom_duration = duration;
     }
 
-    window.gtag('event', 'v2v_dialogue', eventData);
-
+    this.safeTrackEvent('v2v_dialogue', eventData);
     console.log('📊 Аналитика: V2V диалог с ИИ');
   }
 
   // Отслеживание запроса совета от ИИ
   trackAIAdviceRequest(adviceType = 'general') {
-    if (!this.isEnabled) return;
-
-    window.gtag('event', 'ai_advice_request', {
+    const eventData = {
       event_category: 'AI Interaction',
       event_label: 'AI Style Advice',
       advice_type: adviceType,
       value: 1
-    });
+    };
 
+    this.safeTrackEvent('ai_advice_request', eventData);
     console.log(`📊 Аналитика: Запрос совета от ИИ - ${adviceType}`);
   }
 
@@ -144,16 +162,15 @@ class AnalyticsService {
 
   // Отслеживание пользовательской активности
   trackUserEngagement(engagementType = 'general', details = {}) {
-    if (!this.isEnabled) return;
-
-    window.gtag('event', 'user_engagement', {
+    const eventData = {
       event_category: 'User Engagement',
       event_label: engagementType,
       engagement_type: engagementType,
       ...details,
       value: 1
-    });
+    };
 
+    this.safeTrackEvent('user_engagement', eventData);
     console.log(`📊 Аналитика: Пользовательская активность - ${engagementType}`);
   }
 
@@ -219,6 +236,38 @@ class AnalyticsService {
     console.log(`📊 Аналитика: Конверсия - ${conversionType}`);
   }
 
+  // Test function to send all main events for verification
+  testAllEvents() {
+    console.log('🧪 === TESTING ALL ANALYTICS EVENTS ===');
+    
+    const testEvents = [
+      () => this.trackUserLogin('google'),
+      () => this.trackUserEngagement('test_engagement'),
+      () => this.trackAIAdviceRequest('test_occasion'),
+      () => this.trackV2VDialogue(30),
+      () => this.trackClothingAdded('test_category'),
+      () => this.trackPageView('test_page'),
+      () => this.trackUserVisit(),
+      () => this.trackSessionStart(),
+      () => this.trackFirstVisit()
+    ];
+    
+    testEvents.forEach((eventFunc, index) => {
+      setTimeout(() => {
+        try {
+          eventFunc();
+          console.log(`✅ Test event ${index + 1} sent`);
+        } catch (error) {
+          console.error(`❌ Test event ${index + 1} failed:`, error);
+        }
+      }, index * 1500); // Send events 1.5 seconds apart
+    });
+    
+    console.log('🧪 All test events scheduled. Check Google Analytics in 2-3 minutes.');
+    console.log('🔗 Go to: https://analytics.google.com/');
+    console.log('📊 Look in: Realtime > Events');
+  }
+
   // Test function to send multiple events for verification
   testAnalytics() {
     console.log('🧪 === TESTING ANALYTICS ===');
@@ -232,14 +281,11 @@ class AnalyticsService {
     
     testEvents.forEach((event, index) => {
       setTimeout(() => {
-        if (window.gtag) {
-          window.gtag('event', event.name, {
-            event_category: event.category,
-            event_label: event.label,
-            timestamp: Date.now()
-          });
-          console.log(`✅ Test event ${index + 1} sent:`, event.name);
-        }
+        this.safeTrackEvent(event.name, {
+          event_category: event.category,
+          event_label: event.label,
+          timestamp: Date.now()
+        });
       }, index * 1000); // Send events 1 second apart
     });
     

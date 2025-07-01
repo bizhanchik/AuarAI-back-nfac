@@ -98,6 +98,12 @@ function App() {
     setTimeout(() => {
       analytics.debugAnalytics();
     }, 2000);
+
+    // Make analytics available globally for testing
+    window.testAllAnalytics = () => analytics.testAllEvents();
+    window.analytics = analytics;
+    
+    console.log('🧪 Test all analytics events by running: testAllAnalytics()');
   }, []);
 
   return (

@@ -26,16 +26,28 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [previousUser, setPreviousUser] = useState(null);
   const { t } = useLanguage();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
+      // Track login only when user goes from null to authenticated
+      if (!previousUser && user) {
+        // Add a small delay to ensure analytics is ready
+        setTimeout(() => {
+          console.log('🔥 Tracking login event for user:', user.email);
+          const loginMethod = user.providerData?.[0]?.providerId === 'google.com' ? 'google' : 'email';
+          analytics.trackUserLogin(loginMethod);
+        }, 1000);
+      }
+      
+      setPreviousUser(user);
       setUser(user);
       setLoading(false);
     });
 
     return unsubscribe;
-  }, []);
+  }, [previousUser]);
 
   const register = async (email, password, username) => {
     try {
@@ -64,9 +76,6 @@ export const AuthProvider = ({ children }) => {
       const result = await signInWithEmailAndPassword(auth, email, password);
       const userName = result.user.displayName || result.user.email;
       
-      // Track login analytics
-      analytics.trackUserLogin('email');
-      
       toast.success(t('welcomeUser').replace('{name}', userName));
       return result;
     } catch (error) {
@@ -85,9 +94,6 @@ export const AuthProvider = ({ children }) => {
       
       const result = await signInWithPopup(auth, provider);
       const userName = result.user.displayName || result.user.email;
-      
-      // Track login analytics
-      analytics.trackUserLogin('google');
       
       // Show success message in Russian
       toast.success(`Добро пожаловать, ${userName}! 🎉`);
