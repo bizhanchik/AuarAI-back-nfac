@@ -4,6 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import LanguageSelector from '../components/LanguageSelector';
+import analytics from '../services/analytics';
 import { 
   SparklesIcon,
   ShieldCheckIcon,
@@ -21,15 +22,35 @@ const LoginPage = () => {
   const navigate = useNavigate();
 
   const handleGoogleSignIn = async () => {
+    // 🔥 ОТСЛЕЖИВАНИЕ LOGIN - СРАЗУ ПРИ НАЖАТИИ НА КНОПКУ
+    console.log('🔥 User clicked Google Sign In button - tracking login event');
+    analytics.trackUserLogin('google');
+    
     try {
       setLoading(true);
       const result = await loginWithGoogle();
       // Navigation will be handled automatically by the auth state change
       // The onAuthStateChanged listener will detect the user and navigate
       console.log('Google sign in successful:', result);
+      
+      // Дополнительное отслеживание успешного входа
+      setTimeout(() => {
+        analytics.trackUserEngagement('successful_login', {
+          method: 'google',
+          user_id: result.user?.uid,
+          user_email: result.user?.email
+        });
+      }, 1000);
+      
     } catch (error) {
       console.error('Login failed:', error);
       toast.error('Ошибка входа. Попробуйте еще раз.');
+      
+      // Отслеживание неудачного входа
+      analytics.trackCustomEvent('login_failed', 'Authentication', 'Google Login Failed', 1, {
+        error_code: error.code,
+        error_message: error.message
+      });
     } finally {
       setLoading(false);
     }
@@ -37,63 +58,12 @@ const LoginPage = () => {
 
   return (
     <div className="min-h-screen relative overflow-hidden">
-      {/* Floating Background Elements */}
+      {/* Static Background Elements - PERFORMANCE: Removed infinite animations */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <motion.div
-          className="absolute top-10 left-10 w-32 h-32 bg-gradient-primary opacity-20 rounded-full blur-3xl"
-          animate={{
-            y: [0, -30, 0],
-            x: [0, 20, 0],
-            scale: [1, 1.1, 1],
-          }}
-          transition={{
-            duration: 8,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-        />
-        <motion.div
-          className="absolute top-40 right-20 w-24 h-24 bg-gradient-secondary opacity-25 rounded-full blur-2xl"
-          animate={{
-            y: [0, 40, 0],
-            x: [0, -30, 0],
-            scale: [1, 1.2, 1],
-          }}
-          transition={{
-            duration: 10,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: 2
-          }}
-        />
-        <motion.div
-          className="absolute bottom-20 left-1/4 w-40 h-40 bg-gradient-ocean opacity-15 rounded-full blur-3xl"
-          animate={{
-            y: [0, -20, 0],
-            x: [0, 30, 0],
-            scale: [1, 1.05, 1],
-          }}
-          transition={{
-            duration: 12,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: 4
-          }}
-        />
-        <motion.div
-          className="absolute top-1/2 right-10 w-28 h-28 bg-gradient-sunset opacity-20 rounded-full blur-2xl"
-          animate={{
-            y: [0, 25, 0],
-            x: [0, -15, 0],
-            scale: [1, 1.15, 1],
-          }}
-          transition={{
-            duration: 9,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: 1
-          }}
-        />
+        <div className="absolute top-10 left-10 w-32 h-32 bg-gradient-primary opacity-20 rounded-full blur-3xl" />
+        <div className="absolute top-40 right-20 w-24 h-24 bg-gradient-secondary opacity-25 rounded-full blur-2xl" />
+        <div className="absolute bottom-20 left-1/4 w-40 h-40 bg-gradient-ocean opacity-15 rounded-full blur-3xl" />
+        <div className="absolute top-1/2 right-10 w-28 h-28 bg-gradient-sunset opacity-20 rounded-full blur-2xl" />
       </div>
 
       {/* Navigation */}
@@ -116,7 +86,14 @@ const LoginPage = () => {
             </motion.button>
             
             <div className="flex items-center space-x-4">
-              {/* <LanguageSelector variant="light" /> */}
+              <motion.button
+                onClick={() => navigate('/')}
+                className="nav-button text-sm font-medium"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                Back to Home
+              </motion.button>
             </div>
           </div>
         </div>
@@ -139,9 +116,9 @@ const LoginPage = () => {
             >
               <div className="relative inline-block">
                 <div className="w-24 h-24 bg-gradient-primary rounded-3xl flex items-center justify-center shadow-glow-primary mx-auto">
-                  <SparklesIcon className="h-12 w-12 text-white animate-pulse" />
+                  <SparklesIcon className="h-12 w-12 text-white" />
                 </div>
-                <div className="absolute -inset-4 bg-gradient-primary rounded-3xl blur opacity-30 animate-pulse"></div>
+                <div className="absolute -inset-4 bg-gradient-primary rounded-3xl blur opacity-30"></div>
               </div>
             </motion.div>
             

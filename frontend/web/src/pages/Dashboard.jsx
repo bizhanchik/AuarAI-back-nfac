@@ -62,7 +62,15 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchData();
-  }, []);
+    
+    // Cleanup polling on unmount
+    return () => {
+      if (realTimePolling) {
+        clearInterval(realTimePolling);
+        setRealTimePolling(null);
+      }
+    };
+  }, [realTimePolling]);
 
   const fetchData = async () => {
     try {
@@ -247,10 +255,10 @@ const Dashboard = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-dawn relative overflow-hidden">
-        {/* Animated Background */}
+        {/* Static Background - PERFORMANCE: Removed animate-gradient/animate-breath */}
         <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-gradient-mystical opacity-20 animate-gradient"></div>
-          <div className="absolute inset-0 bg-gradient-sunset opacity-30 animate-breath"></div>
+          <div className="absolute inset-0 bg-gradient-mystical opacity-20"></div>
+          <div className="absolute inset-0 bg-gradient-sunset opacity-30"></div>
         </div>
         
         {/* Loading Animation */}
@@ -266,21 +274,12 @@ const Dashboard = () => {
             </p>
           </div>
 
-          {/* Loading indicators */}
+          {/* Static Loading indicators - PERFORMANCE: Removed infinite animation */}
           <div className="flex space-x-2">
             {[...Array(3)].map((_, i) => (
-              <motion.div
+              <div
                 key={i}
-                className="w-2 h-2 sm:w-3 sm:h-3 bg-primary-500 rounded-full"
-                animate={{
-                  scale: [1, 1.2, 1],
-                  opacity: [0.7, 1, 0.7]
-                }}
-                transition={{
-                  duration: 1.5,
-                  repeat: Infinity,
-                  delay: i * 0.2
-                }}
+                className="w-2 h-2 sm:w-3 sm:h-3 bg-primary-500 rounded-full opacity-70"
               />
             ))}
           </div>
@@ -294,14 +293,14 @@ const Dashboard = () => {
       {/* Stunning Background */}
       <div className="fixed inset-0">
         <div className="absolute inset-0 bg-gradient-mystical opacity-20"></div>
-        <div className="absolute inset-0 bg-gradient-sunset opacity-10 animate-gradient"></div>
+                        <div className="absolute inset-0 bg-gradient-sunset opacity-10"></div>
         <div className="absolute inset-0 bg-gradient-accent opacity-30"></div>
       </div>
 
 
       
       {/* Responsive Header */}
-      <header className="relative z-40 glass-light border-b border-accent-200/50">
+      <header className="relative z-40 nav-glass">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16 sm:h-18 lg:h-20">
             {/* Logo Section */}
@@ -323,7 +322,7 @@ const Dashboard = () => {
                   <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-neutral-900 font-display tracking-tight">
                     AuarAI
                   </h1>
-                  <p className="text-xs text-primary-600 font-medium font-body hidden sm:block">AI Fashion Studio</p>
+                  <p className="text-xs text-neutral-700 font-medium font-body hidden sm:block">AI Fashion Studio</p>
                 </div>
               </button>
             </div>
@@ -351,7 +350,7 @@ const Dashboard = () => {
               
               <motion.button
                 onClick={handleLogout}
-                className="p-2 sm:p-3 bg-red-500/20 hover:bg-red-500/30 text-red-600 hover:text-red-700 rounded-lg sm:rounded-xl border border-red-500/30 hover:border-red-500/50 transition-all duration-150"
+                className="nav-button text-red-600 hover:text-red-700 border-red-500/40 hover:border-red-500/60 hover:bg-red-500/10"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 title={t('logout')}
@@ -398,7 +397,7 @@ const Dashboard = () => {
                 transition={{ duration: 0.8, delay: 0.4 }}
               >
                 <div className="flex items-center space-x-2 px-4 py-2 glass-primary rounded-full">
-                  <div className="w-2 h-2 bg-primary-400 rounded-full animate-pulse"></div>
+                  <div className="w-2 h-2 bg-primary-400 rounded-full opacity-70"></div>
                   <span className="text-primary-700 font-medium font-body">
                     {clothingItems.length} {t('items')}
                   </span>
@@ -436,7 +435,7 @@ const Dashboard = () => {
                         Drop up to 10 clothing images at once ✨
                       </div>
                     </div>
-                    <Sparkles className="h-8 w-8 text-yellow-300 flex-shrink-0 animate-pulse" />
+                    <Sparkles className="h-8 w-8 text-yellow-300 flex-shrink-0" />
                   </div>
                 </div>
               </motion.button>

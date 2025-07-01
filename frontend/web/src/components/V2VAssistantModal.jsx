@@ -192,27 +192,34 @@ const V2VAssistantModal = ({ isOpen, onClose }) => {
     setIsVideoActive(false);
   };
 
-  // Capture and send frames to backend
+  // Optimized frame capture with reduced frequency and size
   const startFrameCapture = () => {
     if (frameIntervalRef.current) {
       clearInterval(frameIntervalRef.current);
     }
     
+    let frameCount = 0;
     frameIntervalRef.current = setInterval(() => {
       if (videoRef.current && canvasRef.current && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        // Skip frames to reduce CPU load (send every 2nd frame)
+        frameCount++;
+        if (frameCount % 2 !== 0) return;
+        
         const canvas = canvasRef.current;
         const video = videoRef.current;
         const ctx = canvas.getContext('2d');
         
-        // Set canvas size to match video
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+        // Reduced resolution for better performance
+        const maxWidth = 320;
+        const maxHeight = 240;
+        canvas.width = maxWidth;
+        canvas.height = maxHeight;
         
-        // Draw current video frame to canvas
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        // Draw scaled down video frame
+        ctx.drawImage(video, 0, 0, maxWidth, maxHeight);
         
-        // Convert to base64
-        const frameData = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+        // Lower quality JPEG for reduced data transfer
+        const frameData = canvas.toDataURL('image/jpeg', 0.5).split(',')[1];
         
         // Send frame to backend with language information
         const message = {
@@ -223,7 +230,7 @@ const V2VAssistantModal = ({ isOpen, onClose }) => {
         
         wsRef.current.send(JSON.stringify(message));
       }
-    }, 1000); // Send frame every second
+    }, 2000); // Increased interval to 2 seconds
   };
 
   // Handle audio end
@@ -471,7 +478,7 @@ const V2VAssistantModal = ({ isOpen, onClose }) => {
                           <p className="text-gray-800">{currentCompliment}</p>
                           {isAudioPlaying && (
                             <div className="flex items-center mt-2 text-sm text-purple-600">
-                              <Volume2 className="w-4 h-4 mr-1 animate-pulse" />
+                              <Volume2 className="w-4 h-4 mr-1" />
                               {t('playing')}...
                             </div>
                           )}

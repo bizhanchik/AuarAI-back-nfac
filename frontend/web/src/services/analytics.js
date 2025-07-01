@@ -5,28 +5,55 @@ class AnalyticsService {
     this.measurementId = 'G-EH59M60G1Z';
   }
 
-  // Safe event tracking with retry mechanism
+  // Optimized event tracking with reduced retries
   safeTrackEvent(eventName, eventData, retryCount = 0) {
-    const maxRetries = 3;
+    const maxRetries = 1; // Reduced from 3 to 1
     
     if (!this.isEnabled || typeof window === 'undefined' || !window.gtag) {
-      console.warn(`❌ Analytics not ready for event: ${eventName}`);
+      // Only log in development
+      if (window.location.hostname === 'localhost') {
+        console.warn(`❌ Analytics not ready for event: ${eventName}`);
+      }
       
-      // Retry after delay if analytics not ready
+      // Retry only once after short delay
       if (retryCount < maxRetries) {
         setTimeout(() => {
           this.safeTrackEvent(eventName, eventData, retryCount + 1);
-        }, 1000 * (retryCount + 1));
+        }, 500); // Reduced delay
       }
       return;
     }
 
     try {
-      window.gtag('event', eventName, eventData);
-      console.log(`✅ Analytics event sent: ${eventName}`, eventData);
+      // Add unique timestamp and random ID to prevent deduplication
+      const enrichedData = {
+        ...eventData,
+        event_timestamp: Date.now(),
+        event_id: Math.random().toString(36).substr(2, 9),
+        session_id: this.getSessionId()
+      };
+
+      window.gtag('event', eventName, enrichedData);
+      
+      // Only log in development
+      if (window.location.hostname === 'localhost') {
+        console.log(`✅ Analytics event sent: ${eventName}`, enrichedData);
+        console.log('📊 Current dataLayer length:', window.dataLayer ? window.dataLayer.length : 'N/A');
+      }
+      
     } catch (error) {
       console.error(`❌ Failed to send analytics event: ${eventName}`, error);
     }
+  }
+
+  // Get or create session ID
+  getSessionId() {
+    let sessionId = sessionStorage.getItem('analytics_session_id');
+    if (!sessionId) {
+      sessionId = Date.now().toString(36) + Math.random().toString(36).substr(2);
+      sessionStorage.setItem('analytics_session_id', sessionId);
+    }
+    return sessionId;
   }
 
   // Инициализация аналитики
@@ -242,7 +269,9 @@ class AnalyticsService {
     
     const testEvents = [
       () => this.trackUserLogin('google'),
+      () => this.trackUserLogin('email'), 
       () => this.trackUserEngagement('test_engagement'),
+      () => this.trackUserEngagement('login_intent', { source: 'test', button_type: 'test_button' }),
       () => this.trackAIAdviceRequest('test_occasion'),
       () => this.trackV2VDialogue(30),
       () => this.trackClothingAdded('test_category'),
@@ -266,6 +295,19 @@ class AnalyticsService {
     console.log('🧪 All test events scheduled. Check Google Analytics in 2-3 minutes.');
     console.log('🔗 Go to: https://analytics.google.com/');
     console.log('📊 Look in: Realtime > Events');
+    console.log('');
+    console.log('🎯 Expected events in Google Analytics:');
+    console.log('  1. login (method: google)');
+    console.log('  2. login (method: email)');
+    console.log('  3. user_engagement (test_engagement)');
+    console.log('  4. user_engagement (login_intent)');
+    console.log('  5. ai_advice_request');
+    console.log('  6. v2v_dialogue');
+    console.log('  7. clothing_added');
+    console.log('  8. page_view');
+    console.log('  9. user_visit');
+    console.log('  10. session_start');
+    console.log('  11. first_visit');
   }
 
   // Test function to send multiple events for verification
@@ -294,13 +336,13 @@ class AnalyticsService {
     console.log('📊 Look in: Realtime > Events');
   }
 
-  // Comprehensive analytics debugging
+  // Enhanced analytics debugging with network checking
   debugAnalytics() {
-    console.log('🔍 === ANALYTICS DEBUGGING ===');
+    console.log('🔍 === ENHANCED ANALYTICS DEBUGGING ===');
     console.log('1. gtag function exists:', typeof window.gtag);
     console.log('2. dataLayer exists:', !!window.dataLayer);
     console.log('3. dataLayer length:', window.dataLayer ? window.dataLayer.length : 0);
-    console.log('4. dataLayer contents:', window.dataLayer ? window.dataLayer.slice(-5) : 'None');
+    console.log('4. dataLayer last 10 entries:', window.dataLayer ? window.dataLayer.slice(-10) : 'None');
     
     // Check if GA script loaded
     const gaScript = document.querySelector('script[src*="googletagmanager.com/gtag/js"]');
@@ -309,25 +351,108 @@ class AnalyticsService {
     
     // Check measurement ID
     console.log('7. Measurement ID:', this.measurementId);
+    console.log('8. Session ID:', this.getSessionId());
+    
+    // Check for ad blockers
+    this.checkAdBlocker();
     
     // Test network requests
-    console.log('8. Testing manual gtag call...');
+    console.log('10. Testing manual gtag call with unique data...');
     if (window.gtag) {
-      window.gtag('event', 'debug_test', {
+      const testData = {
         event_category: 'Debug',
-        event_label: 'Manual Debug Test',
-        custom_parameter: 'debug_' + Date.now()
-      });
-      console.log('✅ Manual gtag event sent');
+        event_label: 'Enhanced Debug Test',
+        custom_parameter: 'debug_' + Date.now(),
+        event_timestamp: Date.now(),
+        event_id: Math.random().toString(36).substr(2, 9)
+      };
+      window.gtag('event', 'debug_test_enhanced', testData);
+      console.log('✅ Enhanced manual gtag event sent:', testData);
     } else {
       console.error('❌ gtag function not available');
     }
     
-    // Check for ad blockers or privacy extensions
-    console.log('9. Check browser developer tools Network tab for:');
-    console.log('   - Requests to googletagmanager.com');
-    console.log('   - Requests to google-analytics.com');
-    console.log('   - Any blocked requests (red entries)');
+    // Monitor network requests
+    this.monitorNetworkRequests();
+  }
+
+  // Check for ad blockers
+  checkAdBlocker() {
+    console.log('9. Checking for ad blockers...');
+    
+    // Try to fetch GA collect endpoint
+    fetch('https://www.google-analytics.com/collect?v=1&tid=UA-XXXXX-Y&cid=123&t=pageview&dp=%2F')
+      .then(() => console.log('✅ GA collect endpoint accessible'))
+      .catch(() => console.log('❌ GA collect endpoint blocked (likely ad blocker)'));
+      
+    // Try to fetch gtag endpoint  
+    fetch('https://www.googletagmanager.com/gtag/js?id=G-EH59M60G1Z')
+      .then(() => console.log('✅ GTM script endpoint accessible'))
+      .catch(() => console.log('❌ GTM script endpoint blocked (likely ad blocker)'));
+  }
+
+  // Monitor network requests to GA
+  monitorNetworkRequests() {
+    console.log('11. Monitoring network requests...');
+    console.log('   Open Network tab in DevTools and look for:');
+    console.log('   - https://www.googletagmanager.com/gtag/js');
+    console.log('   - https://www.google-analytics.com/g/collect');
+    console.log('   - Any 403/blocked requests (red entries)');
+    
+    // Override fetch to monitor GA requests
+    if (!window._gaFetchMonitored) {
+      const originalFetch = window.fetch;
+      window.fetch = function(...args) {
+        const url = args[0];
+        if (typeof url === 'string' && (url.includes('google-analytics.com') || url.includes('googletagmanager.com'))) {
+          console.log('🌐 GA Network Request:', url);
+        }
+        return originalFetch.apply(this, arguments);
+      };
+      window._gaFetchMonitored = true;
+    }
+  }
+
+  // Force send login event with maximum uniqueness
+  forceTestLogin() {
+    console.log('🔥 === FORCING TEST LOGIN EVENT ===');
+    
+    const uniqueLoginData = {
+      method: 'google',
+      event_category: 'Authentication',
+      event_label: 'FORCED_TEST_LOGIN',
+      value: 1,
+      // Maximum uniqueness parameters
+      event_timestamp: Date.now(),
+      event_id: 'login_' + Math.random().toString(36).substr(2, 9),
+      session_id: this.getSessionId(),
+      user_id: 'test_user_' + Date.now(),
+      // Additional GA4 recommended parameters
+      engagement_time_msec: 1000,
+      debug_mode: true
+    };
+
+    console.log('📤 Sending FORCED login event:', uniqueLoginData);
+    
+    // Send via safeTrackEvent
+    this.safeTrackEvent('login', uniqueLoginData);
+    
+    // Also send directly via gtag as backup
+    if (window.gtag) {
+      setTimeout(() => {
+        window.gtag('event', 'login_backup', uniqueLoginData);
+        console.log('📤 Backup login event sent');
+      }, 1000);
+    }
+    
+    // Send a third variant with different event name
+    setTimeout(() => {
+      window.gtag('event', 'user_login_test', uniqueLoginData);
+      console.log('📤 Alternative login event sent');
+    }, 2000);
+    
+    console.log('✅ Three login variants sent. Check GA4 Realtime Events in 30 seconds');
+    console.log('🔗 Go to: https://analytics.google.com/analytics/web/#/p494440858/realtime/overview');
   }
 }
 

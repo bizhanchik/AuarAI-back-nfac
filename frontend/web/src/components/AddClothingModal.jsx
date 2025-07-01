@@ -336,8 +336,8 @@ const AddClothingModal = ({ isOpen, onClose, onClothingAdded }) => {
   const getClassificationResult = async (taskId) => {
     if (!taskId) return null;
 
-    const maxAttempts = 10;
-    const delay = 2000;
+    const maxAttempts = 8; // Reduced attempts
+    const delay = 1500; // Reduced delay
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       try {
@@ -349,8 +349,14 @@ const AddClothingModal = ({ isOpen, onClose, onClothingAdded }) => {
           throw new Error('Classification failed');
         }
         
-        // Wait before next attempt
-        await new Promise(resolve => setTimeout(resolve, delay));
+        // Wait before next attempt - only if not last attempt
+        if (attempt < maxAttempts - 1) {
+          await new Promise(resolve => {
+            const timeoutId = setTimeout(resolve, delay);
+            // Store timeout for potential cleanup
+            return timeoutId;
+          });
+        }
       } catch (error) {
         if (attempt === maxAttempts - 1) {
           throw error;
@@ -548,13 +554,9 @@ const AddClothingModal = ({ isOpen, onClose, onClothingAdded }) => {
                           transition={{ type: "spring", stiffness: 300 }}
                         >
                           <UploadIcon className="h-16 w-16 text-gray-400 mx-auto" />
-                          <motion.div 
-                            className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center"
-                            animate={{ rotate: 360 }}
-                            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                          >
+                          <div className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
                             <span className="text-white text-xs font-bold">+</span>
-                          </motion.div>
+                          </div>
                         </motion.div>
                         <div>
                           <p className="text-xl font-semibold text-gray-900">
@@ -631,16 +633,9 @@ const AddClothingModal = ({ isOpen, onClose, onClothingAdded }) => {
         {step === 2 && (
           <div className="p-6 text-center">
             <div className="space-y-4">
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ 
-                  duration: 1, 
-                  repeat: Infinity, 
-                  ease: "linear" 
-                }}
-              >
+              <div>
                 <LoaderIcon className="h-12 w-12 text-blue-600 mx-auto" />
-              </motion.div>
+              </div>
               <div>
                 <p className="text-lg font-medium text-gray-900">
                   Анализируем ваше изображение...

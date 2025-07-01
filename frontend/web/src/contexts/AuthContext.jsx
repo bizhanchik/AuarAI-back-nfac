@@ -10,7 +10,6 @@ import {
 } from 'firebase/auth';
 import { auth } from '../services/firebase';
 import { useLanguage } from './LanguageContext';
-import analytics from '../services/analytics';
 import toast from 'react-hot-toast';
 
 const AuthContext = createContext();
@@ -26,28 +25,16 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [previousUser, setPreviousUser] = useState(null);
   const { t } = useLanguage();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      // Track login only when user goes from null to authenticated
-      if (!previousUser && user) {
-        // Add a small delay to ensure analytics is ready
-        setTimeout(() => {
-          console.log('🔥 Tracking login event for user:', user.email);
-          const loginMethod = user.providerData?.[0]?.providerId === 'google.com' ? 'google' : 'email';
-          analytics.trackUserLogin(loginMethod);
-        }, 1000);
-      }
-      
-      setPreviousUser(user);
       setUser(user);
       setLoading(false);
     });
 
     return unsubscribe;
-  }, [previousUser]);
+  }, []);
 
   const register = async (email, password, username) => {
     try {

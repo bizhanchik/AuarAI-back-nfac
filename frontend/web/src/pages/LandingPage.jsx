@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import React from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import LanguageSelector from '../components/LanguageSelector';
+import analytics from '../services/analytics';
 import { 
   SparklesIcon, 
   CloudIcon, 
@@ -25,68 +26,25 @@ const LandingPage = React.memo(() => {
   const { t } = useLanguage();
 
   const handleNavigation = useCallback((path) => {
+    // Отслеживаем переход к авторизации
+    if (path === '/login') {
+      console.log('🔥 User clicked login button from landing page');
+      analytics.trackUserEngagement('login_intent', {
+        source: 'landing_page',
+        button_type: 'navigation'
+      });
+    }
     navigate(path);
   }, [navigate]);
 
   return (
     <div className="min-h-screen relative overflow-hidden">
-      {/* Responsive Floating Background Elements */}
+      {/* Static Optimized Background Elements - PERFORMANCE: Removed infinite animations */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <motion.div
-          className="absolute top-20 left-4 sm:left-10 lg:left-20 w-48 h-48 sm:w-72 sm:h-72 lg:w-96 lg:h-96 bg-gradient-primary opacity-20 sm:opacity-30 rounded-full blur-2xl sm:blur-3xl"
-          animate={{
-            y: [0, -50, 0],
-            x: [0, 30, 0],
-            scale: [1, 1.2, 1],
-          }}
-          transition={{
-            duration: 15,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-        />
-        <motion.div
-          className="absolute top-1/2 right-4 sm:right-10 lg:right-20 w-40 h-40 sm:w-60 sm:h-60 lg:w-80 lg:h-80 bg-gradient-secondary opacity-15 sm:opacity-25 rounded-full blur-2xl sm:blur-3xl"
-          animate={{
-            y: [0, 60, 0],
-            x: [0, -40, 0],
-            scale: [1, 1.3, 1],
-          }}
-          transition={{
-            duration: 18,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: 3
-          }}
-        />
-        <motion.div
-          className="absolute bottom-20 left-1/4 sm:left-1/3 w-36 h-36 sm:w-56 sm:h-56 lg:w-72 lg:h-72 bg-gradient-ocean opacity-10 sm:opacity-20 rounded-full blur-xl sm:blur-3xl"
-          animate={{
-            y: [0, -40, 0],
-            x: [0, 50, 0],
-            scale: [1, 1.15, 1],
-          }}
-          transition={{
-            duration: 12,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: 6
-          }}
-        />
-        <motion.div
-          className="absolute top-10 right-1/4 sm:right-1/3 w-32 h-32 sm:w-48 sm:h-48 lg:w-64 lg:h-64 bg-gradient-sunset opacity-15 sm:opacity-25 rounded-full blur-xl sm:blur-2xl"
-          animate={{
-            y: [0, 35, 0],
-            x: [0, -25, 0],
-            scale: [1, 1.1, 1],
-          }}
-          transition={{
-            duration: 10,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: 2
-          }}
-        />
+        <div className="absolute top-20 left-4 sm:left-10 lg:left-20 w-48 h-48 sm:w-72 sm:h-72 lg:w-96 lg:h-96 bg-gradient-primary opacity-20 sm:opacity-30 rounded-full blur-2xl sm:blur-3xl" />
+        <div className="absolute top-1/2 right-4 sm:right-10 lg:right-20 w-40 h-40 sm:w-60 sm:h-60 lg:w-80 lg:h-80 bg-gradient-secondary opacity-15 sm:opacity-25 rounded-full blur-2xl sm:blur-3xl" />
+        <div className="absolute bottom-20 left-1/4 sm:left-1/3 w-36 h-36 sm:w-56 sm:h-56 lg:w-72 lg:h-72 bg-gradient-ocean opacity-10 sm:opacity-20 rounded-full blur-xl sm:blur-3xl" />
+        <div className="absolute top-10 right-1/4 sm:right-1/3 w-32 h-32 sm:w-48 sm:h-48 lg:w-64 lg:h-64 bg-gradient-sunset opacity-15 sm:opacity-25 rounded-full blur-xl sm:blur-2xl" />
       </div>
 
       <Navigation navigate={handleNavigation} />
@@ -103,6 +61,15 @@ const LandingPage = React.memo(() => {
 
 const Navigation = ({ navigate }) => {
   const { t } = useLanguage();
+  
+  const handleLoginClick = () => {
+    console.log('🔥 User clicked Sign In from navigation');
+    analytics.trackUserEngagement('login_intent', {
+      source: 'navigation',
+      button_type: 'sign_in'
+    });
+    navigate('/login');
+  };
   
   return (
     <motion.nav 
@@ -132,7 +99,7 @@ const Navigation = ({ navigate }) => {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => navigate('/login')}
+              onClick={handleLoginClick}
               className="btn-ghost text-sm sm:text-base px-4 py-2 sm:px-6 sm:py-3"
             >
               {t('signIn')}
@@ -148,6 +115,15 @@ const HeroSection = ({ navigate }) => {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true });
   const { t } = useLanguage();
+
+  const handleTryFreeClick = () => {
+    console.log('🔥 User clicked Try Free button');
+    analytics.trackUserEngagement('login_intent', {
+      source: 'hero_section',
+      button_type: 'try_free'
+    });
+    navigate('/login');
+  };
 
   return (
     <section ref={ref} className="relative pt-20 sm:pt-28 lg:pt-32 pb-12 sm:pb-16 lg:pb-20 px-4 sm:px-6">
@@ -189,7 +165,7 @@ const HeroSection = ({ navigate }) => {
               <motion.button
                 whileHover={{ scale: 1.05, boxShadow: "var(--shadow-glow-primary)" }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => navigate('/login')}
+                onClick={handleTryFreeClick}
                 className="btn-primary text-base sm:text-lg lg:text-xl py-4 sm:py-5 px-8 sm:px-10 shadow-glow-primary w-full sm:w-auto"
               >
                 {t('tryFree')}
@@ -547,6 +523,15 @@ const FinalCTASection = ({ navigate }) => {
   const isInView = useInView(ref, { once: true });
   const { t } = useLanguage();
 
+  const handleStartStylingClick = () => {
+    console.log('🔥 User clicked Start Styling button');
+    analytics.trackUserEngagement('login_intent', {
+      source: 'final_cta',
+      button_type: 'start_styling'
+    });
+    navigate('/login');
+  };
+
   return (
     <section ref={ref} className="py-16 sm:py-20 lg:py-24 px-4 sm:px-6">
       <div className="max-w-5xl mx-auto text-center">
@@ -566,7 +551,7 @@ const FinalCTASection = ({ navigate }) => {
           <motion.button
             whileHover={{ scale: 1.05, boxShadow: "var(--shadow-glow-primary)" }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => navigate('/login')}
+            onClick={handleStartStylingClick}
             className="btn-primary text-lg sm:text-xl lg:text-2xl px-10 sm:px-12 lg:px-16 py-5 sm:py-6 w-full sm:w-auto"
           >
             {t('startStyling')}
