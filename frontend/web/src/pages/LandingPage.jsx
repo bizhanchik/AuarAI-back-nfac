@@ -39,12 +39,63 @@ const LandingPage = React.memo(() => {
 
   return (
     <div className="min-h-screen relative overflow-hidden">
-      {/* Static Optimized Background Elements - PERFORMANCE: Removed infinite animations */}
+      {/* Responsive Floating Background Elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-4 sm:left-10 lg:left-20 w-48 h-48 sm:w-72 sm:h-72 lg:w-96 lg:h-96 bg-gradient-primary opacity-20 sm:opacity-30 rounded-full blur-2xl sm:blur-3xl" />
-        <div className="absolute top-1/2 right-4 sm:right-10 lg:right-20 w-40 h-40 sm:w-60 sm:h-60 lg:w-80 lg:h-80 bg-gradient-secondary opacity-15 sm:opacity-25 rounded-full blur-2xl sm:blur-3xl" />
-        <div className="absolute bottom-20 left-1/4 sm:left-1/3 w-36 h-36 sm:w-56 sm:h-56 lg:w-72 lg:h-72 bg-gradient-ocean opacity-10 sm:opacity-20 rounded-full blur-xl sm:blur-3xl" />
-        <div className="absolute top-10 right-1/4 sm:right-1/3 w-32 h-32 sm:w-48 sm:h-48 lg:w-64 lg:h-64 bg-gradient-sunset opacity-15 sm:opacity-25 rounded-full blur-xl sm:blur-2xl" />
+        <motion.div
+          className="absolute top-20 left-4 sm:left-10 lg:left-20 w-48 h-48 sm:w-72 sm:h-72 lg:w-96 lg:h-96 bg-gradient-primary opacity-20 sm:opacity-30 rounded-full blur-2xl sm:blur-3xl"
+          animate={{
+            y: [0, -50, 0],
+            x: [0, 30, 0],
+            scale: [1, 1.2, 1],
+          }}
+          transition={{
+            duration: 15,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
+        <motion.div
+          className="absolute top-1/2 right-4 sm:right-10 lg:right-20 w-40 h-40 sm:w-60 sm:h-60 lg:w-80 lg:h-80 bg-gradient-secondary opacity-15 sm:opacity-25 rounded-full blur-2xl sm:blur-3xl"
+          animate={{
+            y: [0, 60, 0],
+            x: [0, -40, 0],
+            scale: [1, 1.3, 1],
+          }}
+          transition={{
+            duration: 18,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 3
+          }}
+        />
+        <motion.div
+          className="absolute bottom-20 left-1/4 sm:left-1/3 w-36 h-36 sm:w-56 sm:h-56 lg:w-72 lg:h-72 bg-gradient-ocean opacity-10 sm:opacity-20 rounded-full blur-xl sm:blur-3xl"
+          animate={{
+            y: [0, -40, 0],
+            x: [0, 50, 0],
+            scale: [1, 1.15, 1],
+          }}
+          transition={{
+            duration: 12,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 6
+          }}
+        />
+        <motion.div
+          className="absolute top-10 right-1/4 sm:right-1/3 w-32 h-32 sm:w-48 sm:h-48 lg:w-64 lg:h-64 bg-gradient-sunset opacity-15 sm:opacity-25 rounded-full blur-xl sm:blur-2xl"
+          animate={{
+            y: [0, 35, 0],
+            x: [0, -25, 0],
+            scale: [1, 1.1, 1],
+          }}
+          transition={{
+            duration: 10,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 2
+          }}
+        />
       </div>
 
       <Navigation navigate={handleNavigation} />

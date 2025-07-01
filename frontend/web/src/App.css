@@ -80,34 +80,35 @@ a, button, [role="button"] {
   box-sizing: border-box;
 }
 
-/* Optimized GPU acceleration - will-change only during animation */
+/* GPU acceleration for smooth animations */
 .transform,
 .hover\:scale-105:hover,
 .hover\:-translate-y-2:hover,
 .transition-transform {
   transform: translateZ(0);
+  will-change: transform;
   backface-visibility: hidden;
-  /* will-change removed - applied only when needed */
+  perspective: 1000px;
 }
 
-/* Optimize backdrop blur performance - Use solid backgrounds instead */
+/* Optimize backdrop blur performance */
 .backdrop-blur-sm,
 .backdrop-blur-xl {
-  background-color: rgba(255, 255, 255, 0.9);
-  /* Removed backdrop-filter for better performance */
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 
-/* Optimized paint operations - will-change removed */
+/* Reduce paint operations */
 .bg-gradient-to-r,
 .bg-gradient-to-br,
 .bg-gradient-to-l {
-  /* will-change removed for better performance */
+  will-change: background;
 }
 
-/* Optimized hover effects - will-change removed */
+/* Optimize hover effects */
 .group:hover .group-hover\:shadow-xl,
 .group:hover .group-hover\:shadow-2xl {
-  /* will-change removed for better performance */
+  will-change: box-shadow;
 }
 
 /* Smooth scroll optimization */

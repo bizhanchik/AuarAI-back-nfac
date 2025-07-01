@@ -46,10 +46,10 @@ function ProtectedRoute({ children }) {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
-        {/* Static Background - PERFORMANCE: Removed animate-gradient */}
+        {/* Fashion Loading Animation */}
         <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-gradient-mystical opacity-20"></div>
-          <div className="absolute inset-0 bg-gradient-sunset opacity-30"></div>
+          <div className="absolute inset-0 bg-gradient-mystical opacity-20 animate-gradient"></div>
+          <div className="absolute inset-0 animate-gradient bg-gradient-sunset opacity-30"></div>
         </div>
         
         <div className="relative z-10 flex flex-col items-center space-y-8">
@@ -86,7 +86,7 @@ function App() {
     }
     
     // Track user engagement after a short delay
-    const engagementTimer = setTimeout(() => {
+    setTimeout(() => {
       analytics.trackUserEngagement('initial_load', {
         is_first_visit: isFirstVisit,
         user_agent: navigator.userAgent,
@@ -94,29 +94,20 @@ function App() {
       });
     }, 3000);
     
-    // Debug analytics only in development
-    let debugTimer;
-    if (window.location.hostname === 'localhost') {
-      debugTimer = setTimeout(() => {
-        analytics.debugAnalytics();
-      }, 2000);
+    // Debug analytics after a short delay to ensure GA is loaded
+    setTimeout(() => {
+      analytics.debugAnalytics();
+    }, 2000);
 
-      // Make analytics available globally for testing (dev only)
-      window.testAllAnalytics = () => analytics.testAllEvents();
-      window.forceTestLogin = () => analytics.forceTestLogin();
-      window.analytics = analytics;
-      
-      console.log('🧪 Available test commands:');
-      console.log('  - testAllAnalytics() - Test all events');
-      console.log('  - forceTestLogin() - Force test login event');
-      console.log('  - analytics.debugAnalytics() - Enhanced debugging');
-    }
-
-    // Cleanup timers
-    return () => {
-      clearTimeout(engagementTimer);
-      if (debugTimer) clearTimeout(debugTimer);
-    };
+    // Make analytics available globally for testing
+    window.testAllAnalytics = () => analytics.testAllEvents();
+    window.forceTestLogin = () => analytics.forceTestLogin();
+    window.analytics = analytics;
+    
+    console.log('🧪 Available test commands:');
+    console.log('  - testAllAnalytics() - Test all events');
+    console.log('  - forceTestLogin() - Force test login event');
+    console.log('  - analytics.debugAnalytics() - Enhanced debugging');
   }, []);
 
   return (

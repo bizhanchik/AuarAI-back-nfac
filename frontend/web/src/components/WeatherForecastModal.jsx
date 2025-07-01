@@ -424,9 +424,13 @@ const WeatherForecastModal = ({ isOpen, onClose, clothingItems = [] }) => {
               {loading ? (
                 <div className="flex-1 flex items-center justify-center p-8">
                   <div className="text-center">
-                    <div className="w-16 h-16 mx-auto mb-6">
+                    <motion.div 
+                      className="w-16 h-16 mx-auto mb-6"
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                    >
                       <SparklesIcon className="h-16 w-16 text-blue-600" />
-                    </div>
+                    </motion.div>
                     <h3 className="text-2xl font-bold text-neutral-dark mb-4 font-heading">
                       {t('creatingOutfits')}
                     </h3>

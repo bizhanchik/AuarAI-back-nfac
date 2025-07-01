@@ -5,21 +5,18 @@ class AnalyticsService {
     this.measurementId = 'G-EH59M60G1Z';
   }
 
-  // Optimized event tracking with reduced retries
+  // Safe event tracking with retry mechanism
   safeTrackEvent(eventName, eventData, retryCount = 0) {
-    const maxRetries = 1; // Reduced from 3 to 1
+    const maxRetries = 3;
     
     if (!this.isEnabled || typeof window === 'undefined' || !window.gtag) {
-      // Only log in development
-      if (window.location.hostname === 'localhost') {
-        console.warn(`❌ Analytics not ready for event: ${eventName}`);
-      }
+      console.warn(`❌ Analytics not ready for event: ${eventName}`);
       
-      // Retry only once after short delay
+      // Retry after delay if analytics not ready
       if (retryCount < maxRetries) {
         setTimeout(() => {
           this.safeTrackEvent(eventName, eventData, retryCount + 1);
-        }, 500); // Reduced delay
+        }, 1000 * (retryCount + 1));
       }
       return;
     }
@@ -34,12 +31,10 @@ class AnalyticsService {
       };
 
       window.gtag('event', eventName, enrichedData);
+      console.log(`✅ Analytics event sent: ${eventName}`, enrichedData);
       
-      // Only log in development
-      if (window.location.hostname === 'localhost') {
-        console.log(`✅ Analytics event sent: ${eventName}`, enrichedData);
-        console.log('📊 Current dataLayer length:', window.dataLayer ? window.dataLayer.length : 'N/A');
-      }
+      // Also log to dataLayer for debugging
+      console.log('📊 Current dataLayer length:', window.dataLayer ? window.dataLayer.length : 'N/A');
       
     } catch (error) {
       console.error(`❌ Failed to send analytics event: ${eventName}`, error);

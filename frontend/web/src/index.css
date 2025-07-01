@@ -1,4 +1,4 @@
-/* Font imports removed - using optimized fonts from HTML head */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&family=Inter:wght@100;200;300;400;500;600;700;800;900&family=Montserrat:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
 
 @font-face {
   font-family: 'Calora';
@@ -136,83 +136,47 @@
     right: 0;
     bottom: 0;
     background: 
-      radial-gradient(circle at 20% 20%, rgba(156, 205, 219, 0.15) 0%, transparent 50%),
-      radial-gradient(circle at 80% 80%, rgba(149, 158, 201, 0.15) 0%, transparent 50%),
-      radial-gradient(circle at 50% 50%, rgba(87, 144, 171, 0.08) 0%, transparent 70%);
+      radial-gradient(circle at 20% 20%, rgba(156, 205, 219, 0.2) 0%, transparent 50%),
+      radial-gradient(circle at 80% 80%, rgba(149, 158, 201, 0.2) 0%, transparent 50%),
+      radial-gradient(circle at 50% 50%, rgba(87, 144, 171, 0.1) 0%, transparent 70%);
     z-index: -1;
-    /* REMOVED: animation causing constant GPU load */
+    animation: subtle-move 20s ease-in-out infinite;
   }
   
-  /* Optimized Typography - Including restored Poppins font */
+  /* BOLD Fashion Typography */
   .font-display {
-    font-family: 'Outfit', 'Inter', sans-serif;
+    font-family: 'Poppins', 'Montserrat', serif;
     font-weight: 800;
     letter-spacing: -0.03em;
   }
   
   .font-calora {
-    font-family: 'Calora', 'Outfit', serif;
+    font-family: 'Calora', 'Poppins', serif;
     font-weight: normal;
     letter-spacing: -0.02em;
   }
   
   .font-heading {
-    font-family: 'Outfit', 'Inter', sans-serif;
+    font-family: 'Poppins', 'Montserrat', sans-serif;
     font-weight: 700;
     letter-spacing: -0.025em;
   }
   
   .font-subheading {
-    font-family: 'Outfit', 'Inter', sans-serif;
+    font-family: 'Poppins', 'Montserrat', sans-serif;
     font-weight: 600;
     letter-spacing: -0.015em;
   }
   
   .font-body {
-    font-family: 'Inter', sans-serif;
+    font-family: 'Inter', 'Montserrat', sans-serif;
     font-weight: 400;
   }
   
   .font-elegant {
-    font-family: 'Inter', serif;
-    font-style: normal;
-    font-weight: 600;
-  }
-  
-  /* RESTORED: Poppins font utilities */
-  .font-poppins {
-    font-family: 'Poppins', 'Inter', sans-serif;
-    font-weight: 400;
-  }
-  
-  .font-poppins-light {
-    font-family: 'Poppins', 'Inter', sans-serif;
-    font-weight: 300;
-    letter-spacing: -0.01em;
-  }
-  
-  .font-poppins-medium {
-    font-family: 'Poppins', 'Inter', sans-serif;
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
     font-weight: 500;
-    letter-spacing: -0.015em;
-  }
-  
-  .font-poppins-semibold {
-    font-family: 'Poppins', 'Inter', sans-serif;
-    font-weight: 600;
-    letter-spacing: -0.02em;
-  }
-  
-  .font-poppins-bold {
-    font-family: 'Poppins', 'Inter', sans-serif;
-    font-weight: 700;
-    letter-spacing: -0.025em;
-  }
-  
-  .font-poppins-extrabold {
-    font-family: 'Poppins', 'Inter', sans-serif;
-    font-weight: 800;
-    letter-spacing: -0.03em;
   }
 }
 
@@ -223,14 +187,13 @@
     background: var(--gradient-primary);
     color: white;
     box-shadow: var(--shadow-glow-primary);
-    font-family: 'Outfit', 'Inter', sans-serif;
+    font-family: 'Poppins', sans-serif;
     font-weight: 700;
     border: 2px solid transparent;
   }
   
   .btn-primary:hover {
     transform: scale(1.05);
-    box-shadow: var(--shadow-glow-primary), 0 8px 25px rgba(87, 144, 171, 0.3);
   }
   
   .btn-secondary {
@@ -238,19 +201,18 @@
     background: var(--gradient-secondary);
     color: white;
     box-shadow: var(--shadow-glow-secondary);
-    font-family: 'Outfit', 'Inter', sans-serif;
+    font-family: 'Poppins', sans-serif;
     font-weight: 700;
     border: 2px solid transparent;
   }
   
   .btn-secondary:hover {
     transform: scale(1.05);
-    box-shadow: var(--shadow-glow-secondary), 0 8px 25px rgba(149, 158, 201, 0.3);
   }
   
   .btn-google {
     @apply px-8 py-4 font-bold rounded-2xl shadow-medium transform transition-transform duration-150 ease-out focus:outline-none focus:ring-2 focus:ring-offset-2 bg-white text-gray-900 border-2;
-    font-family: 'Outfit', 'Inter', sans-serif;
+    font-family: 'Poppins', sans-serif;
     font-weight: 600;
     border-color: rgba(0, 0, 0, 0.1);
   }
@@ -260,13 +222,11 @@
   }
   
   .btn-ghost {
-    @apply px-8 py-4 font-semibold rounded-2xl border-2 transform transition-transform duration-150 ease-out focus:outline-none focus:ring-2 focus:ring-offset-2;
-    background: rgba(87, 144, 171, 0.15);
-    backdrop-filter: blur(4px); /* Light blur for glass effect */
-    -webkit-backdrop-filter: blur(4px);
+    @apply px-8 py-4 font-semibold rounded-2xl border-2 backdrop-blur-sm transform transition-transform duration-150 ease-out focus:outline-none focus:ring-2 focus:ring-offset-2;
+    background: rgba(87, 144, 171, 0.1);
     border-color: var(--primary-light);
     color: var(--primary-dark);
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Poppins', sans-serif;
     font-weight: 600;
   }
   
@@ -274,40 +234,32 @@
     transform: scale(1.05);
   }
   
-  /* Beautiful Glass Cards - Optimized performance */
+  /* Luxurious Card Styles */
   .card-premium {
-    @apply rounded-3xl shadow-bold border transition-transform duration-150 ease-out;
-    background: rgba(249, 244, 232, 0.85);
-    backdrop-filter: blur(6px); /* Light blur for premium feel */
-    -webkit-backdrop-filter: blur(6px);
+    @apply rounded-3xl shadow-bold border backdrop-blur-sm transition-transform duration-150 ease-out;
+    background: rgba(249, 244, 232, 0.95);
     border-color: var(--accent-dark);
     border-width: 2px;
   }
   
   .card-premium:hover {
     transform: translateY(-2px) scale(1.01);
-    background: rgba(249, 244, 232, 0.9);
   }
   
   .card-glass {
-    @apply rounded-3xl shadow-medium border transition-transform duration-150 ease-out;
-    background: rgba(156, 205, 219, 0.2);
-    backdrop-filter: blur(8px); /* Stronger blur for glass effect */
-    -webkit-backdrop-filter: blur(8px);
+    @apply rounded-3xl shadow-medium border backdrop-blur-md transition-transform duration-150 ease-out;
+    background: rgba(156, 205, 219, 0.15);
     border-color: rgba(87, 144, 171, 0.3);
     border-width: 2px;
   }
   
   .card-glass:hover {
     transform: translateY(-2px) scale(1.01);
-    background: rgba(156, 205, 219, 0.3);
   }
   
   .card-elegant {
-    @apply rounded-2xl shadow-bold border-2 transition-transform duration-150 ease-out;
-    background: rgba(244, 235, 222, 0.8);
-    backdrop-filter: blur(4px); /* Subtle blur for elegance */
-    -webkit-backdrop-filter: blur(4px);
+    @apply rounded-2xl shadow-bold border-2 backdrop-blur-sm transition-transform duration-150 ease-out;
+    background: rgba(244, 235, 222, 0.9);
     border-color: var(--secondary-light);
   }
   
@@ -315,38 +267,35 @@
     transform: translateY(-2px) scale(1.01);
   }
   
-  /* Beautiful Weather Widget */
+  /* Weather Widget Styles */
   .weather-widget {
-    @apply flex items-center space-x-4 px-6 py-4 rounded-3xl shadow-bold border-2;
-    background: rgba(255, 255, 255, 0.15);
-    backdrop-filter: blur(10px); /* Strong blur for weather widget */
-    -webkit-backdrop-filter: blur(10px);
-    border-color: rgba(255, 255, 255, 0.3);
+    @apply flex items-center space-x-4 px-6 py-4 rounded-3xl shadow-bold border-2 backdrop-blur-md;
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
     transition: all 0.15s ease;
   }
   
   .weather-widget:hover {
-    background: rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.15);
     box-shadow: var(--shadow-glow-primary);
     transform: translateY(-2px);
   }
   
   .weather-icon {
     @apply w-12 h-12 rounded-2xl flex items-center justify-center;
-    background: rgba(255, 255, 255, 0.3);
-    backdrop-filter: blur(6px); /* Icon blur effect */
-    -webkit-backdrop-filter: blur(6px);
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
   }
   
   .weather-temp {
     @apply text-2xl font-extra-bold text-white;
-    font-family: 'Outfit', 'Inter', sans-serif;
+    font-family: 'Poppins', sans-serif;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
   
   .weather-location {
     @apply text-sm font-medium text-white/90;
-    font-family: 'Outfit', 'Inter', sans-serif;
+    font-family: 'Poppins', sans-serif;
   }
   
   .weather-condition {
@@ -376,138 +325,18 @@
     background-clip: text;
   }
   
-  /* Optimized Navigation - PERFORMANCE: Reduced blur for GPU efficiency */
+  /* Glass Morphism Navigation */
   .nav-glass {
-    background: linear-gradient(135deg, 
-      rgba(156, 205, 219, 0.95) 0%,
-      rgba(156, 205, 219, 0.85) 50%,
-      rgba(87, 144, 171, 0.75) 100%
-    );
-    backdrop-filter: blur(4px); /* REDUCED: 12px -> 4px for performance */
-    -webkit-backdrop-filter: blur(4px);
-    border-bottom: 1px solid rgba(156, 205, 219, 0.3);
-    box-shadow: 
-      0 4px 16px rgba(87, 144, 171, 0.15),
-      0 2px 8px rgba(156, 205, 219, 0.1),
-      inset 0 1px 0 rgba(255, 255, 255, 0.2);
-    position: relative;
+    background: rgba(249, 244, 232, 0.1);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(232, 234, 231, 0.2);
+    box-shadow: 0 8px 32px rgba(40, 38, 75, 0.1);
   }
   
-
-  
-  /* Modern Navigation Styles */
-  .nav-modern {
-    background: linear-gradient(135deg, 
-      rgba(87, 144, 171, 0.95) 0%,
-      rgba(49, 76, 111, 0.9) 50%,
-      rgba(40, 38, 75, 0.85) 100%
-    );
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(156, 205, 219, 0.2);
-    box-shadow: 
-      0 8px 32px rgba(40, 38, 75, 0.3),
-      0 4px 16px rgba(0, 0, 0, 0.1),
-      inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  }
-  
-  /* Elegant Floating Navigation */
-  .nav-floating {
-    background: rgba(255, 255, 255, 0.9);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(87, 144, 171, 0.2);
-    border-radius: 24px;
-    margin: 12px 16px;
-    box-shadow: 
-      0 20px 40px rgba(40, 38, 75, 0.1),
-      0 8px 16px rgba(87, 144, 171, 0.05),
-      inset 0 1px 0 rgba(255, 255, 255, 0.5);
-    transition: all 0.3s ease;
-  }
-  
-  .nav-floating:hover {
-    transform: translateY(-2px);
-    box-shadow: 
-      0 24px 48px rgba(40, 38, 75, 0.12),
-      0 12px 20px rgba(87, 144, 171, 0.08),
-      inset 0 1px 0 rgba(255, 255, 255, 0.6);
-  }
-  
-  /* Premium Logo Background - Blue Theme */
+  /* White Logo Background */
   .logo-white-bg {
-    background: linear-gradient(135deg, 
-      rgba(255, 255, 255, 1) 0%,
-      rgba(249, 244, 232, 0.98) 100%
-    ) !important;
-    box-shadow: 
-      0 8px 24px rgba(49, 76, 111, 0.25),
-      0 4px 8px rgba(87, 144, 171, 0.15),
-      inset 0 1px 0 rgba(255, 255, 255, 0.9);
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    transition: all 0.3s ease;
-  }
-  
-  .logo-white-bg:hover {
-    transform: scale(1.05);
-    box-shadow: 
-      0 12px 32px rgba(49, 76, 111, 0.3),
-      0 6px 12px rgba(87, 144, 171, 0.2),
-      inset 0 1px 0 rgba(255, 255, 255, 1);
-  }
-  
-  /* Navigation Button Styles - Light Blue Theme */
-  .nav-button {
-    background: linear-gradient(135deg, 
-      rgba(255, 255, 255, 0.7) 0%,
-      rgba(255, 255, 255, 0.5) 100%
-    );
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-    border: none;
-    color: var(--neutral-dark);
-    font-family: 'Outfit', 'Inter', sans-serif;
-    font-weight: 600;
-    padding: 12px 24px;
-    border-radius: 16px;
-    transition: all 0.2s ease;
-    box-shadow: 
-      0 2px 4px rgba(87, 144, 171, 0.1),
-      inset 0 1px 0 rgba(255, 255, 255, 0.8);
-  }
-  
-  .nav-button:hover {
-    background: linear-gradient(135deg, 
-      rgba(255, 255, 255, 0.9) 0%,
-      rgba(255, 255, 255, 0.7) 100%
-    );
-    transform: translateY(-1px);
-    box-shadow: 
-      0 4px 8px rgba(87, 144, 171, 0.15),
-      inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  }
-  
-  .nav-button-primary {
-    background: var(--gradient-primary);
-    border: none;
-    color: white;
-    font-family: 'Outfit', 'Inter', sans-serif;
-    font-weight: 700;
-    padding: 12px 24px;
-    border-radius: 16px;
-    transition: all 0.2s ease;
-    box-shadow: 
-      0 4px 8px rgba(87, 144, 171, 0.3),
-      0 2px 4px rgba(49, 76, 111, 0.1),
-      inset 0 1px 0 rgba(156, 205, 219, 0.3);
-  }
-  
-  .nav-button-primary:hover {
-    transform: translateY(-2px) scale(1.02);
-    box-shadow: 
-      0 8px 16px rgba(87, 144, 171, 0.4),
-      0 4px 8px rgba(49, 76, 111, 0.2),
-      inset 0 1px 0 rgba(156, 205, 219, 0.4);
+    background: white !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   }
 }
 
@@ -559,140 +388,33 @@
     transform: translateY(-2px) scale(1.01);
   }
   
-  /* Optimized Glass Effects - PERFORMANCE: Reduced blur for better GPU performance */
+  /* Glass Morphism Variants */
   .glass-light {
-    background: rgba(249, 244, 232, 0.6); /* INCREASED opacity to compensate for less blur */
-    backdrop-filter: blur(4px); /* REDUCED: 12px -> 4px */
-    -webkit-backdrop-filter: blur(4px);
-    border: 1px solid rgba(249, 244, 232, 0.4);
+    background: rgba(249, 244, 232, 0.2);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(249, 244, 232, 0.3);
   }
   
   .glass-dark {
-    background: rgba(40, 38, 75, 0.6); /* INCREASED opacity to compensate for less blur */
-    backdrop-filter: blur(4px); /* REDUCED: 12px -> 4px */
-    -webkit-backdrop-filter: blur(4px);
-    border: 1px solid rgba(40, 38, 75, 0.4);
+    background: rgba(40, 38, 75, 0.2);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(40, 38, 75, 0.3);
   }
   
   .glass-primary {
-    background: rgba(87, 144, 171, 0.5); /* INCREASED opacity to compensate for less blur */
-    backdrop-filter: blur(3px); /* REDUCED: 10px -> 3px */
-    -webkit-backdrop-filter: blur(3px);
-    border: 1px solid rgba(87, 144, 171, 0.3);
+    background: rgba(87, 144, 171, 0.15);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(87, 144, 171, 0.25);
   }
 }
 
-/* Optimized Keyframe Animations with reduced motion support */
+/* Exquisite Keyframe Animations */
 @keyframes float {
   0%, 100% {
     transform: translateY(0px);
   }
   50% {
-    transform: translateY(-10px); /* Reduced motion amplitude */
-  }
-}
-
-/* Respect user's motion preferences - Enhanced */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
-  
-  /* Disable all problematic animations */
-  .animate-gradient,
-  .animate-breath,
-  .animate-subtle-move,
-  .animate-float,
-  .animate-shimmer,
-  .animate-glow {
-    animation: none !important;
-  }
-  
-  /* Disable backdrop-filter for better performance */
-  .nav-glass,
-  .nav-modern,
-  .nav-floating,
-  .card-glass,
-  .card-premium,
-  .card-elegant,
-  .weather-widget,
-  .weather-icon,
-  .glass-light,
-  .glass-dark,
-  .glass-primary,
-  .btn-ghost {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-  }
-  
-  /* Simplified navigation styles for reduced motion */
-  .nav-floating:hover {
-    transform: none !important;
-  }
-  
-  .nav-button:hover,
-  .nav-button-primary:hover {
-    transform: none !important;
-  }
-  
-  /* Static background for reduced motion */
-  body::after {
-    animation: none !important;
-  }
-}
-
-/* Mobile optimization - PERFORMANCE: Further reduced blur for mobile devices */
-@media (max-width: 768px) {
-  .nav-glass {
-    backdrop-filter: blur(2px) !important; /* FURTHER REDUCED: 6px -> 2px */
-    -webkit-backdrop-filter: blur(2px) !important;
-    background: linear-gradient(135deg, 
-      rgba(156, 205, 219, 0.95) 0%,
-      rgba(156, 205, 219, 0.85) 50%,
-      rgba(87, 144, 171, 0.8) 100%
-    ) !important;
-  }
-  
-  .nav-modern {
-    backdrop-filter: blur(2px) !important; /* REDUCED: 6px -> 2px */
-    -webkit-backdrop-filter: blur(2px) !important;
-  }
-  
-  .nav-floating {
-    backdrop-filter: blur(3px) !important; /* REDUCED: 8px -> 3px */
-    -webkit-backdrop-filter: blur(3px) !important;
-    margin: 8px 12px !important;
-    border-radius: 20px !important;
-  }
-  
-  .nav-button,
-  .nav-button-primary {
-    padding: 10px 20px !important;
-    font-size: 14px !important;
-    border-radius: 14px !important;
-    border: none !important;
-  }
-  
-  .card-glass,
-  .glass-light,
-  .glass-dark {
-    backdrop-filter: blur(2px) !important; /* FURTHER REDUCED: 6px -> 2px */
-    -webkit-backdrop-filter: blur(2px) !important;
-  }
-  
-  .weather-widget {
-    backdrop-filter: blur(2px) !important; /* FURTHER REDUCED: 6px -> 2px */
-    -webkit-backdrop-filter: blur(2px) !important;
-  }
-  
-  .glass-primary {
-    backdrop-filter: blur(2px) !important; /* FURTHER REDUCED: 5px -> 2px */
-    -webkit-backdrop-filter: blur(2px) !important;
+    transform: translateY(-20px);
   }
 }
 
@@ -776,10 +498,8 @@
 }
 
 .language-dropdown {
-  @apply absolute top-full right-0 mt-2 py-2 rounded-xl shadow-bold border z-50;
-  background: rgba(249, 244, 232, 0.95); /* INCREASED opacity for less blur */
-  backdrop-filter: blur(3px); /* REDUCED: 8px -> 3px for performance */
-  -webkit-backdrop-filter: blur(3px);
+  @apply absolute top-full right-0 mt-2 py-2 rounded-xl shadow-bold border backdrop-blur-md z-50;
+  background: var(--gradient-accent);
   border-color: var(--accent-dark);
   min-width: 160px;
 }
@@ -798,7 +518,7 @@
   color: white;
 }
 
-/* Static Fashion Loader - PERFORMANCE: Removed infinite animation */
+/* Fashion Industry Loading Animation */
 .fashion-loader {
   position: relative;
   width: 80px;
@@ -810,15 +530,14 @@
   content: '';
   position: absolute;
   border-radius: 50%;
-  /* REMOVED: animation causing GPU load */
+  animation: fashion-pulse 2s ease-in-out infinite;
 }
 
 .fashion-loader::before {
   width: 100%;
   height: 100%;
   background: var(--gradient-primary);
-  opacity: 0.8;
-  transform: scale(0.7);
+  animation-delay: -1s;
 }
 
 .fashion-loader::after {
@@ -827,8 +546,15 @@
   top: 10%;
   left: 10%;
   background: var(--gradient-secondary);
-  opacity: 0.6;
-  transform: scale(0.8);
 }
 
-/* REMOVED: @keyframes fashion-pulse to eliminate infinite animation */
+@keyframes fashion-pulse {
+  0%, 100% {
+    transform: scale(0);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+}

@@ -83,8 +83,18 @@ const SkeletonClothingItem = ({ previewData, index }) => {
           </div>
         </div>
 
-        {/* Static Border - PERFORMANCE: Removed pulsing animation */}
-        <div className="absolute inset-0 rounded-lg sm:rounded-xl md:rounded-2xl border-2 border-blue-400/50 opacity-70" />
+        {/* Pulsing Animation */}
+        <motion.div
+          className="absolute inset-0 rounded-lg sm:rounded-xl md:rounded-2xl border-2 border-blue-400/50"
+          animate={{
+            opacity: [0.5, 1, 0.5],
+          }}
+          transition={{
+            duration: 2,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
       </div>
     </motion.div>
   );
