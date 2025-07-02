@@ -91,7 +91,7 @@ services:
       - "80:80"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./static:/static  # если ты раздаёшь статику
+      - ./frontend/web/dist:/usr/share/nginx/html
     depends_on:
       - web
     networks:
