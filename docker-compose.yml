@@ -79,7 +79,7 @@ services:
     networks:
       - app-network
     
-    nginx:
+  nginx:
     image: nginx:latest
     ports:
       - "80:80"
