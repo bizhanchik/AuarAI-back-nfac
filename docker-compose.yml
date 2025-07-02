@@ -78,6 +78,17 @@ services:
       - celery_worker
     networks:
       - app-network
+    
+    nginx:
+    image: nginx:latest
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - web
+    networks:
+      - app-network
 
 networks:
   app-network:
