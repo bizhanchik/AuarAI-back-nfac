@@ -229,6 +229,8 @@ pyrightconfig.json
 
 # End of https://www.toptal.com/developers/gitignore/api/python,docker,macos,visualstudiocode
 aurarai-463107-*.json
-auarai-463107-e95671d259f4.json
 firebase-service-account.json
 firebase-service-account.json
+firebase-service-account.json
+firebase-service-account.json
+auarai-*.json

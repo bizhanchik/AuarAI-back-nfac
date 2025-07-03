@@ -12,7 +12,7 @@ def test_new_key():
     
     print("=== Testing New Service Account Key ===\n")
     
-    credentials_file = "auarai-463107-e95671d259f4.json"
+    credentials_file = "firebase-service-account.json"
     bucket_name = "auarai-user-photos"
     
     try:

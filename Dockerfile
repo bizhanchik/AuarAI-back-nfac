@@ -40,7 +40,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Create symlink for GCS credentials to match environment variable path
-RUN ln -sf /app/auarai-463107-e95671d259f4.json /app/gcs-key.json
+RUN ln -sf /app/firebase-service-account.json /app/gcs-key.json
 
 # EXPOSE directive removed to prevent external port access
 
