@@ -66,6 +66,10 @@ services:
     volumes:
       - .:/app:delegated
       - ./firebase-service-account.json:/app/firebase-service-account.json
+      - ./auarai-463107-e95671d259f4.json:/app/auarai-463107-e95671d259f4.json
+
+    environment:
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/auarai-463107-e95671d259f4.json
     networks:
       - app-network
     deploy:
