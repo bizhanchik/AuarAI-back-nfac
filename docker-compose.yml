@@ -93,7 +93,7 @@ services:
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
       - ./frontend/web/dist:/usr/share/nginx/html:ro
-      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /etc/letsencrypt/archive/auarai.com:/etc/letsencrypt/archive/auarai.com:ro
     depends_on:
       - web
     networks:
