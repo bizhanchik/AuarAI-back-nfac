@@ -89,13 +89,16 @@ services:
     container_name: nginx
     ports:
       - "80:80"
+      - "443:443"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./frontend/web/dist:/usr/share/nginx/html
+      - ./frontend/web/dist:/usr/share/nginx/html:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
       - web
     networks:
       - app-network
+
 
 networks:
   app-network:
