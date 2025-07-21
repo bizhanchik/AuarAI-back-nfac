@@ -55,16 +55,21 @@ async def firebase_login(
                     email_verified=True
                 )
         else:
-            # Update existing user info if needed
-            if (user_data.displayName and user.display_name != user_data.displayName) or \
-               (user_data.photoURL and user.photo_url != user_data.photoURL):
+            # Пользователь уже существует - НЕ перезаписываем его данные!
+            # Обновляем только email_verified, если нужно
+            print(f"🔍 Existing user found: {user.email}")
+            print(f"📝 Current display_name: '{user.display_name}'")
+            print(f"📝 Firebase displayName: '{user_data.displayName}'")
+            print(f"🚫 NOT updating user data to preserve manual changes")
+            
+            # Обновляем только email_verified если нужно
+            if not user.email_verified:
                 user = crud.update_firebase_user(
                     db=db,
                     user=user,
-                    display_name=user_data.displayName,
-                    photo_url=user_data.photoURL,
                     email_verified=True
                 )
+                print(f"✅ Updated email_verified to True")
         
         return {
             "success": True,
