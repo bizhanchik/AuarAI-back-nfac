@@ -57,6 +57,7 @@ class FirebaseUserLogin(BaseModel):
 
 class FirebaseUserUpdate(BaseModel):
     display_name: Optional[str] = None
+    name: Optional[str] = None  # Добавляем поддержку поля name для совместимости с фронтендом
     photo_url: Optional[str] = None
 
 class FirebaseUserResponse(BaseModel):

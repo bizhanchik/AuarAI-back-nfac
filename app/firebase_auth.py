@@ -165,7 +165,9 @@ async def get_current_user_firebase(
             )
             logger.info(f"Created new user after cleanup: {user.email}")
     else:
-        logger.info(f"Found existing user: {user.email}")
+        logger.info(f"Found existing user: {user.email} with display_name: '{user.display_name}'")
+        # НЕ обновляем данные существующего пользователя - это важно!
+        # Данные пользователя должны обновляться только через PUT /profile
     
     if user:
         db.refresh(user)

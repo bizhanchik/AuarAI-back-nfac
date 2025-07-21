@@ -52,12 +52,22 @@ def update_firebase_user(
     email_verified: Optional[bool] = None
 ) -> models.User:
     """Update Firebase user information"""
+    updated = False
+    
     if display_name is not None:
         user.display_name = display_name
+        updated = True
     if photo_url is not None:
         user.photo_url = photo_url
+        updated = True
     if email_verified is not None:
         user.email_verified = email_verified
+        updated = True
+    
+    if updated:
+        # Обновляем updated_at только если были изменения
+        from datetime import datetime
+        user.updated_at = datetime.utcnow()
     
     db.commit()
     db.refresh(user)

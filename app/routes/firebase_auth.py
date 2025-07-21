@@ -114,13 +114,25 @@ async def update_user_profile(
     Update user profile information
     """
     try:
+        # Поддерживаем как display_name, так и name для совместимости с фронтендом
+        display_name = profile_data.display_name or profile_data.name
+        
+        print(f"🔄 Updating profile for user {current_user.id}")
+        print(f"📝 Current display_name: '{current_user.display_name}'")
+        print(f"📝 New display_name: '{display_name}'")
+        print(f"📝 Photo URL: '{profile_data.photo_url}'")
+        
         # Update user profile
         updated_user = crud.update_firebase_user(
             db=db,
             user=current_user,
-            display_name=profile_data.display_name,
+            display_name=display_name,
             photo_url=profile_data.photo_url
         )
+        
+        print(f"✅ Profile updated successfully")
+        print(f"📝 Updated display_name: '{updated_user.display_name}'")
+        print(f"📝 Updated at: {updated_user.updated_at}")
         
         return {
             "success": True,
@@ -138,6 +150,7 @@ async def update_user_profile(
             }
         }
     except Exception as e:
+        print(f"❌ Failed to update profile: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to update profile: {str(e)}"
