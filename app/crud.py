@@ -31,37 +31,18 @@ def create_firebase_user(
     email_verified: bool = False
 ) -> models.User:
     """Create a new Firebase user"""
-    try:
-        user = models.User(
-            firebase_uid=firebase_uid,
-            email=email,
-            display_name=display_name,
-            photo_url=photo_url,
-            email_verified=email_verified,
-            is_premium=False
-        )
-        db.add(user)
-        db.commit()
-        db.refresh(user)
-        return user
-    except IntegrityError:
-        db.rollback()
-        # User might already exist, try to get it
-        existing_user = get_user_by_firebase_uid(db, firebase_uid)
-        if existing_user:
-            return existing_user
-        # If still not found, try by email
-        existing_user = get_user_by_email(db, email)
-        if existing_user:
-            # Update existing user with Firebase data
-            existing_user.firebase_uid = firebase_uid
-            existing_user.display_name = display_name or existing_user.display_name
-            existing_user.photo_url = photo_url or existing_user.photo_url
-            existing_user.email_verified = email_verified
-            db.commit()
-            db.refresh(existing_user)
-            return existing_user
-        raise
+    user = models.User(
+        firebase_uid=firebase_uid,
+        email=email,
+        display_name=display_name,
+        photo_url=photo_url,
+        email_verified=email_verified,
+        is_premium=False
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
 
 def update_firebase_user(
     db: Session,
@@ -145,4 +126,14 @@ def delete_clothing_item(
     item_id: int
 ):
     db.query(models.ClothingItem).filter(models.ClothingItem.id == item_id).delete()
+    db.commit()
+
+def delete_user(db: Session, user_id: int):
+    """Delete user and all associated data"""
+    # First delete all clothing items owned by the user
+    db.query(models.ClothingItem).filter(models.ClothingItem.owner_id == user_id).delete()
+    
+    # Then delete the user
+    db.query(models.User).filter(models.User.id == user_id).delete()
+    
     db.commit()

@@ -17,10 +17,16 @@ async def firebase_login(
     This endpoint is called by the frontend after successful Firebase authentication
     """
     try:
-        # Check if user exists
+        # Check if user exists by Firebase UID
         user = crud.get_user_by_firebase_uid(db, user_data.uid)
         
         if not user:
+            # Check if there's an old user with same email (from deleted account)
+            existing_user_by_email = crud.get_user_by_email(db, user_data.email)
+            if existing_user_by_email:
+                # Delete the old user record completely to start fresh
+                crud.delete_user(db, existing_user_by_email.id)
+            
             # Create new user
             user = crud.create_firebase_user(
                 db=db,
@@ -80,18 +86,25 @@ async def get_current_user_info(
         "updated_at": current_user.updated_at
     }
 
-@router.get("/verify-token")
-async def verify_token(
-    token_data: Dict[str, Any] = Depends(firebase_auth.verify_firebase_token)
+@router.delete("/delete-account")
+async def delete_account(
+    current_user = Depends(firebase_auth.get_current_user_firebase),
+    db: Session = Depends(get_db)
 ):
     """
-    Verify Firebase token (useful for debugging)
+    Delete user account and all associated data
     """
-    return {
-        "valid": True,
-        "uid": token_data.get("uid"),
-        "email": token_data.get("email"),
-        "name": token_data.get("name"),
-        "picture": token_data.get("picture"),
-        "email_verified": token_data.get("email_verified", False)
-    } 
+    try:
+        # Delete user from database
+        crud.delete_user(db, current_user.id)
+        
+        return {
+            "success": True,
+            "message": "Account deleted successfully"
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to delete account: {str(e)}"
+        )
