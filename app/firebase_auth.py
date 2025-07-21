@@ -6,6 +6,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import firebase_admin
 from firebase_admin import credentials, auth
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from dotenv import load_dotenv
 import logging
 
@@ -134,15 +135,35 @@ async def get_current_user_firebase(
                 detail="Email is required for user creation"
             )
         
-        user = crud.create_firebase_user(
-            db=db,
-            firebase_uid=firebase_uid,
-            email=email,
-            display_name=display_name,
-            photo_url=photo_url,
-            email_verified=email_verified
-        )
-        logger.info(f"Created new user: {user.email}")
+        try:
+            user = crud.create_firebase_user(
+                db=db,
+                firebase_uid=firebase_uid,
+                email=email,
+                display_name=display_name,
+                photo_url=photo_url,
+                email_verified=email_verified
+            )
+            logger.info(f"Created new user: {user.email}")
+        except IntegrityError:
+            # If there's an email conflict, find and delete the conflicting user
+            db.rollback()
+            logger.info(f"IntegrityError occurred, checking for existing user with email: {email}")
+            existing_user_by_email = crud.get_user_by_email(db, email)
+            if existing_user_by_email:
+                logger.info(f"Deleting existing user with email: {email}")
+                crud.delete_user(db, existing_user_by_email.id)
+            
+            # Try creating the user again
+            user = crud.create_firebase_user(
+                db=db,
+                firebase_uid=firebase_uid,
+                email=email,
+                display_name=display_name,
+                photo_url=photo_url,
+                email_verified=email_verified
+            )
+            logger.info(f"Created new user after cleanup: {user.email}")
     else:
         logger.info(f"Found existing user: {user.email}")
     
@@ -168,4 +189,4 @@ async def get_current_user_websocket_firebase(token: str, db: Session) -> Option
             db.refresh(user)
         return user
     except Exception:
-        return None 
+        return None
