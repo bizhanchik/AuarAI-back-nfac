@@ -90,7 +90,7 @@ async def get_current_user_info(
     current_user = Depends(firebase_auth.get_current_user_firebase)
 ):
     """
-    Get current user information (Firebase version)
+    Get current user information
     """
     return {
         "id": current_user.id,
@@ -103,6 +103,45 @@ async def get_current_user_info(
         "created_at": current_user.created_at,
         "updated_at": current_user.updated_at
     }
+
+@router.put("/profile")
+async def update_user_profile(
+    profile_data: schemas.FirebaseUserUpdate,
+    current_user = Depends(firebase_auth.get_current_user_firebase),
+    db: Session = Depends(get_db)
+):
+    """
+    Update user profile information
+    """
+    try:
+        # Update user profile
+        updated_user = crud.update_firebase_user(
+            db=db,
+            user=current_user,
+            display_name=profile_data.display_name,
+            photo_url=profile_data.photo_url
+        )
+        
+        return {
+            "success": True,
+            "message": "Profile updated successfully",
+            "user": {
+                "id": updated_user.id,
+                "firebase_uid": updated_user.firebase_uid,
+                "email": updated_user.email,
+                "display_name": updated_user.display_name,
+                "photo_url": updated_user.photo_url,
+                "email_verified": updated_user.email_verified,
+                "is_premium": updated_user.is_premium,
+                "created_at": updated_user.created_at,
+                "updated_at": updated_user.updated_at
+            }
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update profile: {str(e)}"
+        )
 
 @router.delete("/delete-account")
 async def delete_account(
