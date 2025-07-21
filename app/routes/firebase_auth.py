@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from typing import Dict, Any
 
 from .. import schemas, crud, firebase_auth
@@ -27,15 +28,32 @@ async def firebase_login(
                 # Delete the old user record completely to start fresh
                 crud.delete_user(db, existing_user_by_email.id)
             
-            # Create new user
-            user = crud.create_firebase_user(
-                db=db,
-                firebase_uid=user_data.uid,
-                email=user_data.email,
-                display_name=user_data.displayName,
-                photo_url=user_data.photoURL,
-                email_verified=True  # Firebase email is already verified
-            )
+            # Create new user with error handling for email conflicts
+            try:
+                user = crud.create_firebase_user(
+                    db=db,
+                    firebase_uid=user_data.uid,
+                    email=user_data.email,
+                    display_name=user_data.displayName,
+                    photo_url=user_data.photoURL,
+                    email_verified=True  # Firebase email is already verified
+                )
+            except IntegrityError:
+                # If there's still an email conflict, find and delete the conflicting user
+                db.rollback()
+                existing_user_by_email = crud.get_user_by_email(db, user_data.email)
+                if existing_user_by_email:
+                    crud.delete_user(db, existing_user_by_email.id)
+                
+                # Try creating the user again
+                user = crud.create_firebase_user(
+                    db=db,
+                    firebase_uid=user_data.uid,
+                    email=user_data.email,
+                    display_name=user_data.displayName,
+                    photo_url=user_data.photoURL,
+                    email_verified=True
+                )
         else:
             # Update existing user info if needed
             if (user_data.displayName and user.display_name != user_data.displayName) or \
