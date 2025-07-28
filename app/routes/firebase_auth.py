@@ -55,21 +55,16 @@ async def firebase_login(
                     email_verified=True
                 )
         else:
-            # Пользователь уже существует - НЕ перезаписываем его данные!
-            # Обновляем только email_verified, если нужно
-            print(f"🔍 Existing user found: {user.email}")
-            print(f"📝 Current display_name: '{user.display_name}'")
-            print(f"📝 Firebase displayName: '{user_data.displayName}'")
-            print(f"🚫 NOT updating user data to preserve manual changes")
-            
-            # Обновляем только email_verified если нужно
-            if not user.email_verified:
+            # Update existing user info if needed
+            if (user_data.displayName and user.display_name != user_data.displayName) or \
+               (user_data.photoURL and user.photo_url != user_data.photoURL):
                 user = crud.update_firebase_user(
                     db=db,
                     user=user,
+                    display_name=user_data.displayName,
+                    photo_url=user_data.photoURL,
                     email_verified=True
                 )
-                print(f"✅ Updated email_verified to True")
         
         return {
             "success": True,
@@ -95,7 +90,7 @@ async def get_current_user_info(
     current_user = Depends(firebase_auth.get_current_user_firebase)
 ):
     """
-    Get current user information
+    Get current user information (Firebase version)
     """
     return {
         "id": current_user.id,
@@ -108,58 +103,6 @@ async def get_current_user_info(
         "created_at": current_user.created_at,
         "updated_at": current_user.updated_at
     }
-
-@router.put("/profile")
-async def update_user_profile(
-    profile_data: schemas.FirebaseUserUpdate,
-    current_user = Depends(firebase_auth.get_current_user_firebase),
-    db: Session = Depends(get_db)
-):
-    """
-    Update user profile information
-    """
-    try:
-        # Поддерживаем как display_name, так и name для совместимости с фронтендом
-        display_name = profile_data.display_name or profile_data.name
-        
-        print(f"🔄 Updating profile for user {current_user.id}")
-        print(f"📝 Current display_name: '{current_user.display_name}'")
-        print(f"📝 New display_name: '{display_name}'")
-        print(f"📝 Photo URL: '{profile_data.photo_url}'")
-        
-        # Update user profile
-        updated_user = crud.update_firebase_user(
-            db=db,
-            user=current_user,
-            display_name=display_name,
-            photo_url=profile_data.photo_url
-        )
-        
-        print(f"✅ Profile updated successfully")
-        print(f"📝 Updated display_name: '{updated_user.display_name}'")
-        print(f"📝 Updated at: {updated_user.updated_at}")
-        
-        return {
-            "success": True,
-            "message": "Profile updated successfully",
-            "user": {
-                "id": updated_user.id,
-                "firebase_uid": updated_user.firebase_uid,
-                "email": updated_user.email,
-                "display_name": updated_user.display_name,
-                "photo_url": updated_user.photo_url,
-                "email_verified": updated_user.email_verified,
-                "is_premium": updated_user.is_premium,
-                "created_at": updated_user.created_at,
-                "updated_at": updated_user.updated_at
-            }
-        }
-    except Exception as e:
-        print(f"❌ Failed to update profile: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to update profile: {str(e)}"
-        )
 
 @router.delete("/delete-account")
 async def delete_account(

@@ -14,10 +14,10 @@ class ImageCompressionService:
     STORAGE_MAX_HEIGHT = 1200
     STORAGE_QUALITY = 85
     
-    # Compression settings for AI processing (more aggressive)
-    AI_MAX_WIDTH = 800
-    AI_MAX_HEIGHT = 800
-    AI_QUALITY = 75
+    # Compression settings for AI processing (максимальное сжатие для ускорения)
+    AI_MAX_WIDTH = 512
+    AI_MAX_HEIGHT = 512
+    AI_QUALITY = 50
     
     @staticmethod
     def _compress_image(
@@ -196,4 +196,4 @@ class ImageCompressionService:
             image.verify()  # Verify image integrity
             return True, None
         except Exception as e:
-            return False, f"Invalid image: {str(e)}" 
+            return False, f"Invalid image: {str(e)}"
