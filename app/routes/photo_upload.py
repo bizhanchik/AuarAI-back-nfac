@@ -324,29 +324,34 @@ async def upload_and_classify_photo(
         
         # Add classification results if available
         if classification_result:
-            # Map the result to match the expected schema
-            mapped_classification = {
-                "clothing_type": classification_result.get("category", "Unknown"),
-                "color": classification_result.get("color", "Unknown"),
-                "material": classification_result.get("material"),
-                "pattern": None,
-                "brand": classification_result.get("brand"),
-                "confidence_score": 0.8,
-                "description": classification_result.get("description"),
-                "predicted_tags": classification_result.get("tags", []),
-                "occasions": classification_result.get("occasions", []),
-                "weather_suitability": classification_result.get("weather_suitability", []),
-                "predicted_name": classification_result.get("name"),
-                "predicted_category": classification_result.get("category"),
-                "predicted_color": classification_result.get("color"),
-                "predicted_brand": classification_result.get("brand"),
-                "predicted_material": classification_result.get("material"),
-                "additional_details": {
-                    "gender": classification_result.get("gender"),
-                    "size": classification_result.get("size")
+            # Check if classification_result has error
+            if "error" in classification_result:
+                logger.warning(f"AI classification returned error: {classification_result['error']}")
+                classification_result = None
+            else:
+                # Map the result to match the expected iOS schema
+                mapped_classification = {
+                    "clothing_type": classification_result.get("category", "Unknown"),
+                    "color": classification_result.get("color", "Unknown"),
+                    "material": classification_result.get("material"),
+                    "pattern": None,
+                    "brand": classification_result.get("brand"),
+                    "confidence_score": 0.8,
+                    "description": classification_result.get("description"),
+                    "predicted_tags": classification_result.get("tags", []),
+                    "occasions": classification_result.get("occasions", []),
+                    "weather_suitability": classification_result.get("weather_suitability", []),
+                    "predicted_name": classification_result.get("name"),
+                    "predicted_category": classification_result.get("category"),
+                    "predicted_color": classification_result.get("color"),
+                    "predicted_brand": classification_result.get("brand"),
+                    "predicted_material": classification_result.get("material"),
+                    "additional_details": {
+                        "gender": classification_result.get("gender"),
+                        "size": classification_result.get("size")
+                    }
                 }
-            }
-            response["classification"] = mapped_classification
+                response["classification"] = mapped_classification
         
         logger.info(f"Photo uploaded and classified successfully by user {current_user.email}: {public_url}")
         return response
@@ -503,4 +508,4 @@ async def get_bulk_upload_status(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An unexpected error occurred while retrieving status"
-        ) 
+        )

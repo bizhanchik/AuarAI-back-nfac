@@ -109,9 +109,10 @@ async def classify_clothing_image_file(
         classification_result = ai.ai_classify_clothing(file_content)
         
         if not classification_result or "error" in classification_result:
+            error_msg = classification_result.get("error", "Unknown error") if classification_result else "No result returned"
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="Unable to classify the image. Please ensure it contains a clear view of a clothing item."
+                detail=f"Unable to classify the image: {error_msg}. Please ensure it contains a clear view of a clothing item."
             )
         
         # Map the result to match the expected schema

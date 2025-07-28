@@ -13,39 +13,47 @@ load_dotenv()
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
 def ai_classify_clothing(image_bytes: bytes) -> Dict:
-    # Compress image for AI processing to reduce costs
-    compressed_bytes = ImageCompressionService.compress_for_ai_processing(image_bytes)
-    image = Image.open(io.BytesIO(compressed_bytes))
-
-    model = genai.GenerativeModel("gemini-1.5-flash")
-
-    prompt = (
-        "You are a professional fashion stylist. Classify this clothing item and return JSON in this EXACT format only:\n"
-        "{\n"
-        "  \"name\": \"specific item name (e.g., 'Blue Denim Jacket', 'Black Cotton T-Shirt')\",\n"
-        "  \"brand\": \"brand name or null if not visible\",\n"
-        "  \"category\": \"clothing category (e.g., 'T-shirt', 'Jeans', 'Dress', 'Jacket', 'Sneakers')\",\n"
-        "  \"gender\": \"male/female/unisex\",\n"
-        "  \"color\": \"primary color\",\n"
-        "  \"size\": \"size if visible or null\",\n"
-        "  \"material\": \"fabric/material type if identifiable\",\n"
-        "  \"description\": \"detailed description including style, fit, and notable features\",\n"
-        "  \"tags\": [\"style tags like casual, formal, vintage, trendy, etc.\"],\n"
-        "  \"occasions\": [\"suitable occasions like work, party, casual, gym, date, etc.\"],\n"
-        "  \"weather_suitability\": [\"appropriate weather like summer, winter, spring, fall, rain, cold, warm, etc.\"]\n"
-        "}\n\n"
-        "Important: Always provide meaningful values for tags, occasions, and weather_suitability arrays - never leave them empty!"
-    )
-
-    response = model.generate_content([prompt, image], generation_config={"temperature": 0.4})
-
     try:
-        print("AI raw response:", response.text)  # 👈 чтобы видеть, что именно вернул Gemini
+        print(f"🔍 Starting AI classification with image size: {len(image_bytes)} bytes")
+        
+        # Compress image for AI processing to reduce costs
+        compressed_bytes = ImageCompressionService.compress_for_ai_processing(image_bytes)
+        print(f"📦 Compressed image size: {len(compressed_bytes)} bytes")
+        
+        image = Image.open(io.BytesIO(compressed_bytes))
+        print(f"🖼️ Image opened successfully: {image.size}, mode: {image.mode}")
+
+        model = genai.GenerativeModel("gemini-1.5-flash")
+
+        prompt = (
+            "You are a professional fashion stylist. Classify this clothing item and return JSON in this EXACT format only:\n"
+            "{\n"
+            "  \"name\": \"specific item name (e.g., 'Blue Denim Jacket', 'Black Cotton T-Shirt')\",\n"
+            "  \"brand\": \"brand name or null if not visible\",\n"
+            "  \"category\": \"clothing category (e.g., 'T-shirt', 'Jeans', 'Dress', 'Jacket', 'Sneakers')\",\n"
+            "  \"gender\": \"male/female/unisex\",\n"
+            "  \"color\": \"primary color\",\n"
+            "  \"size\": \"size if visible or null\",\n"
+            "  \"material\": \"fabric/material type if identifiable\",\n"
+            "  \"description\": \"detailed description including style, fit, and notable features\",\n"
+            "  \"tags\": [\"style tags like casual, formal, vintage, trendy, etc.\"],\n"
+            "  \"occasions\": [\"suitable occasions like work, party, casual, gym, date, etc.\"],\n"
+            "  \"weather_suitability\": [\"appropriate weather like summer, winter, spring, fall, rain, cold, warm, etc.\"]\n"
+            "}\n\n"
+            "Important: Always provide meaningful values for tags, occasions, and weather_suitability arrays - never leave them empty!"
+        )
+
+        print("🤖 Sending request to Gemini AI...")
+        response = model.generate_content([prompt, image], generation_config={"temperature": 0.4})
+        print(f"✅ Received AI response: {response.text[:200]}...")  # First 200 chars
 
         # Попробуем извлечь JSON
         match = re.search(r'\{.*\}', response.text, re.DOTALL)
         if match:
-            result = json.loads(match.group())
+            json_text = match.group()
+            print(f"📝 Extracted JSON: {json_text[:200]}...")
+            
+            result = json.loads(json_text)
             print("✅ Successfully parsed AI response:", result)
             
             # Ensure we have the required arrays
@@ -58,11 +66,16 @@ def ai_classify_clothing(image_bytes: bytes) -> Dict:
                 
             return result
         else:
-            raise ValueError("No JSON object found in AI response.")
+            print("❌ No JSON object found in AI response")
+            print(f"Full response: {response.text}")
+            return {"error": "No JSON object found in AI response"}
 
+    except json.JSONDecodeError as e:
+        print(f"❌ JSON parsing error: {e}")
+        return {"error": f"JSON parsing error: {str(e)}"}
     except Exception as e:
-        print("❌ Error parsing AI response:", e)
-        return {"error": "Invalid response from AI"}
+        print(f"❌ Error in AI classification: {e}")
+        return {"error": f"AI classification error: {str(e)}"}
 
 async def classify_clothing_image(image_url: str, additional_context: Optional[str] = None) -> Dict:
     """
