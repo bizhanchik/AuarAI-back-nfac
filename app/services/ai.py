@@ -290,3 +290,135 @@ Consider weather conditions, temperature ranges, and practicality. Focus on real
             "daily_outfits": fallback_outfits,
             "general_tips": "Dress appropriately for the weather and stay comfortable throughout the day."
         }
+
+def ai_analyze_body_photo(image_bytes: bytes) -> Dict:
+    """Analyze a full-body photo to provide personalized style recommendations"""
+    try:
+        print(f"🔍 Starting body photo analysis with image size: {len(image_bytes)} bytes")
+        
+        # Compress image for AI processing to reduce costs
+        compressed_bytes = ImageCompressionService.compress_for_ai_processing(image_bytes)
+        print(f"📦 Compressed image size: {len(compressed_bytes)} bytes")
+        
+        image = Image.open(io.BytesIO(compressed_bytes))
+        print(f"🖼️ Image opened successfully: {image.size}, mode: {image.mode}")
+
+        model = genai.GenerativeModel("gemini-1.5-flash")
+
+        prompt = (
+            "You are a professional fashion stylist and body type analyst. Analyze this full-body photo and provide personalized style recommendations.\n\n"
+            "Analyze the following aspects:\n"
+            "1. Body type/shape (apple, pear, hourglass, rectangle, inverted triangle, etc.)\n"
+            "2. Body proportions (leg-to-body ratio, shoulder-to-hip ratio, etc.)\n"
+            "3. Best colors for this person's skin tone and overall appearance\n"
+            "4. Style recommendations that would flatter this body type\n"
+            "5. Fashion tips specific to their proportions\n\n"
+            "Return ONLY a JSON object in this exact format:\n"
+            "{\n"
+            "  \"bodyType\": \"specific body type classification\",\n"
+            "  \"recommendedColors\": [\"list of 5-8 colors that would look best\"],\n"
+            "  \"styleRecommendations\": [\"list of 4-6 specific style recommendations\"],\n"
+            "  \"proportions\": {\n"
+            "    \"legToBodyRatio\": 0.0,\n"
+            "    \"shoulderToHipRatio\": 0.0,\n"
+            "    \"waistToHipRatio\": 0.0\n"
+            "  },\n"
+            "  \"confidence\": 0.0,\n"
+            "  \"fashionTips\": [\"specific tips for this body type\"],\n"
+            "  \"bestSilhouettes\": [\"clothing silhouettes that work best\"],\n"
+            "  \"avoidPatterns\": [\"patterns or styles to avoid\"],\n"
+            "  \"accessoryTips\": [\"accessory recommendations\"]\n"
+            "}\n\n"
+            "Be specific and practical in your recommendations. Focus on actionable advice."
+        )
+
+        response = model.generate_content([prompt, image], generation_config={"temperature": 0.3})
+        
+        print("AI body analysis response:", response.text[:500])  # Debug output
+        
+        # Extract JSON from response
+        match = re.search(r'\{.*\}', response.text, re.DOTALL)
+        if match:
+            try:
+                result = json.loads(match.group())
+                print("✅ Successfully parsed body analysis JSON")
+                
+                # Validate required fields and provide defaults
+                if not result.get("bodyType"):
+                    result["bodyType"] = "Rectangle"
+                
+                if not result.get("recommendedColors"):
+                    result["recommendedColors"] = ["Navy", "White", "Black", "Gray", "Burgundy"]
+                
+                if not result.get("styleRecommendations"):
+                    result["styleRecommendations"] = [
+                        "Wear well-fitted clothing",
+                        "Choose quality fabrics",
+                        "Focus on classic silhouettes",
+                        "Add accessories for personality"
+                    ]
+                
+                if not result.get("proportions"):
+                    result["proportions"] = {
+                        "legToBodyRatio": 0.5,
+                        "shoulderToHipRatio": 1.0,
+                        "waistToHipRatio": 0.8
+                    }
+                
+                if not result.get("confidence"):
+                    result["confidence"] = 0.7
+                
+                return result
+                
+            except json.JSONDecodeError as e:
+                print(f"❌ JSON parsing error: {e}")
+                raise ValueError(f"Invalid JSON in AI response: {e}")
+        else:
+            print("❌ No JSON object found in AI response")
+            raise ValueError("No JSON object found in AI body analysis response")
+            
+    except Exception as e:
+        print(f"❌ Error in body photo analysis: {e}")
+        
+        # Return fallback analysis
+        return {
+            "bodyType": "Rectangle",
+            "recommendedColors": [
+                "Navy Blue", "White", "Black", "Gray", "Burgundy", 
+                "Forest Green", "Cream", "Camel"
+            ],
+            "styleRecommendations": [
+                "Wear well-fitted clothing that follows your body's natural lines",
+                "Choose quality fabrics over trendy pieces",
+                "Focus on classic silhouettes that never go out of style",
+                "Add personality with accessories and colors",
+                "Invest in good undergarments for better fit",
+                "Choose clothes that make you feel confident"
+            ],
+            "proportions": {
+                "legToBodyRatio": 0.5,
+                "shoulderToHipRatio": 1.0,
+                "waistToHipRatio": 0.8
+            },
+            "confidence": 0.5,
+            "fashionTips": [
+                "Focus on fit over trends",
+                "Build a capsule wardrobe with versatile pieces",
+                "Choose colors that complement your skin tone"
+            ],
+            "bestSilhouettes": [
+                "A-line dresses",
+                "Straight-leg pants",
+                "Tailored blazers"
+            ],
+            "avoidPatterns": [
+                "Overly busy prints",
+                "Horizontal stripes in unflattering areas"
+            ],
+            "accessoryTips": [
+                "Use belts to define your waist",
+                "Choose accessories that complement your outfit",
+                "Don't over-accessorize"
+            ],
+            "error": f"Analysis failed: {str(e)}"
+        }
