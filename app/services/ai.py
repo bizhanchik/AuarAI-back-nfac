@@ -306,32 +306,30 @@ def ai_analyze_body_photo(image_bytes: bytes) -> Dict:
         model = genai.GenerativeModel("gemini-1.5-flash")
 
         prompt = (
-            "Ты профессиональный стилист и аналитик типов фигуры. Проанализируй это фото в полный рост и дай персонализированные рекомендации по стилю.\n\n"
-            "Проанализируй следующие аспекты:\n"
-            "1. Тип фигуры (яблоко, груша, песочные часы, прямоугольник, перевернутый треугольник и т.д.)\n"
-            "2. Пропорции тела (соотношение ног к телу, плеч к бедрам и т.д.)\n"
-            "3. Лучшие цвета для тона кожи и общего внешнего вида этого человека\n"
-            "4. Рекомендации по стилю, которые подчеркнут достоинства этого типа фигуры\n"
-            "5. Советы по моде, специфичные для данных пропорций\n"
-            "6. Конкретные рекомендации по одежде и аксессуарам\n\n"
-            "Верни ТОЛЬКО JSON объект в точно таком формате:\n"
+            "You are a professional fashion stylist and body type analyst. Analyze this full-body photo and provide personalized style recommendations.\n\n"
+            "Analyze the following aspects:\n"
+            "1. Body type/shape (apple, pear, hourglass, rectangle, inverted triangle, etc.)\n"
+            "2. Body proportions (leg-to-body ratio, shoulder-to-hip ratio, etc.)\n"
+            "3. Best colors for this person's skin tone and overall appearance\n"
+            "4. Style recommendations that would flatter this body type\n"
+            "5. Fashion tips specific to their proportions\n\n"
+            "Return ONLY a JSON object in this exact format:\n"
             "{\n"
-            "  \"bodyType\": \"конкретная классификация типа фигуры на русском\",\n"
-            "  \"recommendedColors\": [\"список из 6-10 цветов, которые лучше всего подойдут\"],\n"
-            "  \"styleRecommendations\": [\"список из 6-8 конкретных рекомендаций по стилю\"],\n"
+            "  \"bodyType\": \"specific body type classification\",\n"
+            "  \"recommendedColors\": [\"list of 5-8 colors that would look best\"],\n"
+            "  \"styleRecommendations\": [\"list of 4-6 specific style recommendations\"],\n"
             "  \"proportions\": {\n"
             "    \"legToBodyRatio\": 0.0,\n"
             "    \"shoulderToHipRatio\": 0.0,\n"
             "    \"waistToHipRatio\": 0.0\n"
             "  },\n"
             "  \"confidence\": 0.0,\n"
-            "  \"fashionTips\": [\"конкретные советы для этого типа фигуры\"],\n"
-            "  \"bestSilhouettes\": [\"силуэты одежды, которые лучше всего подходят\"],\n"
-            "  \"avoidPatterns\": [\"узоры или стили, которых следует избегать\"],\n"
-            "  \"accessoryTips\": [\"рекомендации по аксессуарам\"]\n"
+            "  \"fashionTips\": [\"specific tips for this body type\"],\n"
+            "  \"bestSilhouettes\": [\"clothing silhouettes that work best\"],\n"
+            "  \"avoidPatterns\": [\"patterns or styles to avoid\"],\n"
+            "  \"accessoryTips\": [\"accessory recommendations\"]\n"
             "}\n\n"
-            "Будь конкретным и практичным в своих рекомендациях. Сосредоточься на действенных советах. "
-            "Отвечай на русском языке, давай детальные и персонализированные рекомендации."
+            "Be specific and practical in your recommendations. Focus on actionable advice."
         )
 
         response = model.generate_content([prompt, image], generation_config={"temperature": 0.3})
@@ -347,17 +345,17 @@ def ai_analyze_body_photo(image_bytes: bytes) -> Dict:
                 
                 # Validate required fields and provide defaults
                 if not result.get("bodyType"):
-                    result["bodyType"] = "Прямоугольник"
+                    result["bodyType"] = "Rectangle"
                 
                 if not result.get("recommendedColors"):
-                    result["recommendedColors"] = ["Темно-синий", "Белый", "Черный", "Серый", "Бордовый"]
+                    result["recommendedColors"] = ["Navy", "White", "Black", "Gray", "Burgundy"]
                 
                 if not result.get("styleRecommendations"):
                     result["styleRecommendations"] = [
-                        "Носите хорошо сидящую одежду",
-                        "Выбирайте качественные ткани",
-                        "Сосредоточьтесь на классических силуэтах",
-                        "Добавляйте аксессуары для индивидуальности"
+                        "Wear well-fitted clothing",
+                        "Choose quality fabrics",
+                        "Focus on classic silhouettes",
+                        "Add accessories for personality"
                     ]
                 
                 if not result.get("proportions"):
@@ -384,20 +382,18 @@ def ai_analyze_body_photo(image_bytes: bytes) -> Dict:
         
         # Return fallback analysis
         return {
-            "bodyType": "Прямоугольник",
+            "bodyType": "Rectangle",
             "recommendedColors": [
-                "Темно-синий", "Белый", "Черный", "Серый", "Бордовый", 
-                "Лесной зеленый", "Кремовый", "Верблюжий", "Пудровый розовый", "Изумрудный"
+                "Navy Blue", "White", "Black", "Gray", "Burgundy", 
+                "Forest Green", "Cream", "Camel"
             ],
             "styleRecommendations": [
-                "Носите хорошо сидящую одежду, которая следует естественным линиям тела",
-                "Выбирайте качественные ткани вместо модных вещей",
-                "Сосредоточьтесь на классических силуэтах, которые никогда не выходят из моды",
-                "Добавляйте индивидуальность с помощью аксессуаров и цветов",
-                "Инвестируйте в хорошее нижнее белье для лучшей посадки",
-                "Выбирайте одежду, в которой чувствуете себя уверенно",
-                "Создавайте визуальные акценты на талии",
-                "Экспериментируйте с текстурами и принтами"
+                "Wear well-fitted clothing that follows your body's natural lines",
+                "Choose quality fabrics over trendy pieces",
+                "Focus on classic silhouettes that never go out of style",
+                "Add personality with accessories and colors",
+                "Invest in good undergarments for better fit",
+                "Choose clothes that make you feel confident"
             ],
             "proportions": {
                 "legToBodyRatio": 0.5,
@@ -406,30 +402,23 @@ def ai_analyze_body_photo(image_bytes: bytes) -> Dict:
             },
             "confidence": 0.5,
             "fashionTips": [
-                "Сосредоточьтесь на посадке, а не на трендах",
-                "Создайте капсульный гардероб с универсальными вещами",
-                "Выбирайте цвета, которые дополняют ваш тон кожи",
-                "Используйте слоистость для создания интересных образов",
-                "Не бойтесь экспериментировать с пропорциями"
+                "Focus on fit over trends",
+                "Build a capsule wardrobe with versatile pieces",
+                "Choose colors that complement your skin tone"
             ],
             "bestSilhouettes": [
-                "Платья А-силуэта",
-                "Брюки прямого кроя",
-                "Приталенные блейзеры",
-                "Юбки-карандаш",
-                "Топы с баской"
+                "A-line dresses",
+                "Straight-leg pants",
+                "Tailored blazers"
             ],
             "avoidPatterns": [
-                "Слишком пестрые принты",
-                "Горизонтальные полосы в неподходящих местах",
-                "Очень объемные силуэты"
+                "Overly busy prints",
+                "Horizontal stripes in unflattering areas"
             ],
             "accessoryTips": [
-                "Используйте ремни для подчеркивания талии",
-                "Выбирайте аксессуары, дополняющие ваш образ",
-                "Не переборщите с аксессуарами",
-                "Экспериментируйте с украшениями разной длины",
-                "Используйте сумки как акцентный элемент"
+                "Use belts to define your waist",
+                "Choose accessories that complement your outfit",
+                "Don't over-accessorize"
             ],
-            "error": f"Анализ не удался: {str(e)}"
+            "error": f"Analysis failed: {str(e)}"
         }
