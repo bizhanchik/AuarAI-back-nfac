@@ -19,7 +19,7 @@ from ..services.image_compression import ImageCompressionService
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/body-analysis", tags=["body-analysis"])
+router = APIRouter(tags=["body-analysis"])
 
 # Pydantic models for request/response
 from pydantic import BaseModel
