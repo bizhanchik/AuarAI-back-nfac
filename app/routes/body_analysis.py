@@ -1,7 +1,5 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, status
 from fastapi.responses import JSONResponse
-from sqlalchemy.orm import Session
-import logging
 from typing import Dict, Any, List, Optional
 import os
 import io
@@ -9,11 +7,11 @@ from PIL import Image
 import json
 
 from ..gcs_uploader import gcs_uploader
-from ..database import get_db
 from ..firebase_auth import get_current_user_firebase
 from .. import models
 from ..services.ai import ai_analyze_body_photo
 from ..services.image_compression import ImageCompressionService
+import logging
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -41,8 +39,7 @@ class BodyAnalysisResponse(BaseModel):
 @router.post("/analyze", response_model=BodyAnalysisResponse)
 async def analyze_body_photo(
     file: UploadFile = File(...),
-    current_user: models.User = Depends(get_current_user_firebase),
-    db: Session = Depends(get_db)
+    current_user: models.User = Depends(get_current_user_firebase)
 ):
     """
     Analyze a full-body photo to provide personalized style recommendations.
@@ -130,38 +127,8 @@ async def analyze_body_photo(
                 "confidence": 0.0
             }
         
-        # Save analysis to database
-        try:
-            body_analysis = models.BodyAnalysis(
-                user_id=current_user.id,
-                photo_url=public_url,
-                compressed_photo_url=public_url,  # Using same URL for now
-                body_type=analysis_result.get("bodyType"),
-                recommended_colors=analysis_result.get("recommendedColors", []),
-                style_recommendations=analysis_result.get("styleRecommendations", []),
-                leg_to_body_ratio=analysis_result.get("proportions", {}).get("legToBodyRatio"),
-                shoulder_to_hip_ratio=analysis_result.get("proportions", {}).get("shoulderToHipRatio"),
-                waist_to_hip_ratio=analysis_result.get("proportions", {}).get("waistToHipRatio"),
-                confidence=analysis_result.get("confidence"),
-                fashion_tips=analysis_result.get("fashionTips", []),
-                best_silhouettes=analysis_result.get("bestSilhouettes", []),
-                avoid_patterns=analysis_result.get("avoidPatterns", []),
-                accessory_tips=analysis_result.get("accessoryTips", [])
-            )
-            
-            db.add(body_analysis)
-            db.commit()
-            db.refresh(body_analysis)
-            
-            logger.info(f"💾 Body analysis saved to database with ID: {body_analysis.id}")
-            
-        except Exception as e:
-            logger.error(f"❌ Database save failed: {e}")
-            db.rollback()
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to save analysis results"
-            )
+        # Analysis completed - no database storage needed
+        logger.info("✅ Body analysis completed successfully - returning results")
         
         # Prepare response
         result = BodyAnalysisResult(
@@ -189,117 +156,28 @@ async def analyze_body_photo(
             detail="Internal server error during body analysis"
         )
 
-@router.get("/results/{user_id}", response_model=BodyAnalysisResponse)
+@router.get("/results/{user_id}")
 async def get_body_analysis_results(
     user_id: int,
-    current_user: models.User = Depends(get_current_user_firebase),
-    db: Session = Depends(get_db)
+    current_user: models.User = Depends(get_current_user_firebase)
 ):
     """
-    Get the latest body analysis results for a user.
+    Body analysis results are not stored - this endpoint is deprecated.
     """
-    try:
-        # Check if user can access these results
-        if current_user.id != user_id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Access denied"
-            )
-        
-        # Get latest body analysis
-        body_analysis = db.query(models.BodyAnalysis).filter(
-            models.BodyAnalysis.user_id == user_id
-        ).order_by(models.BodyAnalysis.created_at.desc()).first()
-        
-        if not body_analysis:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="No body analysis found for this user"
-            )
-        
-        # Prepare proportions data
-        proportions = {
-            "legToBodyRatio": body_analysis.leg_to_body_ratio,
-            "shoulderToHipRatio": body_analysis.shoulder_to_hip_ratio,
-            "waistToHipRatio": body_analysis.waist_to_hip_ratio
-        }
-        
-        # Prepare analysis details
-        analysis_details = {
-            "fashionTips": body_analysis.fashion_tips or [],
-            "bestSilhouettes": body_analysis.best_silhouettes or [],
-            "avoidPatterns": body_analysis.avoid_patterns or [],
-            "accessoryTips": body_analysis.accessory_tips or []
-        }
-        
-        result = BodyAnalysisResult(
-            bodyType=body_analysis.body_type,
-            recommendedColors=body_analysis.recommended_colors or [],
-            styleRecommendations=body_analysis.style_recommendations or [],
-            proportions=proportions,
-            confidence=body_analysis.confidence,
-            analysis_details=analysis_details
-        )
-        
-        return BodyAnalysisResponse(
-            success=True,
-            message="Body analysis results retrieved successfully",
-            result=result,
-            photo_url=body_analysis.photo_url
-        )
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"❌ Error retrieving body analysis results: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve body analysis results"
-        )
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail="Body analysis results are not stored. Please perform a new analysis."
+    )
 
 @router.delete("/results/{analysis_id}")
 async def delete_body_analysis(
     analysis_id: int,
-    current_user: models.User = Depends(get_current_user_firebase),
-    db: Session = Depends(get_db)
+    current_user: models.User = Depends(get_current_user_firebase)
 ):
     """
-    Delete a body analysis record.
+    Body analysis results are not stored - this endpoint is deprecated.
     """
-    try:
-        # Get the analysis record
-        body_analysis = db.query(models.BodyAnalysis).filter(
-            models.BodyAnalysis.id == analysis_id
-        ).first()
-        
-        if not body_analysis:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Body analysis not found"
-            )
-        
-        # Check if user owns this analysis
-        if body_analysis.user_id != current_user.id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Access denied"
-            )
-        
-        # Delete from database
-        db.delete(body_analysis)
-        db.commit()
-        
-        return JSONResponse(
-            status_code=status.HTTP_200_OK,
-            content={"success": True, "message": "Body analysis deleted successfully"}
-        )
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"❌ Error deleting body analysis: {e}")
-        db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to delete body analysis"
-        )
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail="Body analysis results are not stored. Nothing to delete."
+    )
