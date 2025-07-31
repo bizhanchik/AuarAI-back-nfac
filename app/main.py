@@ -44,7 +44,7 @@ app.include_router(stylist.router)
 app.include_router(v2v_assistant.router)
 app.include_router(firebase_auth_routes.router)  # Add Firebase auth routes
 app.include_router(ip_location.router)  # Add IP location routes
-app.include_router(body_analysis.router, prefix="/body-analysis", tags=["body-analysis"])  # Add body analysis routes
+app.include_router(body_analysis.router)  # Add body analysis routes (prefix already defined in router)
 
 # Роутер для операций с одеждой (updated to use Firebase auth)
 clothing_router = APIRouter(
