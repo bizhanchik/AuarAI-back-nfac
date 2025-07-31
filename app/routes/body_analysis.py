@@ -99,8 +99,8 @@ async def analyze_body_photo(
         # Upload to Google Cloud Storage
         try:
             filename = f"body_photos/{current_user.id}_{file.filename}"
-            public_url = await gcs_uploader.upload_file(
-                file_content=storage_compressed,
+            public_url = gcs_uploader.upload_file(
+                file_data=storage_compressed,
                 filename=filename,
                 content_type=file.content_type
             )
