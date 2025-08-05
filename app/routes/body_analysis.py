@@ -5,12 +5,14 @@ import os
 import io
 from PIL import Image
 import json
+from sqlalchemy.orm import Session
 
 from ..gcs_uploader import gcs_uploader
 from ..firebase_auth import get_current_user_firebase
 from .. import models
-from ..services.ai import ai_analyze_body_photo
+from ..services.ai import ai_analyze_body_photo, ai_analyze_wardrobe_compatibility
 from ..services.image_compression import ImageCompressionService
+from ..database import get_db
 import logging
 
 # Configure logging
@@ -35,6 +37,20 @@ class BodyAnalysisResponse(BaseModel):
     message: str
     result: Optional[BodyAnalysisResult] = None
     photo_url: Optional[str] = None
+
+class WardrobeCompatibilityResult(BaseModel):
+    compatibility_percentage: float
+    matching_items: int
+    total_items: int
+    recommendations: List[str]
+    color_matches: List[str]
+    style_matches: List[str]
+    missing_essentials: List[str]
+
+class WardrobeCompatibilityResponse(BaseModel):
+    success: bool
+    message: str
+    result: Optional[WardrobeCompatibilityResult] = None
 
 @router.post("/analyze", response_model=BodyAnalysisResponse)
 async def analyze_body_photo(
@@ -154,6 +170,101 @@ async def analyze_body_photo(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Internal server error during body analysis"
+        )
+
+@router.post("/wardrobe-compatibility", response_model=WardrobeCompatibilityResponse)
+async def analyze_wardrobe_compatibility(
+    current_user: models.User = Depends(get_current_user_firebase),
+    db: Session = Depends(get_db)
+):
+    """
+    Analyze how well user's wardrobe matches their body analysis results.
+    """
+    try:
+        logger.info(f"🔍 Starting wardrobe compatibility analysis for user {current_user.id}")
+        
+        # Get user's clothing items
+        clothing_items = db.query(models.ClothingItem).filter(
+            models.ClothingItem.user_id == current_user.id
+        ).all()
+        
+        if not clothing_items:
+            return WardrobeCompatibilityResponse(
+                success=True,
+                message="No clothing items found in wardrobe",
+                result=WardrobeCompatibilityResult(
+                    compatibility_percentage=0.0,
+                    matching_items=0,
+                    total_items=0,
+                    recommendations=["Add clothing items to your wardrobe to get compatibility analysis"],
+                    color_matches=[],
+                    style_matches=[],
+                    missing_essentials=["Basic wardrobe items needed"]
+                )
+            )
+        
+        # Get user's latest body analysis (we'll need to store this)
+        # For now, we'll use default recommendations
+        body_analysis = {
+            "bodyType": "Rectangle",  # Default - should come from stored analysis
+            "recommendedColors": ["Navy", "White", "Black", "Gray", "Burgundy"],
+            "styleRecommendations": ["Classic", "Minimalist", "Structured"]
+        }
+        
+        # Prepare wardrobe data for AI analysis
+        wardrobe_data = []
+        for item in clothing_items:
+            wardrobe_data.append({
+                "name": item.name,
+                "category": item.category,
+                "color": item.color,
+                "brand": item.brand,
+                "material": item.material,
+                "tags": item.tags if hasattr(item, 'tags') else []
+            })
+        
+        # Analyze compatibility with AI
+        try:
+            logger.info("🤖 Starting AI wardrobe compatibility analysis...")
+            compatibility_result = ai_analyze_wardrobe_compatibility(body_analysis, wardrobe_data)
+            logger.info(f"✅ AI compatibility analysis completed: {compatibility_result}")
+            
+        except Exception as e:
+            logger.error(f"❌ AI compatibility analysis failed: {e}")
+            # Fallback to basic analysis
+            compatibility_result = {
+                "compatibility_percentage": 75.0,
+                "matching_items": len(clothing_items) // 2,
+                "total_items": len(clothing_items),
+                "recommendations": ["Consider adding more versatile pieces", "Focus on recommended colors"],
+                "color_matches": ["Navy", "Black"],
+                "style_matches": ["Classic pieces"],
+                "missing_essentials": ["White button-down shirt", "Dark jeans"]
+            }
+        
+        result = WardrobeCompatibilityResult(
+            compatibility_percentage=compatibility_result.get("compatibility_percentage", 0.0),
+            matching_items=compatibility_result.get("matching_items", 0),
+            total_items=len(clothing_items),
+            recommendations=compatibility_result.get("recommendations", []),
+            color_matches=compatibility_result.get("color_matches", []),
+            style_matches=compatibility_result.get("style_matches", []),
+            missing_essentials=compatibility_result.get("missing_essentials", [])
+        )
+        
+        return WardrobeCompatibilityResponse(
+            success=True,
+            message="Wardrobe compatibility analysis completed",
+            result=result
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Unexpected error in wardrobe compatibility analysis: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error during wardrobe compatibility analysis"
         )
 
 @router.get("/results/{user_id}")

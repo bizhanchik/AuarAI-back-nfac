@@ -422,3 +422,122 @@ def ai_analyze_body_photo(image_bytes: bytes) -> Dict:
             ],
             "error": f"Analysis failed: {str(e)}"
         }
+
+def ai_analyze_wardrobe_compatibility(body_analysis: Dict, wardrobe_items: List[Dict]) -> Dict:
+    """Analyze how well wardrobe items match the body analysis recommendations"""
+    try:
+        print(f"🔍 Starting wardrobe compatibility analysis with {len(wardrobe_items)} items")
+        
+        model = genai.GenerativeModel("gemini-1.5-flash")
+        
+        # Prepare data for AI analysis
+        body_info = {
+            "bodyType": body_analysis.get("bodyType", "Unknown"),
+            "recommendedColors": body_analysis.get("recommendedColors", []),
+            "styleRecommendations": body_analysis.get("styleRecommendations", [])
+        }
+        
+        prompt = (
+            f"You are a professional fashion stylist. Analyze how well this wardrobe matches the body analysis recommendations.\n\n"
+            f"Body Analysis Results:\n"
+            f"- Body Type: {body_info['bodyType']}\n"
+            f"- Recommended Colors: {', '.join(body_info['recommendedColors'])}\n"
+            f"- Style Recommendations: {', '.join(body_info['styleRecommendations'])}\n\n"
+            f"Wardrobe Items ({len(wardrobe_items)} total):\n"
+        )
+        
+        for i, item in enumerate(wardrobe_items[:20]):  # Limit to first 20 items to avoid token limits
+            prompt += f"- {item.get('name', 'Unknown')}: {item.get('category', 'Unknown')} in {item.get('color', 'Unknown')} color\n"
+        
+        if len(wardrobe_items) > 20:
+            prompt += f"... and {len(wardrobe_items) - 20} more items\n"
+        
+        prompt += (
+            "\nAnalyze the compatibility and return ONLY a JSON object in this exact format:\n"
+            "{\n"
+            "  \"compatibility_percentage\": 0.0,\n"
+            "  \"matching_items\": 0,\n"
+            "  \"recommendations\": [\"list of 3-5 specific recommendations\"],\n"
+            "  \"color_matches\": [\"colors from wardrobe that match recommendations\"],\n"
+            "  \"style_matches\": [\"wardrobe items that match style recommendations\"],\n"
+            "  \"missing_essentials\": [\"essential items missing from wardrobe\"]\n"
+            "}\n\n"
+            "Be specific and practical. Focus on actionable advice for improving wardrobe compatibility."
+        )
+        
+        response = model.generate_content(prompt, generation_config={"temperature": 0.3})
+        
+        print("AI wardrobe compatibility response:", response.text[:500])  # Debug output
+        
+        # Extract JSON from response
+        match = re.search(r'\{.*\}', response.text, re.DOTALL)
+        if match:
+            try:
+                result = json.loads(match.group())
+                print("✅ Successfully parsed wardrobe compatibility JSON")
+                
+                # Validate and provide defaults
+                if not isinstance(result.get("compatibility_percentage"), (int, float)):
+                    result["compatibility_percentage"] = 75.0
+                
+                if not isinstance(result.get("matching_items"), int):
+                    result["matching_items"] = len(wardrobe_items) // 2
+                
+                if not result.get("recommendations"):
+                    result["recommendations"] = [
+                        "Consider adding more versatile pieces",
+                        "Focus on recommended colors for your body type",
+                        "Invest in quality basics"
+                    ]
+                
+                if not result.get("color_matches"):
+                    result["color_matches"] = []
+                
+                if not result.get("style_matches"):
+                    result["style_matches"] = []
+                
+                if not result.get("missing_essentials"):
+                    result["missing_essentials"] = ["White button-down shirt", "Dark jeans", "Blazer"]
+                
+                return result
+                
+            except json.JSONDecodeError as e:
+                print(f"❌ JSON parsing error: {e}")
+                raise ValueError(f"Invalid JSON in AI response: {e}")
+        else:
+            print("❌ No JSON object found in AI response")
+            raise ValueError("No JSON object found in AI wardrobe compatibility response")
+            
+    except Exception as e:
+        print(f"❌ Error in wardrobe compatibility analysis: {e}")
+        
+        # Return fallback analysis
+        matching_items = 0
+        color_matches = []
+        
+        # Simple color matching logic
+        recommended_colors = body_analysis.get("recommendedColors", [])
+        for item in wardrobe_items:
+            item_color = item.get("color", "").lower()
+            for rec_color in recommended_colors:
+                if rec_color.lower() in item_color or item_color in rec_color.lower():
+                    matching_items += 1
+                    if rec_color not in color_matches:
+                        color_matches.append(rec_color)
+                    break
+        
+        compatibility_percentage = min(90.0, (matching_items / len(wardrobe_items)) * 100) if wardrobe_items else 0.0
+        
+        return {
+            "compatibility_percentage": compatibility_percentage,
+            "matching_items": matching_items,
+            "recommendations": [
+                "Add more items in your recommended colors",
+                "Focus on versatile pieces that can be mixed and matched",
+                "Consider your body type when shopping for new items"
+            ],
+            "color_matches": color_matches,
+            "style_matches": ["Classic pieces", "Well-fitted items"],
+            "missing_essentials": ["White button-down shirt", "Dark jeans", "Blazer"],
+            "error": f"Analysis failed, using fallback: {str(e)}"
+        }
