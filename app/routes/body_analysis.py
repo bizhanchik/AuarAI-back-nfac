@@ -185,7 +185,7 @@ async def analyze_wardrobe_compatibility(
         
         # Get user's clothing items
         clothing_items = db.query(models.ClothingItem).filter(
-            models.ClothingItem.user_id == current_user.id
+            models.ClothingItem.owner_id == current_user.id
         ).all()
         
         if not clothing_items:
