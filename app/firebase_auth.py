@@ -128,12 +128,12 @@ async def get_current_user_firebase(
         photo_url = token_data.get("picture")
         email_verified = token_data.get("email_verified", False)
         
-        if not email:
-            logger.error("Firebase token missing email")
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Email is required for user creation"
-            )
+        # Handle case where Apple Sign In doesn't provide email
+        if not email or email == "noemail@apple.signin":
+            # Generate a unique email for Apple Sign In users without email
+            email = f"apple_user_{firebase_uid}@auarai.app"
+            email_verified = False
+            logger.info(f"Generated email for Apple Sign In user: {email}")
         
         try:
             user = crud.create_firebase_user(
