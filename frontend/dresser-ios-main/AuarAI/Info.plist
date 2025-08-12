@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>com.googleusercontent.apps.372400751928-qtphjdigrrk2mc97cbhvk4tmhjubtodd</string>
+            </array>
+        </dict>
+    </array>
+
+    <key>ITSAppUsesNonExemptEncryption</key>
+    <false/>
+
+    <key>CFBundleLocalizations</key>
+    <array>
+        <string>en</string>
+        <string>ru</string>
+        <string>kk</string>
+    </array>
+
+    <!-- Location permissions -->
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>AuarAI uses your location to provide weather-based outfit recommendations. Your location data is not stored or shared.</string>
+    
+    <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+    <string>AuarAI uses your location to provide weather-based outfit recommendations. Your location data is not stored or shared.</string>
+</dict>
+</plist>

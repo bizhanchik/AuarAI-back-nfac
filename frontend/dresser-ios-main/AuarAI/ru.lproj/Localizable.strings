@@ -1,0 +1,290 @@
+// General
+"ok" = "ОК";
+"cancel" = "Отмена";
+"error" = "Ошибка";
+"save" = "Сохранить";
+"save_all" = "Сохранить все";
+"done" = "Готово";
+"back" = "Назад";
+"continue" = "Продолжить";
+"try_again" = "Попробовать снова";
+"success" = "Успех";
+"yes" = "Да";
+"no" = "Нет";
+"edit" = "Редактировать";
+"close" = "Закрыть";
+"delete" = "Удалить";
+"loading" = "Загрузка";
+"retry" = "Повторить";
+"create" = "Создать";
+
+// Language Settings
+"language" = "Язык";
+"current_language" = "Текущий язык";
+
+// Onboarding
+"onboarding_welcome_title" = "Добро пожаловать в AuarAI";
+"onboarding_language_title" = "Выберите ваш язык";
+"onboarding_gender_title" = "Я...";
+"onboarding_gender_man" = "Мужчина";
+"onboarding_gender_woman" = "Женщина";
+"onboarding_next" = "Далее";
+
+// Authentication
+"authentication_error" = "Ошибка аутентификации";
+"apple_signin_canceled" = "Вход отменен";
+"apple_signin_failed" = "Не удалось завершить операцию. Попробуйте еще раз.";
+"apple_signin_invalid_response" = "Получен неверный ответ от Apple. Попробуйте еще раз.";
+"apple_signin_not_handled" = "Запрос не был обработан. Попробуйте еще раз.";
+"apple_signin_unknown_error" = "Произошла неизвестная ошибка. Попробуйте еще раз.";
+"apple_signin_general_error" = "Произошла ошибка при входе через Apple. Попробуйте еще раз.";
+"unknown_error" = "Произошла неизвестная ошибка";
+"welcome_to_auarai" = "Добро пожаловать в AuarAI";
+"sign_in_description" = "Войдите, чтобы получать персонализированные рекомендации нарядов от вашего ИИ-стилиста";
+"signing_in" = "Выполняется вход...";
+"continue_with_apple" = "Продолжить с Apple";
+"continue_with_google" = "Продолжить с Google";
+"privacy_notice" = "Входя в систему, вы соглашаетесь с нашими Условиями обслуживания и Политикой конфиденциальности";
+"or" = "или";
+"personal_ai_stylist" = "Ваш персональный ИИ-стилист";
+"landing_description" = "Получайте персонализированные рекомендации нарядов на основе вашего гардероба, погоды и случая. Преобразите свой стиль с помощью ИИ.";
+"what_auarai_does" = "Что делает AuarAI";
+"smart_wardrobe" = "Умный гардероб";
+"smart_wardrobe_description" = "Загружайте фотографии своей одежды и позвольте ИИ автоматически организовать ваш цифровой гардероб.";
+"weather_based_styling" = "Стилизация по погоде";
+"weather_based_styling_description" = "Получайте рекомендации нарядов, которые идеально подходят к погоде и вашему местоположению.";
+"ai_powered_recommendations" = "Рекомендации на основе ИИ";
+"ai_powered_recommendations_description" = "Получайте персонализированные рекомендации нарядов на основе ваших стилевых предпочтений и случаев.";
+"ready_to_transform" = "Готовы преобразить свой стиль?";
+"start_using_auarai" = "Начать использовать AuarAI";
+
+// Dashboard
+"welcome_back" = "С возвращением";
+"your_ai_stylist_ready" = "Ваш ИИ-стилист готов помочь вам создать потрясающие наряды";
+"quick_actions" = "Быстрые действия";
+"add_clothes" = "Добавить одежду";
+"create_outfit" = "Создать образ";
+"view_wardrobe" = "Посмотреть гардероб";
+"get_outfit" = "Получить наряд";
+"coming_soon" = "Скоро";
+"outfit_history" = "История нарядов";
+"style_analytics" = "Аналитика стиля";
+"personal_shopper" = "Персональный покупатель";
+"soon" = "Скоро";
+"add_photos_description" = "Добавляйте одежду в ваш гардероб";
+"my_wardrobe" = "Мой гардероб";
+
+// Dashboard Greetings
+"hello_user" = "Привет, %@!";
+"good_morning" = "Доброе утро";
+"good_afternoon" = "Добрый день";
+"good_evening" = "Добрый вечер";
+"stay_warm" = "Одевайтесь тепло и стильно!";
+"stay_cool" = "Одевайтесь прохладно и стильно!";
+"stay_stylish" = "Оставайтесь стильными!";
+"perfect_weather" = "Идеальная погода для стиля!";
+
+// Dashboard Sections
+"no_events" = "Нет событий";
+"wardrobe" = "Гардероб";
+"items" = "предметов";
+"take_photos" = "Сделать фото";
+"ai_styling" = "ИИ стилист";
+"view_all_items" = "Посмотреть все вещи";
+
+// Daily Outfit Section
+"your_outfits_today" = "Ваши образы сегодня";
+"next_in" = "Следующий через %@";
+"refresh" = "Обновить";
+"generate" = "Создать";
+"creating" = "Создаю...";
+"no_outfit_yet" = "Пока нет образа";
+"generate_outfit_description" = "Нажмите 'Создать', чтобы создать ваш ежедневный образ на основе погоды и вашего гардероба";
+"generate_now" = "Создать сейчас";
+"generate_daily_outfit" = "Создать\nежедневный образ";
+
+
+// Language Settings
+"language_settings" = "Настройки языка";
+"select_language" = "Выберите язык";
+"language_description" = "Выберите предпочитаемый язык для интерфейса приложения";
+
+// Settings
+"settings" = "Настройки";
+"account" = "Аккаунт";
+"sign_out" = "Выйти";
+"delete_account" = "Удалить аккаунт";
+"tap_to_edit_name" = "Нажмите, чтобы изменить имя";
+"sign_out_confirmation" = "Вы уверены, что хотите выйти?";
+"delete_account_confirmation" = "Вы уверены, что хотите удалить свой аккаунт? Это действие нельзя отменить и навсегда удалит все ваши данные.";
+"final_confirmation" = "Окончательное подтверждение";
+"delete_forever" = "Удалить навсегда";
+"delete_account_final_warning" = "Это навсегда удалит ваш аккаунт и все связанные данные. Это действие нельзя отменить.";
+"delete" = "Удалить";
+
+// Edit Name
+"edit_name" = "Редактировать имя";
+"first_name" = "Имя";
+"last_name" = "Фамилия";
+"enter_first_name" = "Введите ваше имя";
+"enter_last_name" = "Введите вашу фамилию";
+"enter_your_name" = "Введите ваше имя";
+"name_description" = "Это имя будет отображаться в приложении и сохраняется локально на вашем устройстве.";
+"preview" = "Предпросмотр";
+"display_name" = "Отображаемое имя";
+
+// Wardrobe
+"outfit" = "Наряд";
+"add_clothing" = "Добавить одежду";
+"search_wardrobe" = "Поиск в гардеробе...";
+"search_clothes" = "Поиск одежды...";
+"no_clothes_yet" = "Одежды пока нет";
+"no_results_found" = "Результаты не найдены";
+"start_building_wardrobe" = "Начните создавать свой гардероб";
+"try_adjusting_search" = "Попробуйте изменить критерии поиска или фильтра";
+"add_first_item" = "Добавить первый предмет";
+"once_you_have_clothes" = "Как только у вас появится одежда, вы сможете создавать потрясающие наряды!";
+
+// Wardrobe Categories
+"all" = "Все";
+"shirts" = "Рубашки";
+"pants" = "Брюки";
+"shoes" = "Обувь";
+"accessories" = "Аксессуары";
+
+// Adding Clothes
+"add_photos_clothes" = "Добавить фото вашей одежды";
+"select_photos_instruction" = "Выберите до 10 фотографий из камеры, фотогалереи или файлов. Наш ИИ автоматически классифицирует каждый предмет.";
+"classify_images" = "Классифицировать %d изображени%@";
+"select_photo_source" = "Выберите источник фото";
+"selected_photos" = "Выбранные фото";
+"clear_all" = "Очистить все";
+"camera" = "Камера";
+"photo_library" = "Фотогалерея";
+"files" = "Файлы";
+"take_new_photos" = "Сделать новые фото";
+"choose_from_photos" = "Выбрать из ваших фото";
+"import_from_files" = "Импортировать из файлов";
+"classifying_clothes" = "Классификация вашей одежды...";
+"ai_analyzing_photos" = "Наш ИИ анализирует ваши фотографии для определения предметов одежды, цветов, материалов и многого другого.";
+"no_items_to_edit" = "Нет предметов для редактирования";
+
+// Wardrobe Compatibility
+"wardrobe_compatibility" = "Совместимость гардероба";
+"analyzing_wardrobe" = "Анализ гардероба...";
+
+// Clothing Details
+"clothing_details" = "Детали одежды";
+"name" = "Название";
+"brand" = "Бренд";
+"color" = "Цвет";
+"size" = "Размер";
+"category" = "Категория";
+"tags" = "Теги";
+"notes" = "Заметки";
+"enter_name" = "Введите название";
+"enter_brand" = "Введите бренд";
+"enter_color" = "Введите цвет";
+"enter_size" = "Введите размер";
+"enter_notes" = "Введите заметки";
+"size_format" = "Размер %@";
+"details" = "Детали";
+"gender" = "Пол";
+"material" = "Материал";
+"occasions" = "Случаи";
+"weather" = "Погода";
+"delete_item" = "Удалить предмет";
+"delete_item_confirmation" = "Вы уверены, что хотите удалить '%@' из вашего гардероба? Это действие нельзя отменить.";
+
+// Location
+"location_permission_denied" = "Доступ к местоположению запрещен. Пожалуйста, включите службы геолокации в Настройках для получения рекомендаций нарядов на основе погоды.";
+"location_unavailable" = "Местоположение недоступно";
+"location_error" = "Не удается получить ваше местоположение";
+"current_location" = "Текущее местоположение";
+"default_location" = "Алматы (По умолчанию)";
+"enable_location" = "Включить геолокацию";
+"location_permission_title" = "Доступ к местоположению";
+"location_permission_message" = "AuarAI использует ваше местоположение для предоставления рекомендаций нарядов на основе погоды. Данные о местоположении не сохраняются и не передаются третьим лицам.";
+
+// Outfit Creation
+"create_outfit" = "Создать наряд";
+"outfit_name" = "Название наряда";
+"select_items" = "Выбрать предметы";
+"create" = "Создать";
+"choose_occasion" = "Выберите случай";
+"select_occasion_description" = "Выберите случай для вашего наряда";
+"selected_occasion" = "Выбранный случай:";
+"your_style" = "Ваш стиль";
+"selected_style" = "Выбрано: %@";
+"generating_outfit" = "Создается ваш идеальный наряд...";
+"ai_analyzing" = "ИИ анализирует ваш гардероб и предпочтения";
+"outfit_ready" = "Ваш наряд готов!";
+"outfit_suggestion_message" = "Вот ваш повседневный образ на сегодня!";
+"something_went_wrong" = "Что-то пошло не так";
+"generating" = "Создается...";
+"styling_tips" = "Советы по стилю";
+"try_another" = "Попробовать другой";
+"save_outfit" = "Сохранить наряд";
+
+// Weather
+"weather" = "Погода";
+"temperature" = "Температура";
+"feels_like" = "Ощущается как";
+"humidity" = "Влажность";
+"wind_speed" = "Скорость ветра";
+"weather_information" = "Информация о погоде";
+"weather_description" = "Здесь будут отображаться текущие данные о погоде.";
+"current_weather" = "Текущая погода";
+"weather_loading" = "Загрузка погоды...";
+
+// Categories
+"category_top" = "Верх";
+"category_bottom" = "Низ";
+"category_shoes" = "Обувь";
+"category_hat" = "Головной убор";
+"category_accessory" = "Аксессуар";
+
+// Error Messages
+"camera_access_denied" = "Доступ к камере запрещен. Пожалуйста, включите его в Настройках.";
+"camera_access_required" = "Для съемки фотографий требуется доступ к камере";
+"max_images_error" = "Максимум %d изображений разрешено";
+"network_error" = "Произошла ошибка сети";
+"server_error" = "Произошла ошибка сервера";
+"invalid_data" = "Получены недействительные данные";
+"upload_failed" = "Загрузка не удалась";
+"classification_failed" = "Классификация не удалась";
+"save_failed" = "Сохранение не удалось";
+
+// MARK: - Onboarding
+"onboarding_welcome_title" = "Добро пожаловать в AuarAI";
+"onboarding_language_title" = "Выберите язык";
+"onboarding_language_subtitle" = "Выберите предпочитаемый язык для интерфейса приложения";
+"onboarding_gender_title" = "Выберите ваш пол";
+"onboarding_gender_man" = "Мужчина";
+"onboarding_gender_woman" = "Женщина";
+"onboarding_problem_title" = "Проблема";
+"onboarding_problem_description" = "Выбор того, что надеть каждый день, может быть утомительным. У вас есть одежда, но сложно создавать гармоничные, подходящие по погоде образы, которые придают уверенность.";
+"onboarding_solution_title" = "Наше решение";
+"onboarding_solution_description" = "AuarAI — ваш персональный AI-стилист, который изучает ваши предпочтения, учитывает погоду и создает идеальные комбинации нарядов из вашего существующего гардероба.";
+"onboarding_features_title" = "Что вы получите";
+"onboarding_smart_wardrobe_title" = "Умный гардероб";
+"onboarding_smart_wardrobe_description" = "Загружайте фото своей одежды и позвольте ИИ организовать ваш цифровой гардероб";
+"onboarding_weather_styling_title" = "Стилизация по погоде";
+"onboarding_weather_styling_description" = "Получайте предложения нарядов, которые идеально подходят к погоде";
+"onboarding_ai_recommendations_title" = "ИИ рекомендации";
+"onboarding_ai_recommendations_description" = "Персонализированные предложения на основе ваших предпочтений";
+"onboarding_final_title" = "Готовы преобразить свой стиль?";
+"onboarding_final_description" = "Присоединяйтесь к тысячам пользователей, которые революционизировали свой ежедневный стиль с помощью рекомендаций на основе ИИ.";
+"onboarding_get_started" = "Начать";
+"onboarding_next" = "Далее";
+"onboarding_skip" = "Пропустить";
+
+// Feature descriptions for onboarding
+"onboarding_feature_wardrobe_title" = "Создайте свой гардероб";
+"onboarding_feature_wardrobe_description" = "Организуйте и категоризируйте предметы одежды";
+"onboarding_feature_weather_title" = "Подбор по погоде";
+"onboarding_feature_weather_description" = "Получайте предложения нарядов в зависимости от погоды";
+"onboarding_feature_advice_title" = "Честные советы ИИ";
+"onboarding_feature_advice_description" = "Получайте искренние отзывы о ваших стилевых решениях";
+"onboarding_feature_styles_title" = "Откройте новые стили";
+"onboarding_feature_styles_description" = "Исследуйте образы, которые действительно вам подходят";
