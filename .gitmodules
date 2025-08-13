@@ -1,0 +1,3 @@
+[submodule "frontend/dresser-ios"]
+	path = frontend/dresser-ios
+	url = https://github.com/oopsify/dresser-ios.git

@@ -119,20 +119,6 @@ class BodyAnalysisResponse(BaseModel):
     metadata: Optional[Metadata] = None
     photo_url: Optional[str] = None
 
-class WardrobeCompatibilityResult(BaseModel):
-    compatibility_percentage: float
-    matching_items: int
-    total_items: int
-    recommendations: List[str]
-    color_matches: List[str]
-    style_matches: List[str]
-    missing_essentials: List[str]
-
-class WardrobeCompatibilityResponse(BaseModel):
-    success: bool
-    message: str
-    result: Optional[WardrobeCompatibilityResult] = None
-
 # ---------- ПОИСК И ФИЛЬТРАЦИЯ ----------
 def tavily_search_with_brands(query: str, brands: List[str], max_results: int = 12) -> List[str]:
     """Поиск на Amazon через Tavily с учетом брендов"""
@@ -454,17 +440,8 @@ async def analyze_wardrobe_compatibility(
         # Analyze compatibility with AI
         try:
             logger.info("🤖 Starting AI wardrobe compatibility analysis...")
-            # Fallback to basic analysis since ai_analyze_wardrobe_compatibility is not implemented
-            compatibility_result = {
-                "compatibility_percentage": 75.0,
-                "matching_items": len(clothing_items) // 2,
-                "total_items": len(clothing_items),
-                "recommendations": ["Consider adding more versatile pieces", "Focus on recommended colors"],
-                "color_matches": ["Navy", "Black"],
-                "style_matches": ["Classic pieces"],
-                "missing_essentials": ["White button-down shirt", "Dark jeans"]
-            }
-            logger.info(f"✅ Basic compatibility analysis completed: {compatibility_result}")
+            compatibility_result = ai_analyze_wardrobe_compatibility(body_analysis, wardrobe_data)
+            logger.info(f"✅ AI compatibility analysis completed: {compatibility_result}")
             
         except Exception as e:
             logger.error(f"❌ AI compatibility analysis failed: {e}")
