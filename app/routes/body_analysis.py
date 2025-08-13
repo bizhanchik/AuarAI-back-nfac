@@ -498,13 +498,13 @@ async def analyze_wardrobe_compatibility(
 @router.post("/analyze", response_model=BodyAnalysisResponse)
 async def analyze_body_photo(
     file: UploadFile = File(...),
-    current_user: dict = Depends(get_current_user_firebase)
+    current_user: models.User = Depends(get_current_user_firebase)
 ) -> BodyAnalysisResponse:
     """
     Анализирует фото тела пользователя и предоставляет рекомендации по стилю с поиском товаров на Amazon
     """
     try:
-        logger.info(f"🔍 Starting body photo analysis for user {current_user.get('uid', 'unknown')}")
+        logger.info(f"🔍 Starting body photo analysis for user {current_user.firebase_uid or 'unknown'}")
         
         # Валидация файла
         if not file.content_type or not file.content_type.startswith('image/'):
@@ -527,7 +527,7 @@ async def analyze_body_photo(
         
         # Загрузка в GCS
         try:
-            filename = f"body_analysis/{current_user.get('uid', 'unknown')}/{uuid.uuid4()}.jpg"
+            filename = f"body_analysis/{current_user.firebase_uid or 'unknown'}/{uuid.uuid4()}.jpg"
             public_url = gcs_uploader.upload_file(
                 file_data=storage_compressed,
                 filename=filename,
