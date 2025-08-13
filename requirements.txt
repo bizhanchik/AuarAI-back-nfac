@@ -25,3 +25,5 @@ numpy==1.24.3
 aiofiles==23.2.1
 gtts==2.4.0
 pydub==0.25.1
+openai==1.84.0
+tavily-python=0.7.10
