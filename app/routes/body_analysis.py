@@ -119,6 +119,20 @@ class BodyAnalysisResponse(BaseModel):
     metadata: Optional[Metadata] = None
     photo_url: Optional[str] = None
 
+class WardrobeCompatibilityResult(BaseModel):
+    compatibility_percentage: float
+    matching_items: int
+    total_items: int
+    recommendations: List[str]
+    color_matches: List[str]
+    style_matches: List[str]
+    missing_essentials: List[str]
+
+class WardrobeCompatibilityResponse(BaseModel):
+    success: bool
+    message: str
+    result: Optional[WardrobeCompatibilityResult] = None
+
 # ---------- ПОИСК И ФИЛЬТРАЦИЯ ----------
 def tavily_search_with_brands(query: str, brands: List[str], max_results: int = 12) -> List[str]:
     """Поиск на Amazon через Tavily с учетом брендов"""
