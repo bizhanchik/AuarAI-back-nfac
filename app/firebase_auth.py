@@ -76,7 +76,9 @@ async def verify_firebase_token(credentials: HTTPAuthorizationCredentials = Depe
     try:
         # Verify the Firebase ID token
         decoded_token = auth.verify_id_token(credentials.credentials)
-        logger.info(f"Firebase token verified successfully for user: {decoded_token.get('email')}")
+        user_uid = decoded_token.get('uid')
+        user_email = decoded_token.get('email', 'no-email')
+        logger.info(f"Firebase token verified successfully for user: {user_uid} ({user_email})")
         return decoded_token
     except auth.InvalidIdTokenError as e:
         logger.error(f"Invalid Firebase ID token: {str(e)}")

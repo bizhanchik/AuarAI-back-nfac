@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 import google.generativeai as genai
 import os
 import json
+import re
 
 from ..database import get_db
 from ..firebase_auth import get_current_user_firebase
@@ -12,6 +13,53 @@ from ..models import User, ClothingItem
 from ..schemas import ClothingItem as ClothingItemSchema
 
 router = APIRouter(prefix="/stylist", tags=["stylist"])
+
+def parse_weather_safely(weather_str: str) -> tuple[Optional[float], str]:
+    """
+    Safely parse weather string to extract temperature and conditions.
+    Supports formats like: '29°C, Clear', '29 C', '-3.5°F', 'Clear 25°C', etc.
+    Returns: (temperature_celsius, conditions_string)
+    """
+    if not weather_str or not isinstance(weather_str, str):
+        return None, weather_str or "mild"
+    
+    # Remove URL encoding artifacts
+    weather_str = weather_str.replace('%C2%B0', '°').replace('%20', ' ')
+    
+    # Try to find temperature with various patterns
+    temp_patterns = [
+        r'(-?\d+(?:\.\d+)?)\s*°?\s*[CF]',  # -3.5°C, 29°F, 25 C, etc.
+        r'(-?\d+(?:\.\d+)?)\s*degrees?',   # 25 degrees
+        r'(-?\d+(?:\.\d+)?)°',             # 25°
+    ]
+    
+    temperature = None
+    temp_match = None
+    
+    for pattern in temp_patterns:
+        match = re.search(pattern, weather_str, re.IGNORECASE)
+        if match:
+            try:
+                temp_value = float(match.group(1))
+                # Convert Fahrenheit to Celsius if needed
+                if 'F' in match.group(0).upper():
+                    temp_value = (temp_value - 32) * 5/9
+                temperature = temp_value
+                temp_match = match
+                break
+            except (ValueError, IndexError):
+                continue
+    
+    # Extract conditions by removing the temperature part
+    conditions = weather_str
+    if temp_match:
+        conditions = weather_str.replace(temp_match.group(0), '').strip()
+        conditions = re.sub(r'^[,\s]+|[,\s]+$', '', conditions)  # Remove leading/trailing commas and spaces
+    
+    if not conditions:
+        conditions = "mild"
+    
+    return temperature, conditions
 
 # Updated Pydantic models for structured outfit output with full item objects
 class OutfitSuggestion(BaseModel):
@@ -123,6 +171,31 @@ async def suggest_outfit(
     Generate outfit suggestions based on user's clothing items
     """
     try:
+        # Validate weather parameter
+        if weather and len(weather) > 200:  # Prevent extremely long weather strings
+            raise HTTPException(
+                status_code=400,
+                detail="Weather parameter is too long. Please provide a concise weather description (e.g., '25°C, Clear')."
+            )
+        
+        # Parse weather safely
+        temperature, weather_conditions = parse_weather_safely(weather)
+        
+        # Create a descriptive weather string for the AI
+        if temperature is not None:
+            temp_desc = f"{temperature:.1f}°C"
+            if temperature < 5:
+                temp_category = "very cold"
+            elif temperature < 15:
+                temp_category = "cold"
+            elif temperature < 25:
+                temp_category = "mild"
+            else:
+                temp_category = "warm"
+            weather_description = f"{temp_desc} ({temp_category}), {weather_conditions}"
+        else:
+            weather_description = weather_conditions
+        
         # Get user's clothing items
         user_items = get_user_clothing_items_for_prompt(current_user.id, db)
         
@@ -134,6 +207,12 @@ async def suggest_outfit(
         
         # Get actual clothing items for lookup
         all_items = db.query(ClothingItem).filter(ClothingItem.owner_id == current_user.id).all()
+        
+        if not all_items:
+            raise HTTPException(
+                status_code=404,
+                detail="No clothing items found. Please add some clothes to your wardrobe first."
+            )
         
         # Get Gemini model
         model = get_gemini_model()
@@ -147,7 +226,7 @@ async def suggest_outfit(
 
         Requirements:
         - Occasion: {occasion}
-        - Weather: {weather}
+        - Weather: {weather_description}
         - Style preference: {style_preference}
 
         Please create a stylish and practical outfit suggestion. Choose items that work well together in terms of color, style, and appropriateness for the occasion and weather.
@@ -165,30 +244,51 @@ async def suggest_outfit(
         Important: Only use items that are actually available in the wardrobe list above. Be specific with item names and match them exactly.
         """
         
-        # Generate response
-        response = model.generate_content(prompt)
-        
-        # Extract JSON from response
-        response_text = response.text.strip()
+        # Generate response with error handling
+        try:
+            response = model.generate_content(prompt)
+            response_text = response.text.strip() if response and response.text else ""
+        except Exception as e:
+            # If AI generation fails, use fallback
+            response_text = ""
+            print(f"AI generation failed: {e}")
         
         # Try to find JSON in the response
+        ai_outfit_data = None
         try:
-            # Look for JSON content between ```json and ``` or just find the JSON object
-            if "```json" in response_text:
-                json_start = response_text.find("```json") + 7
-                json_end = response_text.find("```", json_start)
-                json_text = response_text[json_start:json_end].strip()
-            elif "{" in response_text:
-                json_start = response_text.find("{")
-                json_end = response_text.rfind("}") + 1
-                json_text = response_text[json_start:json_end]
+            if response_text:
+                # Look for JSON content between ```json and ``` or just find the JSON object
+                if "```json" in response_text:
+                    json_start = response_text.find("```json") + 7
+                    json_end = response_text.find("```", json_start)
+                    if json_end == -1:
+                        json_end = len(response_text)
+                    json_text = response_text[json_start:json_end].strip()
+                elif "{" in response_text:
+                    json_start = response_text.find("{")
+                    json_end = response_text.rfind("}") + 1
+                    json_text = response_text[json_start:json_end]
+                else:
+                    raise ValueError("No JSON found in response")
+                
+                ai_outfit_data = json.loads(json_text)
             else:
-                raise ValueError("No JSON found in response")
-            
-            ai_outfit_data = json.loads(json_text)
-            
+                raise ValueError("Empty AI response")
+        except (json.JSONDecodeError, ValueError, Exception) as e:
+            print(f"JSON parsing failed: {e}")
+            ai_outfit_data = None
+        
+        # Initialize outfit items
+        hat_item = None
+        top_item = None
+        bottom_item = None
+        shoes_item = None
+        accessory_items = []
+        styling_tips = f"Here's a great {style_preference} outfit for {occasion}!"
+        
+        # Process AI outfit data if available
+        if ai_outfit_data:
             # Convert AI suggestions to actual ClothingItem objects
-            hat_item = None
             if ai_outfit_data.get("hat"):
                 hat_item = find_clothing_item_by_name(ai_outfit_data["hat"], all_items)
             
@@ -197,58 +297,44 @@ async def suggest_outfit(
             shoes_item = find_clothing_item_by_name(ai_outfit_data.get("shoes", ""), all_items)
             
             # Find accessories
-            accessory_items = []
             for acc_name in ai_outfit_data.get("accessories", []):
                 acc_item = find_clothing_item_by_name(acc_name, all_items)
                 if acc_item:
                     accessory_items.append(acc_item)
             
-            # Fallback: if AI couldn't find suitable items, use category-based selection
-            if not top_item:
-                tops = get_items_by_category(all_items, ['top', 'shirt', 'blouse', 't-shirt', 'sweater', 'hoodie'])
-                top_item = tops[0] if tops else None
-            
-            if not bottom_item:
-                bottoms = get_items_by_category(all_items, ['bottom', 'pants', 'jeans', 'skirt', 'shorts'])
-                bottom_item = bottoms[0] if bottoms else None
-            
-            if not shoes_item:
-                shoes = get_items_by_category(all_items, ['shoes', 'footwear', 'sneakers', 'boots', 'sandals', 'heels'])
-                shoes_item = shoes[0] if shoes else None
-            
-            if not hat_item and ai_outfit_data.get("hat"):
-                hats = get_items_by_category(all_items, ['hat', 'cap'])
-                hat_item = hats[0] if hats else None
-            
-            if not accessory_items and ai_outfit_data.get("accessories"):
-                accessories = get_items_by_category(all_items, ['accessories', 'accessory'])
-                accessory_items = accessories[:2]  # Take up to 2 accessories
-            
-            outfit = OutfitSuggestion(
-                hat=convert_orm_to_schema(hat_item) if hat_item else None,
-                top=convert_orm_to_schema(top_item) if top_item else None,
-                bottom=convert_orm_to_schema(bottom_item) if bottom_item else None,
-                shoes=convert_orm_to_schema(shoes_item) if shoes_item else None,
-                accessories=[convert_orm_to_schema(item) for item in accessory_items],
-                styling_tips=ai_outfit_data.get("styling_tips", f"Here's a great {style_preference} outfit for {occasion}!")
-            )
-            
-        except (json.JSONDecodeError, ValueError, Exception) as e:
-            # Fallback: create a simple outfit suggestion using category-based selection
+            # Use AI styling tips if available
+            styling_tips = ai_outfit_data.get("styling_tips", styling_tips)
+        
+        # Fallback: if AI couldn't find suitable items or failed, use category-based selection
+        if not top_item:
             tops = get_items_by_category(all_items, ['top', 'shirt', 'blouse', 't-shirt', 'sweater', 'hoodie'])
+            top_item = tops[0] if tops else None
+        
+        if not bottom_item:
             bottoms = get_items_by_category(all_items, ['bottom', 'pants', 'jeans', 'skirt', 'shorts'])
+            bottom_item = bottoms[0] if bottoms else None
+        
+        if not shoes_item:
             shoes = get_items_by_category(all_items, ['shoes', 'footwear', 'sneakers', 'boots', 'sandals', 'heels'])
+            shoes_item = shoes[0] if shoes else None
+        
+        if not hat_item and (not ai_outfit_data or ai_outfit_data.get("hat")):
             hats = get_items_by_category(all_items, ['hat', 'cap'])
+            hat_item = hats[0] if hats else None
+        
+        if not accessory_items:
             accessories = get_items_by_category(all_items, ['accessories', 'accessory'])
-            
-            outfit = OutfitSuggestion(
-                hat=convert_orm_to_schema(hats[0]) if hats else None,
-                top=convert_orm_to_schema(tops[0]) if tops else None,
-                bottom=convert_orm_to_schema(bottoms[0]) if bottoms else None,
-                shoes=convert_orm_to_schema(shoes[0]) if shoes else None,
-                accessories=[convert_orm_to_schema(item) for item in accessories[:2]],
-                styling_tips=f"Here's a great {style_preference} outfit for {occasion}! " + response_text[:200] if response_text else f"Perfect for {occasion}!"
-            )
+            accessory_items = accessories[:2]  # Take up to 2 accessories
+        
+        # Create the outfit
+        outfit = OutfitSuggestion(
+            hat=convert_orm_to_schema(hat_item) if hat_item else None,
+            top=convert_orm_to_schema(top_item) if top_item else None,
+            bottom=convert_orm_to_schema(bottom_item) if bottom_item else None,
+            shoes=convert_orm_to_schema(shoes_item) if shoes_item else None,
+            accessories=[convert_orm_to_schema(item) for item in accessory_items],
+            styling_tips=styling_tips
+        )
         
         # Get list of available items for reference
         available_items = [item.name for item in all_items]
@@ -357,4 +443,4 @@ async def get_forecast_outfits(
         raise HTTPException(
             status_code=500,
             detail=f"Failed to generate outfit recommendations: {str(e)}"
-        ) 
+        )
