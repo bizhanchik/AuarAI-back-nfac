@@ -26,3 +26,6 @@ aiofiles==23.2.1
 gtts==2.4.0
 pydub==0.25.1
 openai==1.84.0
+torch==2.5.1
+torchvision==0.20.1
+transformers==4.44.0
