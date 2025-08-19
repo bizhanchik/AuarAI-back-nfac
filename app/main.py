@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from . import models, schemas, crud, auth, firebase_auth
 from .database import get_db
 from .routes import classifier, weather, photo_upload, items, stylist, v2v_assistant, firebase_auth as firebase_auth_routes, ip_location, body_analysis, visual_try_on
+from . import unfurl
 
 app = FastAPI(root_path="/api")
 
@@ -46,6 +47,7 @@ app.include_router(firebase_auth_routes.router)  # Add Firebase auth routes
 app.include_router(ip_location.router)  # Add IP location routes
 app.include_router(body_analysis.router)  # Add body analysis routes (prefix already defined in router)
 app.include_router(visual_try_on.router)  # Add visual try-on routes
+app.include_router(unfurl.router)  # Add unfurl routes
 
 # Роутер для операций с одеждой (updated to use Firebase auth)
 clothing_router = APIRouter(
