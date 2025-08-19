@@ -22,7 +22,7 @@ UNFURL_MAX_HTML_BYTES = int(os.getenv("UNFURL_MAX_HTML_BYTES", "2097152"))  # 2M
 REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
 UNFURL_USER_AGENT = os.getenv(
     "UNFURL_USER_AGENT",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
 )
 
 router = APIRouter(tags=["unfurl"])
@@ -107,11 +107,24 @@ def is_public_url(url: str) -> bool:
 
 async def fetch_html(url: str) -> Tuple[str, str, str]:
     """Fetch HTML content with size limits and redirects."""
+    headers = {
+        "User-Agent": UNFURL_USER_AGENT,
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Connection": "keep-alive",
+        "Upgrade-Insecure-Requests": "1",
+        "Sec-Fetch-Dest": "document",
+        "Sec-Fetch-Mode": "navigate",
+        "Sec-Fetch-Site": "none",
+        "Sec-Fetch-User": "?1",
+        "Cache-Control": "max-age=0",
+    }
     async with httpx.AsyncClient(
         timeout=httpx.Timeout(UNFURL_TIMEOUT),
         follow_redirects=True,
         max_redirects=5,
-        headers={"User-Agent": UNFURL_USER_AGENT}
+        headers=headers
     ) as client:
         response = await client.get(url)
         response.raise_for_status()
@@ -238,11 +251,30 @@ def extract_amazon_metadata(soup: BeautifulSoup, base_url: str) -> Dict[str, Any
         "source": "amazon"
     }
     
+    # Check if we got a CAPTCHA or blocked page
+    captcha_indicators = [
+        "Click the button below to continue shopping",
+        "Enter the characters you see below",
+        "api-services-support@amazon.com",
+        "automated access"
+    ]
+    
+    page_text = soup.get_text().lower()
+    for indicator in captcha_indicators:
+        if indicator.lower() in page_text:
+            # Return basic info if blocked
+            result["title"] = "Amazon Product"
+            result["description"] = "Product information temporarily unavailable"
+            return result
+    
     # Extract title
     title_selectors = [
         "#productTitle",
         "h1.a-size-large",
         "h1 span",
+        "[data-automation-id='product-title']",
+        ".product-title",
+        "h1",
         "title"
     ]
     
@@ -280,7 +312,14 @@ def extract_amazon_metadata(soup: BeautifulSoup, base_url: str) -> Dict[str, Any
         "img[data-src]",
         ".imgTagWrapper img",
         "#main-image",
-        "img[src*='images-amazon']"
+        "#main-image-container img",
+        "[data-automation-id='product-image'] img",
+        ".product-image img",
+        "img[src*='images-amazon']",
+        "img[src*='ssl-images-amazon']",
+        "img[src*='m.media-amazon']",
+        ".a-dynamic-image",
+        "img.a-dynamic-image"
     ]
     
     for selector in image_selectors:
