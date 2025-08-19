@@ -146,6 +146,10 @@ def extract_metadata(html: str, base_url: str) -> Dict[str, Any]:
         "source": "fallback"
     }
     
+    # Special handling for Amazon
+    if "amazon." in base_url:
+        return extract_amazon_metadata(soup, base_url)
+    
     # Try Open Graph first
     og_title = soup.find("meta", property="og:title")
     og_description = soup.find("meta", property="og:description")
@@ -220,6 +224,115 @@ def extract_metadata(html: str, base_url: str) -> Dict[str, Any]:
         favicon_href = favicon_links[0].get("href")
         if favicon_href:
             result["favicon"] = absolute_url(favicon_href, base_url)
+    
+    return result
+
+def extract_amazon_metadata(soup: BeautifulSoup, base_url: str) -> Dict[str, Any]:
+    """Extract metadata specifically for Amazon product pages."""
+    result = {
+        "title": None,
+        "description": None,
+        "image": None,
+        "site_name": "Amazon",
+        "favicon": None,
+        "source": "amazon"
+    }
+    
+    # Extract title
+    title_selectors = [
+        "#productTitle",
+        "h1.a-size-large",
+        "h1 span",
+        "title"
+    ]
+    
+    for selector in title_selectors:
+        title_elem = soup.select_one(selector)
+        if title_elem:
+            result["title"] = title_elem.get_text().strip()
+            break
+    
+    # Extract description
+    desc_selectors = [
+        "#feature-bullets ul",
+        "#productDescription",
+        "meta[name='description']"
+    ]
+    
+    for selector in desc_selectors:
+        if selector.startswith("meta"):
+            desc_elem = soup.select_one(selector)
+            if desc_elem:
+                result["description"] = desc_elem.get("content", "").strip()
+                break
+        else:
+            desc_elem = soup.select_one(selector)
+            if desc_elem:
+                result["description"] = desc_elem.get_text().strip()[:200] + "..."
+                break
+    
+    # Extract main product image
+    image_selectors = [
+        "#landingImage",
+        "#imgBlkFront",
+        "img[data-a-dynamic-image]",
+        "img[data-old-hires]",
+        "img[data-src]",
+        ".imgTagWrapper img",
+        "#main-image",
+        "img[src*='images-amazon']"
+    ]
+    
+    for selector in image_selectors:
+        img_elem = soup.select_one(selector)
+        if img_elem:
+            # Try different image URL sources
+            img_url = None
+            
+            # Check data-a-dynamic-image (JSON with different sizes)
+            dynamic_image = img_elem.get("data-a-dynamic-image")
+            if dynamic_image:
+                try:
+                    import json
+                    image_data = json.loads(dynamic_image)
+                    if image_data:
+                        # Get the largest image
+                        img_url = max(image_data.keys(), key=lambda x: sum(image_data[x]))
+                except:
+                    pass
+            
+            # Check other attributes
+            if not img_url:
+                img_url = (img_elem.get("data-old-hires") or 
+                          img_elem.get("data-src") or 
+                          img_elem.get("src"))
+            
+            if img_url:
+                # Clean up the URL
+                if img_url.startswith("//"):
+                    img_url = "https:" + img_url
+                elif img_url.startswith("/"):
+                    img_url = "https://amazon.com" + img_url
+                
+                # Remove size restrictions to get full-size image
+                if "._" in img_url:
+                    img_url = img_url.split("._")[0] + ".jpg"
+                
+                result["image"] = img_url
+                break
+    
+    # Fallback to any large image
+    if not result["image"]:
+        images = soup.find_all("img")
+        for img in images:
+            src = img.get("src") or img.get("data-src")
+            if src and ("images-amazon" in src or "ssl-images-amazon" in src):
+                if src.startswith("//"):
+                    src = "https:" + src
+                if "._" in src:
+                    src = src.split("._")[0] + ".jpg"
+                result["image"] = src
+                break
     
     return result
 
