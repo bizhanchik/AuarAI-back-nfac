@@ -274,7 +274,7 @@ def analyze_image(image_bytes: bytes) -> Dict:
     # Вызов OpenAI API с обработкой ошибок
     resp = safe_api_call(
         openai_client.chat.completions.create,
-        model="gpt-4o",
+        model="gpt-4.1-mini",
         response_format={
             "type": "json_schema",
             "json_schema": {
