@@ -175,6 +175,8 @@ def ai_select_clothing_from_csv(analysis: Dict, max_items: int = 15) -> Tuple[Li
         logger.warning("⚠️ CSV данные не загружены")
         return [], []
     
+    logger.info(f"📊 Загружено {len(clothing_data)} товаров из CSV")
+    
     try:
         # Подготавливаем данные для ИИ анализа
         gender = analysis.get('gender_label', 'unisex')
@@ -184,15 +186,29 @@ def ai_select_clothing_from_csv(analysis: Dict, max_items: int = 15) -> Tuple[Li
         avoid_colors = analysis.get('color_palette', {}).get('avoid_colors', [])
         recommended_categories = analysis.get('recommended_categories', {})
         
+        logger.info(f"🔍 Анализ для: пол={gender}, тип фигуры={body_type}, стиль={style_goal}")
+        
         # Фильтруем данные по полу для уменьшения объема
-        if gender != 'unisex':
-            filtered_data = clothing_data[clothing_data['gender'].str.lower() == gender.lower()]
+        # Маппинг значений ИИ анализа к значениям CSV
+        gender_mapping = {'men': 'male', 'women': 'female', 'unisex': None}
+        csv_gender = gender_mapping.get(gender.lower(), None)
+        
+        if csv_gender:
+            filtered_data = clothing_data[clothing_data['gender'].str.lower() == csv_gender]
+            logger.info(f"🚹 После фильтрации по полу '{gender}' -> '{csv_gender}': {len(filtered_data)} товаров")
         else:
             filtered_data = clothing_data
+            logger.info(f"🚻 Без фильтрации по полу: {len(filtered_data)} товаров")
+        
+        if filtered_data.empty:
+            logger.warning(f"⚠️ Нет товаров для пола '{gender}'")
+            return [], []
         
         # Ограничиваем количество товаров для анализа (чтобы не превысить лимит токенов)
         sample_size = min(100, len(filtered_data))
         sample_data = filtered_data.sample(n=sample_size) if len(filtered_data) > sample_size else filtered_data
+        
+        logger.info(f"📝 Отправляем ИИ {len(sample_data)} товаров для анализа")
         
         # Создаем JSON представление товаров для ИИ
         items_for_ai = []
