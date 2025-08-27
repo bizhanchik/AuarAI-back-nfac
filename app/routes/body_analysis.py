@@ -243,7 +243,7 @@ def ai_select_clothing_from_csv(analysis: Dict, max_items: int = 15) -> Tuple[Li
         
         # Запрос к ChatGPT API
         response = openai_client.chat.completions.create(
-            model="gpt-4",
+            model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": "Ты эксперт по стилю и моде. Отвечай только в формате JSON."},
                 {"role": "user", "content": ai_prompt}
