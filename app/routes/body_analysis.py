@@ -15,6 +15,7 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 from dotenv import load_dotenv
 from openai import OpenAI
+import pandas as pd
 
 from ..gcs_uploader import gcs_uploader
 from ..firebase_auth import get_current_user_firebase
@@ -62,6 +63,24 @@ PRICE_RANGE = {"min": 20, "max": 160}
 MIN_RATING = 4.2
 MIN_REVIEWS = 500
 
+# ---------- CSV ДАННЫЕ ----------
+CSV_FILE_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "classified.csv")
+
+# Глобальная переменная для хранения данных CSV
+_clothing_data = None
+
+def load_clothing_data() -> pd.DataFrame:
+    """Загружает данные одежды из CSV файла"""
+    global _clothing_data
+    if _clothing_data is None:
+        try:
+            _clothing_data = pd.read_csv(CSV_FILE_PATH)
+            logger.info(f"📊 Загружено {len(_clothing_data)} товаров из CSV")
+        except Exception as e:
+            logger.error(f"❌ Ошибка загрузки CSV: {e}")
+            _clothing_data = pd.DataFrame()  # Пустой DataFrame в случае ошибки
+    return _clothing_data
+
 # ---------- УТИЛИТЫ ----------
 def b64img(image_bytes: bytes) -> str:
     """Конвертирует изображение в base64 для OpenAI API"""
@@ -100,9 +119,23 @@ class IdealColors(BaseModel):
     avoid_colors: Optional[List[str]] = None
     color_description: Optional[str] = None
 
-class AmazonRecommendations(BaseModel):
-    tops: Optional[List[str]] = None
-    bottoms: Optional[List[str]] = None
+class ClothingItem(BaseModel):
+    name: str
+    price: float
+    image_url: str
+    product_url: str
+    gender: str
+    piece_type: str
+    subtype: Optional[str] = None
+    fit: Optional[str] = None
+    style: Optional[str] = None
+    season: Optional[str] = None
+    main_color: str
+    palette_tags: Optional[str] = None
+
+class ClothingRecommendations(BaseModel):
+    tops: Optional[List[ClothingItem]] = None
+    bottoms: Optional[List[ClothingItem]] = None
     total_found: Optional[Dict[str, int]] = None
 
 class Metadata(BaseModel):
@@ -115,7 +148,7 @@ class BodyAnalysisResponse(BaseModel):
     analysis: Optional[BodyAnalysisResult] = None
     ideal_fits: Optional[IdealFits] = None
     ideal_colors: Optional[IdealColors] = None
-    amazon_recommendations: Optional[AmazonRecommendations] = None
+    clothing_recommendations: Optional[ClothingRecommendations] = None
     metadata: Optional[Metadata] = None
     photo_url: Optional[str] = None
 
@@ -133,7 +166,224 @@ class WardrobeCompatibilityResponse(BaseModel):
     message: str
     result: Optional[WardrobeCompatibilityResult] = None
 
-# ---------- ПОИСК И ФИЛЬТРАЦИЯ ----------
+# ---------- ПОИСК ТОВАРОВ В CSV ----------
+def ai_select_clothing_from_csv(analysis: Dict, max_items: int = 15) -> Tuple[List[ClothingItem], List[ClothingItem]]:
+    """ИИ подбор одежды из CSV данных с использованием ChatGPT API"""
+    clothing_data = load_clothing_data()
+    
+    if clothing_data.empty:
+        logger.warning("⚠️ CSV данные не загружены")
+        return [], []
+    
+    try:
+        # Подготавливаем данные для ИИ анализа
+        gender = analysis.get('gender_label', 'unisex')
+        body_type = analysis.get('body_type', 'unknown')
+        style_goal = analysis.get('style_goal', 'casual')
+        best_colors = analysis.get('color_palette', {}).get('best_colors', [])
+        avoid_colors = analysis.get('color_palette', {}).get('avoid_colors', [])
+        recommended_categories = analysis.get('recommended_categories', {})
+        
+        # Фильтруем данные по полу для уменьшения объема
+        if gender != 'unisex':
+            filtered_data = clothing_data[clothing_data['gender'].str.lower() == gender.lower()]
+        else:
+            filtered_data = clothing_data
+        
+        # Ограничиваем количество товаров для анализа (чтобы не превысить лимит токенов)
+        sample_size = min(100, len(filtered_data))
+        sample_data = filtered_data.sample(n=sample_size) if len(filtered_data) > sample_size else filtered_data
+        
+        # Создаем JSON представление товаров для ИИ
+        items_for_ai = []
+        for idx, row in sample_data.iterrows():
+            items_for_ai.append({
+                "id": idx,
+                "name": row['name'],
+                "price": row['price'],
+                "gender": row['gender'],
+                "piece_type": row['piece_type'],
+                "subtype": row.get('subtype', ''),
+                "fit": row.get('fit', ''),
+                "style": row.get('style', ''),
+                "season": row.get('season', ''),
+                "main_color": row['main_color'],
+                "palette_tags": row.get('palette_tags', '')
+            })
+        
+        # Формируем промпт для ChatGPT
+        ai_prompt = f"""
+Ты - эксперт по стилю и моде. Проанализируй данные о человеке и выбери наиболее подходящие вещи из предоставленного списка одежды.
+
+Данные о человеке:
+- Пол: {gender}
+- Тип фигуры: {body_type}
+- Стиль: {style_goal}
+- Подходящие цвета: {', '.join(best_colors) if best_colors else 'не указаны'}
+- Избегать цвета: {', '.join(avoid_colors) if avoid_colors else 'не указаны'}
+- Рекомендуемые категории: {recommended_categories}
+
+Список доступной одежды:
+{json.dumps(items_for_ai, ensure_ascii=False, indent=2)}
+
+Выбери максимум {max_items//2} топов и {max_items//2} низа, которые лучше всего подходят этому человеку.
+Учитывай:
+1. Соответствие типу фигуры
+2. Цветовую палитру
+3. Стиль
+4. Качество и цену
+5. Сочетаемость между собой
+
+Верни результат в формате JSON:
+{{
+  "tops": [список ID топов],
+  "bottoms": [список ID низа],
+  "reasoning": "краткое объяснение выбора"
+}}"""
+        
+        # Запрос к ChatGPT API
+        response = openai_client.chat.completions.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": "Ты эксперт по стилю и моде. Отвечай только в формате JSON."},
+                {"role": "user", "content": ai_prompt}
+            ],
+            max_tokens=1000,
+            temperature=0.3
+        )
+        
+        # Парсим ответ ИИ
+        ai_response = response.choices[0].message.content
+        logger.info(f"🤖 Ответ ИИ: {ai_response}")
+        
+        try:
+            ai_selection = json.loads(ai_response)
+            selected_top_ids = ai_selection.get('tops', [])
+            selected_bottom_ids = ai_selection.get('bottoms', [])
+            reasoning = ai_selection.get('reasoning', 'Не указано')
+            
+            logger.info(f"🧠 ИИ выбрал: {len(selected_top_ids)} топов, {len(selected_bottom_ids)} низа. Обоснование: {reasoning}")
+            
+            # Конвертируем выбранные ID в ClothingItem объекты
+            tops_result = []
+            for item_id in selected_top_ids:
+                if item_id in sample_data.index:
+                    row = sample_data.loc[item_id]
+                    tops_result.append(ClothingItem(
+                        name=row['name'],
+                        price=float(row['price']),
+                        image_url=row['image_url'],
+                        product_url=row['product_url'],
+                        gender=row['gender'],
+                        piece_type=row['piece_type'],
+                        subtype=row.get('subtype'),
+                        fit=row.get('fit'),
+                        style=row.get('style'),
+                        season=row.get('season'),
+                        main_color=row['main_color'],
+                        palette_tags=row.get('palette_tags')
+                    ))
+            
+            bottoms_result = []
+            for item_id in selected_bottom_ids:
+                if item_id in sample_data.index:
+                    row = sample_data.loc[item_id]
+                    bottoms_result.append(ClothingItem(
+                        name=row['name'],
+                        price=float(row['price']),
+                        image_url=row['image_url'],
+                        product_url=row['product_url'],
+                        gender=row['gender'],
+                        piece_type=row['piece_type'],
+                        subtype=row.get('subtype'),
+                        fit=row.get('fit'),
+                        style=row.get('style'),
+                        season=row.get('season'),
+                        main_color=row['main_color'],
+                        palette_tags=row.get('palette_tags')
+                    ))
+            
+            logger.info(f"✅ ИИ подбор завершен: {len(tops_result)} топов, {len(bottoms_result)} низа")
+            return tops_result, bottoms_result
+            
+        except json.JSONDecodeError as e:
+            logger.error(f"❌ Ошибка парсинга ответа ИИ: {e}")
+            # Fallback к простому поиску
+            return fallback_clothing_search(analysis, max_items)
+            
+    except Exception as e:
+        logger.error(f"❌ Ошибка ИИ подбора: {e}")
+        # Fallback к простому поиску
+        return fallback_clothing_search(analysis, max_items)
+
+def fallback_clothing_search(analysis: Dict, max_items: int = 15) -> Tuple[List[ClothingItem], List[ClothingItem]]:
+    """Резервный простой поиск одежды в случае сбоя ИИ"""
+    clothing_data = load_clothing_data()
+    
+    if clothing_data.empty:
+        return [], []
+    
+    gender = analysis.get('gender_label', 'unisex')
+    recommended_categories = analysis.get('recommended_categories', {})
+    
+    # Простая фильтрация по полу
+    if gender != 'unisex':
+        filtered_data = clothing_data[clothing_data['gender'].str.lower() == gender.lower()]
+    else:
+        filtered_data = clothing_data
+    
+    # Поиск топов и низа
+    top_categories = recommended_categories.get('top', ['t-shirt', 'shirt', 'blouse'])
+    bottom_categories = recommended_categories.get('bottom', ['jeans', 'trousers', 'pants'])
+    
+    tops_data = filtered_data[filtered_data['piece_type'].str.lower().isin([cat.lower() for cat in top_categories])]
+    bottoms_data = filtered_data[filtered_data['piece_type'].str.lower().isin([cat.lower() for cat in bottom_categories])]
+    
+    # Сортировка по цене
+    tops_data = tops_data.sort_values('price', ascending=True)
+    bottoms_data = bottoms_data.sort_values('price', ascending=True)
+    
+    max_per_category = max_items // 2
+    
+    # Конвертация в ClothingItem объекты
+    tops_result = []
+    for _, row in tops_data.head(max_per_category).iterrows():
+        tops_result.append(ClothingItem(
+            name=row['name'],
+            price=float(row['price']),
+            image_url=row['image_url'],
+            product_url=row['product_url'],
+            gender=row['gender'],
+            piece_type=row['piece_type'],
+            subtype=row.get('subtype'),
+            fit=row.get('fit'),
+            style=row.get('style'),
+            season=row.get('season'),
+            main_color=row['main_color'],
+            palette_tags=row.get('palette_tags')
+        ))
+    
+    bottoms_result = []
+    for _, row in bottoms_data.head(max_per_category).iterrows():
+        bottoms_result.append(ClothingItem(
+            name=row['name'],
+            price=float(row['price']),
+            image_url=row['image_url'],
+            product_url=row['product_url'],
+            gender=row['gender'],
+            piece_type=row['piece_type'],
+            subtype=row.get('subtype'),
+            fit=row.get('fit'),
+            style=row.get('style'),
+            season=row.get('season'),
+            main_color=row['main_color'],
+            palette_tags=row.get('palette_tags')
+        ))
+    
+    logger.info(f"🔄 Fallback поиск: {len(tops_result)} топов, {len(bottoms_result)} низа")
+    return tops_result, bottoms_result
+
+# ---------- СТАРЫЕ ФУНКЦИИ AMAZON (БУДУТ ЗАМЕНЕНЫ) ----------
 def tavily_search_with_brands(query: str, brands: List[str], max_results: int = 12) -> List[str]:
     """Поиск на Amazon через Tavily с учетом брендов"""
     # Добавляем бренды в запрос
@@ -506,6 +756,9 @@ async def analyze_body_photo(
     try:
         logger.info(f"🔍 Starting body photo analysis for user {current_user.firebase_uid or 'unknown'}")
         
+        # Загрузка данных одежды из CSV
+        load_clothing_data()
+        
         # Валидация файла
         if not file.content_type or not file.content_type.startswith('image/'):
             raise HTTPException(status_code=400, detail="Файл должен быть изображением")
@@ -555,18 +808,14 @@ async def analyze_body_photo(
             logger.error(f"❌ Query generation failed: {e}")
             top_query, bottom_query, preferred_brands = "casual shirt", "jeans", ["Uniqlo", "J.Crew"]
         
-        # Поиск товаров на Amazon через Tavily API
+        # ИИ подбор товаров из CSV данных
         try:
-            logger.info("🛍️ Searching for Amazon products...")
-            top_links = tavily_search_with_brands(top_query, preferred_brands, max_results=20)
-            bottom_links = tavily_search_with_brands(bottom_query, preferred_brands, max_results=20)
+            logger.info("🤖 AI selecting clothing from CSV data...")
+            final_tops, final_bottoms = ai_select_clothing_from_csv(analysis, max_items=15)
             
-            # Выбор лучших вариантов
-            final_tops, final_bottoms = select_best_items(analysis, top_links, bottom_links, max_items=15)
-            
-            logger.info(f"🎯 Found {len(final_tops)} tops and {len(final_bottoms)} bottoms")
+            logger.info(f"🎯 AI selected {len(final_tops)} tops and {len(final_bottoms)} bottoms")
         except Exception as e:
-            logger.error(f"❌ Product search failed: {e}")
+            logger.error(f"❌ CSV product search failed: {e}")
             final_tops, final_bottoms = [], []
         
         # Создание результата в новом формате
@@ -593,8 +842,8 @@ async def analyze_body_photo(
             color_description=f"Цветотип: {analysis['color_palette']['season']}"
         )
         
-        # Amazon рекомендации
-        amazon_recs = AmazonRecommendations(
+        # Рекомендации одежды из CSV
+        clothing_recs = ClothingRecommendations(
             tops=final_tops,
             bottoms=final_bottoms,
             total_found={
@@ -618,7 +867,7 @@ async def analyze_body_photo(
             analysis=result,
             ideal_fits=fits,
             ideal_colors=colors,
-            amazon_recommendations=amazon_recs,
+            clothing_recommendations=clothing_recs,
             metadata=metadata,
             photo_url=public_url
         )
