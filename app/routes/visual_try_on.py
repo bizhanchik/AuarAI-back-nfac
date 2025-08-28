@@ -165,9 +165,11 @@ def replicate_predict(garm_url, human_url, *, category: str, steps=30, seed=42,
             "crop": crop, "force_dc": force_dc, "mask_only": mask_only
         }
     }
-    # Не передаем garment_des, если он None или пустой, так как модель может не обрабатывать None корректно
+    # Всегда передаем garment_des как пустую строку, если он не задан, так как модель ожидает этот параметр
     if garment_des and garment_des.strip():
         payload["input"]["garment_des"] = garment_des
+    else:
+        payload["input"]["garment_des"] = ""
     
     logger.info(f"🚀 Sending request to Replicate with payload: {json.dumps(payload, indent=2)}")
     
