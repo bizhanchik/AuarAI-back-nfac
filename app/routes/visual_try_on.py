@@ -9,6 +9,8 @@ from urllib.parse import urlparse
 import os.path as osp
 import logging
 import uuid
+import time
+import asyncio
 
 import torch
 from transformers import CLIPProcessor, CLIPModel   # загружается один раз
@@ -190,6 +192,64 @@ def replicate_predict(garm_url, human_url, *, category: str, steps=30, seed=42,
     
     return response_json
 
+
+def poll_prediction_status(prediction_id: str, max_wait_time: int = 300, poll_interval: int = 5) -> dict:
+    """
+    Опрашивает статус предсказания Replicate до завершения или истечения времени ожидания.
+    
+    Args:
+        prediction_id: ID предсказания Replicate
+        max_wait_time: Максимальное время ожидания в секундах (по умолчанию 5 минут)
+        poll_interval: Интервал между запросами в секундах (по умолчанию 5 секунд)
+    
+    Returns:
+        dict: Финальный результат предсказания
+    """
+    start_time = time.time()
+    
+    while time.time() - start_time < max_wait_time:
+        try:
+            r = requests.get(
+                f"https://api.replicate.com/v1/predictions/{prediction_id}",
+                headers={"Authorization": f"Bearer {TOKEN}"},
+                timeout=30
+            )
+            
+            if r.status_code >= 400:
+                logger.error(f"❌ Failed to poll prediction status: {r.text}")
+                break
+                
+            result = r.json()
+            status = result.get("status")
+            
+            logger.info(f"🔄 Polling prediction {prediction_id}, status: {status}")
+            
+            if status in ["succeeded", "failed", "canceled"]:
+                logger.info(f"✅ Prediction {prediction_id} completed with status: {status}")
+                return result
+            
+            # Ждем перед следующим запросом
+            time.sleep(poll_interval)
+            
+        except Exception as e:
+            logger.error(f"❌ Error polling prediction status: {e}")
+            time.sleep(poll_interval)
+    
+    # Если время ожидания истекло, делаем последний запрос
+    logger.warning(f"⏰ Polling timeout reached for prediction {prediction_id}")
+    try:
+        r = requests.get(
+            f"https://api.replicate.com/v1/predictions/{prediction_id}",
+            headers={"Authorization": f"Bearer {TOKEN}"},
+            timeout=30
+        )
+        if r.status_code < 400:
+            return r.json()
+    except Exception as e:
+        logger.error(f"❌ Final polling attempt failed: {e}")
+    
+    raise HTTPException(408, f"Prediction {prediction_id} did not complete within {max_wait_time} seconds")
+
 def download_and_upload_to_gcs(replicate_url: str) -> str:
     """
     Загружает изображение из Replicate URL и сохраняет в Google Cloud Storage.
@@ -329,12 +389,24 @@ async def try_on(
         mask_only=mask_only, garment_des=garment_des,
     )
 
-    # Получаем результат от Replicate
+    # Получаем начальный результат от Replicate
+    prediction_id = pred.get("id")
+    initial_status = pred.get("status")
+    
+    logger.info(f"🎯 Initial Replicate prediction status: {initial_status}")
+    logger.info(f"🎯 Prediction ID: {prediction_id}")
+    
+    # Если предсказание еще не завершено, опрашиваем статус до завершения
+    if initial_status in ["starting", "processing"]:
+        logger.info(f"⏳ Prediction is {initial_status}, waiting for completion...")
+        pred = poll_prediction_status(prediction_id, max_wait_time=300, poll_interval=5)
+    
+    # Получаем финальный результат
     replicate_output_url = pred.get("output")
     prediction_status = pred.get("status")
     gcs_output_url = None
     
-    logger.info(f"🎯 Replicate prediction status: {prediction_status}")
+    logger.info(f"🎯 Final Replicate prediction status: {prediction_status}")
     logger.info(f"🎯 Replicate output URL: {replicate_output_url}")
     
     # Если есть результат от Replicate, загружаем его в GCS
@@ -347,38 +419,32 @@ async def try_on(
             logger.error(f"❌ Failed to process Replicate result: {e}")
             # В случае ошибки возвращаем оригинальный URL
             gcs_output_url = replicate_output_url
-    elif prediction_status in ["starting", "processing"]:
-        logger.info(f"⏳ Replicate prediction is still {prediction_status}, returning prediction info")
-        # Для асинхронных запросов возвращаем информацию о предикции
     elif prediction_status == "failed":
         logger.error(f"❌ Replicate prediction failed with status: {prediction_status}")
         if pred.get("error"):
             logger.error(f"❌ Replicate error details: {pred.get('error')}")
+        raise HTTPException(500, f"Virtual try-on failed: {pred.get('error', 'Unknown error')}")
+    elif prediction_status == "canceled":
+        logger.error(f"❌ Replicate prediction was canceled")
+        raise HTTPException(500, "Virtual try-on was canceled")
     elif not replicate_output_url and prediction_status == "succeeded":
         logger.error(f"❌ No output URL received from Replicate despite success status")
+        raise HTTPException(500, "No result received from virtual try-on service")
 
-    # Формируем ответ в зависимости от статуса
+    # Формируем успешный ответ (так как мы дождались завершения)
     response_data = {
         "category_used": cat.value if isinstance(cat, Category) else cat,
         "category_probs": probs,
-        "status": prediction_status,
-        "prediction_id": pred.get("id"),
+        "status": "succeeded",
+        "prediction_id": prediction_id,
         "garment_url": g_url,
         "human_url": h_url,
+        "output": gcs_output_url or replicate_output_url
     }
     
-    # Добавляем output только если есть результат
-    if gcs_output_url or replicate_output_url:
-        response_data["output"] = gcs_output_url or replicate_output_url
-    
     # Для отладки добавляем дополнительную информацию
-    if replicate_output_url:
+    if replicate_output_url and gcs_output_url != replicate_output_url:
         response_data["original_replicate_url"] = replicate_output_url
     
-    # Для асинхронных запросов добавляем URLs для проверки статуса
-    if prediction_status in ["starting", "processing"] and pred.get("urls"):
-        response_data["check_url"] = pred["urls"].get("get")
-        response_data["web_url"] = pred["urls"].get("web")
-    
-    logger.info(f"📤 Returning response with status: {prediction_status}")
+    logger.info(f"📤 Returning successful response with output: {response_data['output']}")
     return JSONResponse(response_data)
