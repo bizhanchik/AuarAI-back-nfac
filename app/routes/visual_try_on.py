@@ -167,14 +167,25 @@ def replicate_predict(garm_url, human_url, *, category: str, steps=30, seed=42,
     }
     if garment_des:
         payload["input"]["garment_des"] = garment_des
+    
+    logger.info(f"🚀 Sending request to Replicate with payload: {json.dumps(payload, indent=2)}")
+    
     r = requests.post(
         "https://api.replicate.com/v1/predictions",
         headers={"Authorization": f"Bearer {TOKEN}", "Content-Type": "application/json", "Prefer": "wait"},
         data=json.dumps(payload), timeout=600
     )
+    
+    logger.info(f"📥 Replicate response status: {r.status_code}")
+    logger.info(f"📥 Replicate response: {r.text}")
+    
     if r.status_code >= 400:
         raise HTTPException(500, f"Replicate prediction failed: {r.text}")
-    return r.json()
+    
+    response_json = r.json()
+    logger.info(f"✅ Replicate prediction result: {json.dumps(response_json, indent=2)}")
+    
+    return response_json
 
 def download_and_upload_to_gcs(replicate_url: str) -> str:
     """
@@ -317,10 +328,14 @@ async def try_on(
 
     # Получаем результат от Replicate
     replicate_output_url = pred.get("output")
+    prediction_status = pred.get("status")
     gcs_output_url = None
     
+    logger.info(f"🎯 Replicate prediction status: {prediction_status}")
+    logger.info(f"🎯 Replicate output URL: {replicate_output_url}")
+    
     # Если есть результат от Replicate, загружаем его в GCS
-    if replicate_output_url and pred.get("status") == "succeeded":
+    if replicate_output_url and prediction_status == "succeeded":
         try:
             logger.info(f"🔄 Processing Replicate result: {replicate_output_url}")
             gcs_output_url = download_and_upload_to_gcs(replicate_output_url)
@@ -329,6 +344,12 @@ async def try_on(
             logger.error(f"❌ Failed to process Replicate result: {e}")
             # В случае ошибки возвращаем оригинальный URL
             gcs_output_url = replicate_output_url
+    elif prediction_status != "succeeded":
+        logger.error(f"❌ Replicate prediction failed with status: {prediction_status}")
+        if pred.get("error"):
+            logger.error(f"❌ Replicate error details: {pred.get('error')}")
+    elif not replicate_output_url:
+        logger.error(f"❌ No output URL received from Replicate")
 
     return JSONResponse({
         "category_used": cat.value if isinstance(cat, Category) else cat,
