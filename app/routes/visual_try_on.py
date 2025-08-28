@@ -7,9 +7,15 @@ from dotenv import load_dotenv
 from PIL import Image
 from urllib.parse import urlparse
 import os.path as osp
+import logging
+import uuid
 
 import torch
 from transformers import CLIPProcessor, CLIPModel   # загружается один раз
+
+from ..gcs_uploader import gcs_uploader
+
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 TOKEN = os.getenv("REPLICATE_API_TOKEN")
@@ -170,6 +176,43 @@ def replicate_predict(garm_url, human_url, *, category: str, steps=30, seed=42,
         raise HTTPException(500, f"Replicate prediction failed: {r.text}")
     return r.json()
 
+def download_and_upload_to_gcs(replicate_url: str) -> str:
+    """
+    Загружает изображение из Replicate URL и сохраняет в Google Cloud Storage.
+    Возвращает публичный URL из GCS.
+    """
+    try:
+        logger.info(f"📥 Downloading image from Replicate: {replicate_url}")
+        
+        # Загружаем изображение из Replicate с авторизацией
+        headers = {"Authorization": f"Bearer {TOKEN}"}
+        response = requests.get(replicate_url, headers=headers, timeout=30)
+        response.raise_for_status()
+        
+        image_data = response.content
+        logger.info(f"✅ Downloaded {len(image_data)} bytes from Replicate")
+        
+        # Генерируем уникальное имя файла
+        filename = f"virtual_try_on/{uuid.uuid4()}.jpg"
+        
+        # Загружаем в Google Cloud Storage
+        logger.info(f"☁️ Uploading to GCS: {filename}")
+        public_url = gcs_uploader.upload_file(
+            file_data=image_data,
+            filename=filename,
+            content_type="image/jpeg"
+        )
+        
+        if not public_url:
+            raise Exception("Failed to upload to GCS")
+            
+        logger.info(f"✅ Successfully uploaded to GCS: {public_url}")
+        return public_url
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to download and upload image: {e}")
+        raise HTTPException(500, f"Failed to process try-on result: {str(e)}")
+
 @router.post("/try-on")
 async def try_on(
     request: Request,
@@ -272,12 +315,28 @@ async def try_on(
         mask_only=mask_only, garment_des=garment_des,
     )
 
+    # Получаем результат от Replicate
+    replicate_output_url = pred.get("output")
+    gcs_output_url = None
+    
+    # Если есть результат от Replicate, загружаем его в GCS
+    if replicate_output_url and pred.get("status") == "succeeded":
+        try:
+            logger.info(f"🔄 Processing Replicate result: {replicate_output_url}")
+            gcs_output_url = download_and_upload_to_gcs(replicate_output_url)
+            logger.info(f"✅ Successfully processed and uploaded to GCS: {gcs_output_url}")
+        except Exception as e:
+            logger.error(f"❌ Failed to process Replicate result: {e}")
+            # В случае ошибки возвращаем оригинальный URL
+            gcs_output_url = replicate_output_url
+
     return JSONResponse({
         "category_used": cat.value if isinstance(cat, Category) else cat,
         "category_probs": probs,       # для дебага можно убрать
         "status": pred.get("status"),
-        "output": pred.get("output"),
+        "output": gcs_output_url or replicate_output_url,  # Возвращаем GCS URL если доступен
         "prediction_id": pred.get("id"),
         "garment_url": g_url,
-        "human_url": h_url
+        "human_url": h_url,
+        "original_replicate_url": replicate_output_url  # Для отладки
     })
