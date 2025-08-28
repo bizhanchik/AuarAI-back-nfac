@@ -448,3 +448,232 @@ async def try_on(
     
     logger.info(f"📤 Returning successful response with output: {response_data['output']}")
     return JSONResponse(response_data)
+
+
+@router.post("/try-on-sequential")
+async def try_on_sequential(
+    request: Request,
+    # keep form params for non-file fields
+    steps: int = Form(30),
+    seed: int = Form(42),
+    crop: bool = Form(False),
+    force_dc: bool = Form(False),
+    mask_only: bool = Form(False),
+    garment_des: Optional[str] = Form(None),
+):
+    """
+    Sequential try-on endpoint: first tries on the top, then uses the result to try on the bottom.
+    Accepted form fields:
+      - top_garment (file) or top_garment_url (string URL)
+      - bottom_garment (file) or bottom_garment_url (string URL)
+      - human (file) or human_url (string URL)
+    """
+    form = await request.form()
+    
+    # Read file-like entries safely
+    top_garment_file = form.get("top_garment")
+    bottom_garment_file = form.get("bottom_garment")
+    human_file = form.get("human")
+    top_garment_url = form.get("top_garment_url")
+    bottom_garment_url = form.get("bottom_garment_url")
+    human_url = form.get("human_url")
+
+    # --- Resolve top garment ---
+    top_garment_bytes: bytes | None = None
+    top_garment_name_for_guess: str | None = None
+    top_garment_source_url: Optional[str] = None
+
+    if isinstance(top_garment_url, str) and top_garment_url.strip():
+        if is_http_url(top_garment_url.strip()):
+            top_garment_source_url = top_garment_url.strip()
+            top_garment_bytes, _, g_name = fetch_bytes_from_url(top_garment_source_url)
+            top_garment_name_for_guess = g_name
+        else:
+            raise HTTPException(400, "top_garment_url must be http/https")
+    elif hasattr(top_garment_file, "filename") and getattr(top_garment_file, "filename", None):
+        upload: UploadFile = top_garment_file  # type: ignore[assignment]
+        data = await upload.read()
+        if not data:
+            raise HTTPException(400, "Empty top garment file")
+        top_garment_bytes = data
+        top_garment_name_for_guess = upload.filename
+        await upload.seek(0)
+    else:
+        raise HTTPException(400, "Provide top_garment file or top_garment_url")
+
+    # --- Resolve bottom garment ---
+    bottom_garment_bytes: bytes | None = None
+    bottom_garment_name_for_guess: str | None = None
+    bottom_garment_source_url: Optional[str] = None
+
+    if isinstance(bottom_garment_url, str) and bottom_garment_url.strip():
+        if is_http_url(bottom_garment_url.strip()):
+            bottom_garment_source_url = bottom_garment_url.strip()
+            bottom_garment_bytes, _, g_name = fetch_bytes_from_url(bottom_garment_source_url)
+            bottom_garment_name_for_guess = g_name
+        else:
+            raise HTTPException(400, "bottom_garment_url must be http/https")
+    elif hasattr(bottom_garment_file, "filename") and getattr(bottom_garment_file, "filename", None):
+        upload: UploadFile = bottom_garment_file  # type: ignore[assignment]
+        data = await upload.read()
+        if not data:
+            raise HTTPException(400, "Empty bottom garment file")
+        bottom_garment_bytes = data
+        bottom_garment_name_for_guess = upload.filename
+        await upload.seek(0)
+    else:
+        raise HTTPException(400, "Provide bottom_garment file or bottom_garment_url")
+
+    # --- Resolve human ---
+    human_source_url: Optional[str] = None
+    if isinstance(human_url, str) and human_url.strip():
+        if is_http_url(human_url.strip()):
+            human_source_url = human_url.strip()
+        else:
+            raise HTTPException(400, "human_url must be http/https")
+    elif hasattr(human_file, "filename") and getattr(human_file, "filename", None):
+        # ok, will upload below
+        pass
+    else:
+        raise HTTPException(400, "Provide human file or human_url")
+
+    # --- Auto-category for garments ---
+    top_cat, top_probs = auto_category(top_garment_bytes, top_garment_name_for_guess)  # type: ignore[arg-type]
+    bottom_cat, bottom_probs = auto_category(bottom_garment_bytes, bottom_garment_name_for_guess)  # type: ignore[arg-type]
+    
+    # Validate categories
+    if top_cat.value not in ["upper_body", "dresses"]:
+        raise HTTPException(400, f"Top garment should be upper_body or dresses, got {top_cat.value}")
+    if bottom_cat.value not in ["lower_body"]:
+        raise HTTPException(400, f"Bottom garment should be lower_body, got {bottom_cat.value}")
+
+    # --- Upload garments to Replicate ---
+    if top_garment_source_url:
+        top_g_url = top_garment_source_url
+    else:
+        upload: UploadFile = form.get("top_garment")  # type: ignore[assignment]
+        if not upload:
+            raise HTTPException(400, "Top garment is missing")
+        top_g_url = await replicate_upload(upload)
+
+    if bottom_garment_source_url:
+        bottom_g_url = bottom_garment_source_url
+    else:
+        upload_b: UploadFile = form.get("bottom_garment")  # type: ignore[assignment]
+        if not upload_b:
+            raise HTTPException(400, "Bottom garment is missing")
+        bottom_g_url = await replicate_upload(upload_b)
+
+    if human_source_url:
+        h_url = human_source_url
+    else:
+        upload_h: UploadFile = form.get("human")  # type: ignore[assignment]
+        if not upload_h:
+            raise HTTPException(400, "Human is missing")
+        h_url = await replicate_upload(upload_h)
+
+    logger.info(f"🎯 Starting sequential try-on: top={top_cat.value}, bottom={bottom_cat.value}")
+    
+    # --- STEP 1: Try on the top garment ---
+    logger.info(f"👕 Step 1: Trying on top garment ({top_cat.value})")
+    top_pred = replicate_predict(
+        top_g_url, h_url,
+        category=top_cat.value,
+        steps=steps, seed=seed, crop=crop, force_dc=force_dc,
+        mask_only=mask_only, garment_des=garment_des,
+    )
+
+    # Wait for top try-on completion
+    top_prediction_id = top_pred.get("id")
+    top_initial_status = top_pred.get("status")
+    
+    logger.info(f"🎯 Top garment prediction status: {top_initial_status}")
+    
+    if top_initial_status in ["starting", "processing"]:
+        logger.info(f"⏳ Top prediction is {top_initial_status}, waiting for completion...")
+        top_pred = poll_prediction_status(top_prediction_id, max_wait_time=300, poll_interval=5)
+    
+    top_replicate_output_url = top_pred.get("output")
+    top_prediction_status = top_pred.get("status")
+    
+    logger.info(f"🎯 Top garment final status: {top_prediction_status}")
+    
+    if top_prediction_status != "succeeded" or not top_replicate_output_url:
+        logger.error(f"❌ Top garment try-on failed with status: {top_prediction_status}")
+        if top_pred.get("error"):
+            logger.error(f"❌ Top garment error details: {top_pred.get('error')}")
+        raise HTTPException(500, f"Top garment try-on failed: {top_pred.get('error', 'Unknown error')}")
+    
+    # Upload top result to GCS
+    try:
+        logger.info(f"🔄 Processing top garment result: {top_replicate_output_url}")
+        top_gcs_output_url = download_and_upload_to_gcs(top_replicate_output_url)
+        logger.info(f"✅ Top garment result uploaded to GCS: {top_gcs_output_url}")
+    except Exception as e:
+        logger.error(f"❌ Failed to process top garment result: {e}")
+        top_gcs_output_url = top_replicate_output_url
+    
+    # --- STEP 2: Try on the bottom garment using the top result ---
+    logger.info(f"👖 Step 2: Trying on bottom garment ({bottom_cat.value}) using top result")
+    
+    # Use the top result as the human image for bottom try-on
+    bottom_pred = replicate_predict(
+        bottom_g_url, top_gcs_output_url or top_replicate_output_url,
+        category=bottom_cat.value,
+        steps=steps, seed=seed, crop=crop, force_dc=force_dc,
+        mask_only=mask_only, garment_des=garment_des,
+    )
+
+    # Wait for bottom try-on completion
+    bottom_prediction_id = bottom_pred.get("id")
+    bottom_initial_status = bottom_pred.get("status")
+    
+    logger.info(f"🎯 Bottom garment prediction status: {bottom_initial_status}")
+    
+    if bottom_initial_status in ["starting", "processing"]:
+        logger.info(f"⏳ Bottom prediction is {bottom_initial_status}, waiting for completion...")
+        bottom_pred = poll_prediction_status(bottom_prediction_id, max_wait_time=300, poll_interval=5)
+    
+    bottom_replicate_output_url = bottom_pred.get("output")
+    bottom_prediction_status = bottom_pred.get("status")
+    
+    logger.info(f"🎯 Bottom garment final status: {bottom_prediction_status}")
+    
+    if bottom_prediction_status != "succeeded" or not bottom_replicate_output_url:
+        logger.error(f"❌ Bottom garment try-on failed with status: {bottom_prediction_status}")
+        if bottom_pred.get("error"):
+            logger.error(f"❌ Bottom garment error details: {bottom_pred.get('error')}")
+        raise HTTPException(500, f"Bottom garment try-on failed: {bottom_pred.get('error', 'Unknown error')}")
+    
+    # Upload final result to GCS
+    try:
+        logger.info(f"🔄 Processing final result: {bottom_replicate_output_url}")
+        final_gcs_output_url = download_and_upload_to_gcs(bottom_replicate_output_url)
+        logger.info(f"✅ Final result uploaded to GCS: {final_gcs_output_url}")
+    except Exception as e:
+        logger.error(f"❌ Failed to process final result: {e}")
+        final_gcs_output_url = bottom_replicate_output_url
+
+    # --- Return sequential try-on result ---
+    response_data = {
+        "status": "succeeded",
+        "top_garment": {
+            "category_used": top_cat.value,
+            "category_probs": top_probs,
+            "prediction_id": top_prediction_id,
+            "garment_url": top_g_url,
+            "output": top_gcs_output_url or top_replicate_output_url
+        },
+        "bottom_garment": {
+            "category_used": bottom_cat.value,
+            "category_probs": bottom_probs,
+            "prediction_id": bottom_prediction_id,
+            "garment_url": bottom_g_url,
+            "output": final_gcs_output_url or bottom_replicate_output_url
+        },
+        "human_url": h_url,
+        "final_output": final_gcs_output_url or bottom_replicate_output_url
+    }
+    
+    logger.info(f"📤 Returning sequential try-on response with final output: {response_data['final_output']}")
+    return JSONResponse(response_data)
