@@ -165,7 +165,8 @@ def replicate_predict(garm_url, human_url, *, category: str, steps=30, seed=42,
             "crop": crop, "force_dc": force_dc, "mask_only": mask_only
         }
     }
-    if garment_des:
+    # Не передаем garment_des, если он None или пустой, так как модель может не обрабатывать None корректно
+    if garment_des and garment_des.strip():
         payload["input"]["garment_des"] = garment_des
     
     logger.info(f"🚀 Sending request to Replicate with payload: {json.dumps(payload, indent=2)}")
@@ -344,20 +345,38 @@ async def try_on(
             logger.error(f"❌ Failed to process Replicate result: {e}")
             # В случае ошибки возвращаем оригинальный URL
             gcs_output_url = replicate_output_url
-    elif prediction_status != "succeeded":
+    elif prediction_status in ["starting", "processing"]:
+        logger.info(f"⏳ Replicate prediction is still {prediction_status}, returning prediction info")
+        # Для асинхронных запросов возвращаем информацию о предикции
+    elif prediction_status == "failed":
         logger.error(f"❌ Replicate prediction failed with status: {prediction_status}")
         if pred.get("error"):
             logger.error(f"❌ Replicate error details: {pred.get('error')}")
-    elif not replicate_output_url:
-        logger.error(f"❌ No output URL received from Replicate")
+    elif not replicate_output_url and prediction_status == "succeeded":
+        logger.error(f"❌ No output URL received from Replicate despite success status")
 
-    return JSONResponse({
+    # Формируем ответ в зависимости от статуса
+    response_data = {
         "category_used": cat.value if isinstance(cat, Category) else cat,
-        "category_probs": probs,       # для дебага можно убрать
-        "status": pred.get("status"),
-        "output": gcs_output_url or replicate_output_url,  # Возвращаем GCS URL если доступен
+        "category_probs": probs,
+        "status": prediction_status,
         "prediction_id": pred.get("id"),
         "garment_url": g_url,
         "human_url": h_url,
-        "original_replicate_url": replicate_output_url  # Для отладки
-    })
+    }
+    
+    # Добавляем output только если есть результат
+    if gcs_output_url or replicate_output_url:
+        response_data["output"] = gcs_output_url or replicate_output_url
+    
+    # Для отладки добавляем дополнительную информацию
+    if replicate_output_url:
+        response_data["original_replicate_url"] = replicate_output_url
+    
+    # Для асинхронных запросов добавляем URLs для проверки статуса
+    if prediction_status in ["starting", "processing"] and pred.get("urls"):
+        response_data["check_url"] = pred["urls"].get("get")
+        response_data["web_url"] = pred["urls"].get("web")
+    
+    logger.info(f"📤 Returning response with status: {prediction_status}")
+    return JSONResponse(response_data)
